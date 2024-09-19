@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitação de Material</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
+        <h2 class="text-2xl font-bold mb-4 text-center">Solicitação de Material</h2>
+        <form method="POST" action="#">
+            {% csrf_token %}
+            
+            <div id="form-container">
+                <!-- Primeiro bloco de formulário -->
+                <div class="form-block mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <label for="liderado_0" class="block text-gray-700 mb-2">Liderado:</label>
+                    <select name="liderado_0" class="w-full p-2 border border-gray-300 rounded-lg mb-4">
+                        <option value="1">João Silva</option>
+                        <option value="2">Maria Oliveira</option>
+                        <option value="3">Pedro Santos</option>
+                    </select>
+
+                    <label for="item_0" class="block text-gray-700 mb-2">Item:</label>
+                    <select name="item_0" class="w-full p-2 border border-gray-300 rounded-lg mb-4">
+                        <option value="1">Capacete</option>
+                        <option value="2">Luvas</option>
+                        <option value="3">Botas</option>
+                    </select>
+
+                    <label for="quantidade_0" class="block text-gray-700 mb-2">Quantidade:</label>
+                    <input type="number" name="quantidade_0" class="w-full p-2 border border-gray-300 rounded-lg mb-4" min="1" value="1">
+
+                    <label for="motivo_0" class="block text-gray-700 mb-2">Motivo:</label>
+                    <select name="motivo_0" class="w-full p-2 border border-gray-300 rounded-lg">
+                        <option value="perda">Perda</option>
+                        <option value="substituicao">Substituição</option>
+                        <option value="dano">Dano</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botão para adicionar mais materiais -->
+            <button type="button" id="add-material-btn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-4">Adicionar Material</button>
+
+            <!-- Botão para enviar o formulário -->
+            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Enviar Solicitação</button>
+        </form>
+    </div>
+
+    <!-- Script para adicionar mais blocos de formulários -->
+    <script>
+        let materialIndex = 1; // Controla o índice dos blocos de formulários
+
+        document.getElementById('add-material-btn').addEventListener('click', function() {
+            const formContainer = document.getElementById('form-container');
+
+            // Novo bloco de formulário
+            const newBlock = document.createElement('div');
+            newBlock.classList.add('form-block', 'mb-4', 'p-4', 'bg-gray-50', 'border', 'border-gray-200', 'rounded-lg');
+            newBlock.innerHTML = `
+                <label for="liderado_${materialIndex}" class="block text-gray-700 mb-2">Liderado:</label>
+                <select name="liderado_${materialIndex}" class="w-full p-2 border border-gray-300 rounded-lg mb-4">
+                    <option value="1">João Silva</option>
+                    <option value="2">Maria Oliveira</option>
+                    <option value="3">Pedro Santos</option>
+                </select>
+
+                <label for="item_${materialIndex}" class="block text-gray-700 mb-2">Item:</label>
+                <select name="item_${materialIndex}" class="w-full p-2 border border-gray-300 rounded-lg mb-4">
+                    <option value="1">Capacete</option>
+                    <option value="2">Luvas</option>
+                    <option value="3">Botas</option>
+                </select>
+
+                <label for="quantidade_${materialIndex}" class="block text-gray-700 mb-2">Quantidade:</label>
+                <input type="number" name="quantidade_${materialIndex}" class="w-full p-2 border border-gray-300 rounded-lg mb-4" min="1" value="1">
+
+                <label for="motivo_${materialIndex}" class="block text-gray-700 mb-2">Motivo:</label>
+                <select name="motivo_${materialIndex}" class="w-full p-2 border border-gray-300 rounded-lg">
+                    <option value="perda">Perda</option>
+                    <option value="substituicao">Substituição</option>
+                    <option value="dano">Dano</option>
+                </select>
+            `;
+
+            // Adiciona o novo bloco ao formulário
+            formContainer.appendChild(newBlock);
+
+            materialIndex++; // Atualiza o índice para o próximo bloco
+        });
+    </script>
+</body>
+</html>
