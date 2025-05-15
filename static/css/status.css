@@ -1,0 +1,23 @@
+.status-approved{
+    background-color: #dff3e9;
+    color: #577d67;
+    font-size: 14px; 
+    padding: 8px; 
+    border-radius: 13px; 
+}
+
+.status-peding{
+    background-color: #f8e7c1;
+    color: #897a5b;
+    font-size: 14px; 
+    padding: 8px; 
+    border-radius: 13px; 
+}
+
+.status-declined{
+    background-color: #fae5e4;
+    color: #9f7173;
+    font-size: 14px; 
+    padding: 8px; 
+    border-radius: 13px; 
+}

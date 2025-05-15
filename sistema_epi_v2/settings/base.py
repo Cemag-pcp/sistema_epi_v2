@@ -17,6 +17,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'core',
     'devolucao',
     'usuario',
     'equipamento',
@@ -38,7 +40,7 @@ ROOT_URLCONF = 'sistema_epi_v2.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -99,6 +101,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static/'),
+    os.path.join(BASE_DIR, 'core/static'),
+    os.path.join(BASE_DIR, 'devolucao/static'),
+    os.path.join(BASE_DIR, 'equipamento/static'),
+    os.path.join(BASE_DIR, 'solicitacao/static'),
+    os.path.join(BASE_DIR, 'usuario/static'),
+]
 
 MEDIA_URL = 'media/'
 
