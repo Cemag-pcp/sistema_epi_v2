@@ -22,27 +22,42 @@ class UsuarioManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
 
         return self.create_user(matricula, password, **extra_fields)
-
-class Usuario(AbstractBaseUser, PermissionsMixin):
+    
+class Funcionario(models.Model):
     nome = models.CharField(max_length=150)
     matricula = models.IntegerField(unique=True)
     setor = models.CharField(max_length=150)
     cargo = models.CharField(max_length=150)
     data_admissao = models.DateField(null=True)
     ativo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f'{self.usuario.matricula} - {self.usuario.nome}'
+
+class Usuario(AbstractBaseUser, PermissionsMixin):
+    TYPE_CHOICES = (
+        ('master', 'Master'),
+        ('solicitante', 'Solicitante'),
+        ('operador', 'Operador'),
+    )
+
+    nome = models.CharField(max_length=150)
+    matricula = models.IntegerField(unique=True)
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
+    funcionario = models.OneToOneField(Funcionario, on_delete=models.CASCADE, related_name='funcionario')
+    tipo_acesso = models.CharField(max_length=20, choices=TYPE_CHOICES, default='comum')
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     
-
     USERNAME_FIELD = 'matricula'
     REQUIRED_FIELDS = []
 
     objects = UsuarioManager()
 
     def __str__(self):
-        return f'{self.matricula} - {self.nome}'
+        return f'{self.funcionario.matricula} - {self.funcionario.nome}'
+    
+
 
     
