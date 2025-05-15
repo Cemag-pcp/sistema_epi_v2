@@ -7,11 +7,28 @@
 </head>
 <body>
     <h2>Login</h2>
-    <form method="post">
+    <form action="{% url 'usuario:login_view' %}" method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-    <button type="submit">Entrar</button>
+        <label for="matricula">Matrícula:</label>
+        <input type="number" id="matricula" name="matricula" required>
+
+        <label for="password">Senha:</label>
+        <input type="password" id="password" name="password" required>
+
+        {% if error %}
+            <p style="color: red;">{{ error }}</p>
+        {% endif %}
+        <button type="submit">Entrar</button>
     </form>
+
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 
 </body>
 </html>

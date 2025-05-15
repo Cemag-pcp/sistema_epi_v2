@@ -32,7 +32,7 @@ class Funcionario(models.Model):
     ativo = models.BooleanField(default=True)
 
     def __str__(self):
-        return f'{self.usuario.matricula} - {self.usuario.nome}'
+        return f'{self.matricula} - {self.nome}'
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
     TYPE_CHOICES = (
@@ -46,7 +46,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
     funcionario = models.OneToOneField(Funcionario, on_delete=models.CASCADE, related_name='funcionario')
-    tipo_acesso = models.CharField(max_length=20, choices=TYPE_CHOICES, default='comum')
+    tipo_acesso = models.CharField(max_length=20, choices=TYPE_CHOICES, default='operador')
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     
@@ -56,7 +56,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     objects = UsuarioManager()
 
     def __str__(self):
-        return f'{self.funcionario.matricula} - {self.funcionario.nome}'
+        return f'{self.matricula} - {self.nome}'
     
 
 
