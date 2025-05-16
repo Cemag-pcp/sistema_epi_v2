@@ -23,7 +23,7 @@ def login_view(request):
             
         else:
             # Aqui você pode adicionar uma mensagem de erro se o login falhar
-            messages.error(request, "Usuário ou senha inválidos.")
+            messages.error(request, "Usuário ou senha inválidos.", extra_tags='danger')
 
     return render(request, 'usuario/login.html')
 

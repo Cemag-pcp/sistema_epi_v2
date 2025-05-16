@@ -3,32 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Login - Sistema de EPI</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </head>
-<body>
-    <h2>Login</h2>
-    <form action="{% url 'usuario:login_view' %}" method="post">
-        {% csrf_token %}
-        <label for="matricula">Matrícula:</label>
-        <input type="number" id="matricula" name="matricula" required>
+<body style="background: linear-gradient(to right, #f0f2f5, #d6e4f0);">
 
-        <label for="password">Senha:</label>
-        <input type="password" id="password" name="password" required>
+    <div class="container d-flex justify-content-center align-items-center min-vh-100">
+        <div id class="card shadow-lg rounded-4 px-5 py-5 bg-white animate__animated animate__fadeIn"
+             style="width: 100%; max-width: 480px; min-height: 300px;">
 
-        {% if error %}
-            <p style="color: red;">{{ error }}</p>
-        {% endif %}
-        <button type="submit">Entrar</button>
-    </form>
+            <div class="d-flex flex-column justify-content-between" style="height: 100%;">
+                <h3 class="text-center fw-bold mb-4">Sistema EPI - Login</h3>
 
+                <form action="{% url 'usuario:login_view' %}" method="post">
+                    {% csrf_token %}
+                    
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="number" name="matricula" id="matricula" class="form-control"
+                               placeholder="Matrícula" autocomplete="matricula" required>
+                    </div>
 
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-            <li class="{{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" name="password" id="password" class="form-control"
+                               placeholder="Senha" autocomplete="current-password" required>
+                    </div>
+                    <br>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-box-arrow-in-right me-2"></i> Entrar
+                    </button>
+                </form>
 
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} mt-3" style="padding: 5px 10px;" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
