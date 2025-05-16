@@ -1,0 +1,98 @@
+<div class="modal fade" id="modal-criar-equipamento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modal-criar-equipamento-label">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+            <h5 class="modal-title" id="modal-criar-equipamento-title">Adicionar EPI</h5>
+            <span class="desc-modal-title">Adicione os equipamentos de proteção individual. Clique em salvar quando terminar.</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+          <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Nome</label>
+                    <input type="text" class="form-control text-modal" placeholder="Nome do Equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Descrição</label>
+                    <input type="text" class="form-control text-modal" placeholder="Descrição do Equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Código</label>
+                    <input type="text" class="form-control text-modal" placeholder="Código do Equipamento">
+                </div>
+          </div>
+      </div>
+      <div class="modal-footer">
+          <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-dark d-flex align-items-center gap-2" id="salvarEquipamento">              
+              <span class="spinner-border spinner-border-sm" style="display:none"></span>
+              <span role="status">Salvar Alterações</span>
+          </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modal-editar-equipamento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modal-editar-equipamento-label">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+            <h5 class="modal-title" id="modal-editar-equipamento-title">Editar EPI</h5>
+            <span class="desc-modal-title">Faça alterações na solicitação de EPI. Clique em salvar quando terminar.</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+          <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Nome</label>
+                    <input type="text" class="form-control text-modal" placeholder="Nome do Equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Descrição</label>
+                    <input type="text" class="form-control text-modal" placeholder="Descrição do Equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Código</label>
+                    <input type="text" class="form-control text-modal" placeholder="Código do Equipamento">
+                </div>
+          </div>
+      </div>
+      <div class="modal-footer">
+          <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-dark d-flex align-items-center gap-2" id="editarEquipamento">              
+              <span class="spinner-border spinner-border-sm" style="display:none"></span>
+              <span role="status">Salvar Alterações</span>
+          </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modal-desativar-equipamento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modal-desativar-equipamento-label">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+            <h5 class="modal-title" id="modal-desativar-equipamento-title">Desativar EPI</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+          <div class="row">
+            <span class="desc-modal-title">Tem certeza que deseja desativar o EPI : <span style="color: red;">xxxxxxxx</span> ?</span>
+          </div>
+      </div>
+      <div class="modal-footer">
+          <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-danger d-flex align-items-center gap-2" id="desativarEquipamento">              
+              <span class="spinner-border spinner-border-sm" style="display:none"></span>
+              <span role="status">Salvar Alterações</span>
+          </button>
+      </div>
+    </div>
+  </div>
+</div>
