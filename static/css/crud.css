@@ -1,0 +1,48 @@
+.status-approved{
+    background-color: #aeffd7;
+    color: #577d67;
+    font-size: 14px;
+    padding: 5px 20px 5px 20px;
+}
+
+.status-peding{
+    background-color: #f8e7c1;
+    color: #897a5b;
+    font-size: 14px; 
+    padding: 8px; 
+    border-radius: 13px; 
+}
+
+.status-declined{
+    background-color: #ffc7c4;
+    color: #9f7173;
+    font-size: 14px; 
+    padding: 5px 20px 5px 20px;
+}
+
+.btn-white{
+    background-color: white;
+    border-color: #e4e4e7;
+    font-weight: 600;
+}
+
+.btn-white:hover{
+    background-color: rgb(240, 240, 240);
+    border-color: #e4e4e7;
+    font-weight: 600;
+}
+
+.btn-white:active{
+    border-color: #e4e4e7 !important;
+}
+
+.desc-modal-title {
+    color: #71717a;
+    font-size: 0.875rem; 
+    padding-top: 6px;
+}
+
+.text-modal {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
