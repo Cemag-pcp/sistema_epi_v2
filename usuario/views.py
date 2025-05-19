@@ -19,7 +19,10 @@ def login_view(request):
             else:
                 print('Redirecionando para a página padrão')
                 #Enquanto ainda não existe uma página de (inventário??) vamos redirecionar para a home
-            return redirect('core:home')
+            print(request.POST.get('next'))
+            next_url = request.POST.get('next') or 'core:home'  # 'home' pode ser o nome da URL
+            return redirect(next_url)
+            # return redirect('core:home')
             
         else:
             # Aqui você pode adicionar uma mensagem de erro se o login falhar
