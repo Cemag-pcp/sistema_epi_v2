@@ -1,4 +1,4 @@
-<div class="modal fade" id="modal-criar-equipamento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modal-criar-equipamento-label">
+<div class="modal fade" id="modal-criar-equipamento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header align-items-start">
@@ -10,17 +10,29 @@
       </div>
       <div class="modal-body">
           <div class="row">
+                <input type="hidden" class="form-control text-modal" placeholder="Nome do Equipamento">
                 <div class="col-md-6 mb-4">
                     <label class="text-modal">Nome</label>
                     <input type="text" class="form-control text-modal" placeholder="Nome do Equipamento">
                 </div>
                 <div class="col-md-6 mb-4">
-                    <label class="text-modal">Descrição</label>
-                    <input type="text" class="form-control text-modal" placeholder="Descrição do Equipamento">
-                </div>
-                <div class="col-md-6 mb-4">
                     <label class="text-modal">Código</label>
                     <input type="text" class="form-control text-modal" placeholder="Código do Equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Vida Útil</label>
+                    <input type="number" class="form-control text-modal" placeholder="Vida útil do Equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">CA</label>
+                    <input type="number" class="form-control text-modal" placeholder="CA do Equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Ativo</label>
+                    <select type="text" class="form-control text-modal">
+                      <option value="Ativo">Ativo</option>
+                      <option value="Desativado">Desativado</option>
+                    </select>
                 </div>
           </div>
       </div>
@@ -35,7 +47,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="modal-editar-equipamento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modal-editar-equipamento-label">
+<div class="modal fade" id="modal-editar-equipamento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header align-items-start">
@@ -47,17 +59,29 @@
       </div>
       <div class="modal-body">
           <div class="row">
+                <input type="hidden" class="form-control text-modal" placeholder="Nome do Equipamento" id="edit-id-equipamento">
                 <div class="col-md-6 mb-4">
                     <label class="text-modal">Nome</label>
-                    <input type="text" class="form-control text-modal" placeholder="Nome do Equipamento">
-                </div>
-                <div class="col-md-6 mb-4">
-                    <label class="text-modal">Descrição</label>
-                    <input type="text" class="form-control text-modal" placeholder="Descrição do Equipamento">
+                    <input type="text" class="form-control text-modal" placeholder="Nome do Equipamento" id="edit-nome-equipamento">
                 </div>
                 <div class="col-md-6 mb-4">
                     <label class="text-modal">Código</label>
-                    <input type="text" class="form-control text-modal" placeholder="Código do Equipamento">
+                    <input type="text" class="form-control text-modal" placeholder="Código do Equipamento" id="edit-codigo-equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Vida Útil</label>
+                    <input type="number" class="form-control text-modal" placeholder="Vida útil do Equipamento" id="edit-vida-util-equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">CA</label>
+                    <input type="number" class="form-control text-modal" placeholder="CA do Equipamento" id="edit-ca-equipamento">
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="text-modal">Ativo</label>
+                    <select type="text" class="form-control text-modal" id="edit-status-equipamento">
+                      <option value="True">Ativo</option>
+                      <option value="False">Desativado</option>
+                    </select>
                 </div>
           </div>
       </div>
@@ -72,7 +96,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="modal-desativar-equipamento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modal-desativar-equipamento-label">
+<div class="modal fade" id="modal-desativar-equipamento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header align-items-start">
