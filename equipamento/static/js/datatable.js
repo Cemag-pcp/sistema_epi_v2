@@ -1,48 +1,51 @@
-$(document).ready(function() {
-    
-    var table = $('#tabelaEquipamentos').DataTable({
+export let table; // Exporta a variável table
+
+export function inicializarDataTable() {
+    table = $('#tabelaEquipamentos').DataTable({
         "language": {
-        "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json"
+            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json"
         },
         "columnDefs": [
-        { "orderable": false, "targets": 5 }, // Desativa ordenação na coluna de Ações
-        { "searchable": false, "targets": 5 } // Desativa busca na coluna de Ações
+            { "orderable": false, "targets": 5 },
+            { "searchable": false, "targets": 5 },
+            {
+                targets: 1, // Coluna do nome
+                type: 'string',
+                render: function(data, type, row) {
+                    if (type === 'sort') {
+                        return $(data).find('.nome-equipamento').text();
+                    }
+                    return data;
+                }
+            },
         ],
-        "dom": 'lrtip' // Remove o search box
+        "dom": 'rtip'
     });
+    
+    // Configurar filtros
+    configurarFiltros();
+}
 
-    // Filter by ID
-    $('#filterId').keyup(function() {
-        table.column(0).search(this.value).draw();
-    });
-
-    // Filter by Nome
-    $('#filterNome').keyup(function() {
-        table.column(1).search(this.value).draw();
-    });
-
-    // Filter by Codigo (which is part of column 1)
-    $('#filterCodigo').keyup(function() {
-        table.column(1).nodes().to$().each(function() {
-        var codigo = $(this).find('.text-muted').text().replace('Código ', '');
-        $(this).parent().toggle(
-            codigo.toLowerCase().includes($('#filterCodigo').val().toLowerCase())
+export function configurarFiltros() {
+    // Filtro combinado para Nome e Código
+    $('#filterEquipamento').off('keyup').on('keyup', function() {
+        var searchTerm = this.value.toLowerCase();
+        
+        $.fn.dataTable.ext.search.push(
+            function(settings, data, dataIndex) {
+                var nome = data[1].toLowerCase(); // Coluna do nome
+                var codigo = table.cell(dataIndex, 1).nodes().to$().find('.text-muted').text().replace('Código ', '').toLowerCase();
+                
+                return nome.includes(searchTerm) || codigo.includes(searchTerm);
+            }
         );
-        });
-    });
-
-    // Filter by Vida Util
-    $('#filterVidaUtil').keyup(function() {
-        table.column(2).search(this.value).draw();
-    });
-
-    // Filter by CA
-    $('#filterCa').keyup(function() {
-        table.column(3).search(this.value).draw();
+        
+        table.draw();
+        $.fn.dataTable.ext.search.pop(); // Remove o filtro após aplicá-lo
     });
 
     // Filter by Ativo
-    $('#filterAtivo').change(function() {
+    $('#filterAtivo').off('change').on('change', function() {
         var value = $(this).val();
         if (value === "") {
             table.column(4).search('').draw();
@@ -50,4 +53,15 @@ $(document).ready(function() {
             table.column(4).search(value).draw();
         }
     });
+}
+
+export function recriarTabela() {
+    if ($.fn.DataTable.isDataTable('#tabelaEquipamentos')) {
+        table.destroy();
+    }
+    inicializarDataTable();
+}
+
+$(document).ready(function() {
+    inicializarDataTable();
 });

@@ -12,24 +12,14 @@
   </button>
 </div>
 
-<div class="row mb-3">
-  <div class="col-md-2 mb-2">
-    <input type="text" class="form-control" id="filterId" placeholder="Filtrar ID">
-  </div>
-  <div class="col-md-2 mb-2">
-    <input type="text" class="form-control" id="filterNome" placeholder="Filtrar Nome">
-  </div>
-  <div class="col-md-2 mb-2">
-    <input type="text" class="form-control" id="filterCodigo" placeholder="Filtrar Código">
-  </div>
-  <div class="col-md-2 mb-2">
-    <input type="text" class="form-control" id="filterVidaUtil" placeholder="Filtrar Vida Útil">
-  </div>
-  <div class="col-md-2 mb-2">
-    <input type="text" class="form-control" id="filterCa" placeholder="Filtrar CA">
+<div class="row justify-content-between mb-3">
+  <div class="col-md-4 mb-2">
+    <label class="text-modal">Equipamento</label>
+    <input type="text" class="form-control text-modal" id="filterEquipamento" placeholder="Filtrar por Nome ou Código">
   </div>
   <div class="col-md-2">
-    <select class="form-control" id="filterAtivo">
+    <label class="text-modal">Status</label>
+    <select class="form-control text-modal" id="filterAtivo">
       <option value="">Todos</option>
       <option value="Ativo">Ativo</option>
       <option value="Desativado">Desativado</option>
@@ -50,38 +40,38 @@
   </thead>
   <tbody>
     {% for equipamento in equipamentos %}
-    <tr>
+    <tr data-id="{{ equipamento.id }}">
       <td>         
         <div class="d-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle mx-auto" style="width: 40px; height: 40px; font-weight: bold;">
             {{ equipamento.id }}
         </div>
       </td>
-      <td data-order="{{ equipamento.nome }}">
+      <td data-order="{{ equipamento.nome }}" data-codigo="{{ equipamento.codigo }}">
         <div class="d-flex align-items-center">
           <div class="ms-3">
-            <p class="fw-bold mb-1">{{ equipamento.nome }}</p>
-            <p class="text-muted mb-0">Código {{ equipamento.codigo }}</p>
+            <p class="fw-bold mb-1 nome-equipamento">{{ equipamento.nome }}</p>
+            <p class="text-muted mb-0 codigo-equipamento">Código {{ equipamento.codigo }}</p>
           </div>
         </div>
       </td>
-      <td data-order="{{ equipamento.vida_util_dias }}">
-        <p class="fw-normal mb-1">{{ equipamento.vida_util_dias }} dias</p>
+      <td style="align-content:center;" data-order="{{ equipamento.vida_util_dias }}">
+        <p class="fw-normal mb-1 vida-util-equipamento">{{ equipamento.vida_util_dias }} dias</p>
       </td>
-      <td data-order="{{ equipamento.ca|default:'0' }}">
+      <td style="align-content:center;" class="ca-equipamento" data-order="{{ equipamento.ca|default:'0' }}">
         {% if equipamento.ca == None %}
           Não informado
         {% else %}
           {{ equipamento.ca }}
         {% endif %}
       </td>
-      <td data-order="{{ equipamento.ativo }}">
+      <td class="status" style="align-content:center;" data-order="{{ equipamento.ativo }}">
         {% if equipamento.ativo == True %}
           <span class="badge badge-success rounded-pill d-inline status-approved">Ativo</span>
         {% else %}
           <span class="badge badge-success rounded-pill d-inline status-declined">Desativado</span>
         {% endif %}
       </td>
-      <td>
+      <td style="align-content:center;">
           <div class="dropdown">
               <button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-three-dots" style="color: black"></i>
@@ -93,14 +83,15 @@
                       data-codigo="{{equipamento.codigo}}"
                       data-ca="{{equipamento.ca}}"
                       data-vida-util-dias="{{equipamento.vida_util_dias}}"
-                      data-status="{{equipamento.ativo}}"
                       class="dropdown-item g-4 abrirModalEditarEquipamento" style="cursor: pointer;">
-                      <i class="bi bi-pencil-square abrirModalEditarEquipamento" style="margin-right: 8px;"></i>
+                      <i class="bi bi-pencil-square" style="margin-right: 8px;"></i>
                       Editar
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item g-4 abrirModalDesativarEquipamento" style="color: #dc2626; cursor: pointer;">
+                    <a class="dropdown-item g-4 abrirModalDesativarEquipamento" 
+                      data-nome="{{equipamento.nome}}" data-id="{{equipamento.id}}" 
+                      style="color: #dc2626; cursor: pointer;">
                       <i class="bi bi-trash abrirModalDesativarEquipamento" style="margin-right: 8px;"></i>
                       Desativar
                     </a>
@@ -118,6 +109,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'js/crud-equipamentos.js' %}"></script>
-<script src="{% static 'js/datatable.js' %}"></script>
+<script type="module" src="{% static 'js/crud-equipamentos.js' %}"></script>
+<script type="module" src="{% static 'js/datatable.js' %}"></script>
 {% endblock %}
