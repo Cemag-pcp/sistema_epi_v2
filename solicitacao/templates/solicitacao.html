@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+
+
+
+<main class="container py-3">
+    <div class="card shadow-sm mb-4 mx-auto" style="max-width: 42rem;">
+        <div class="d-flex justify-content-between align-items-center card-header bg-white">
+            <div>
+                <h3 class="modal-title">Solicitação</h3>
+                <span class="desc-modal-title">Fill out this form to request personal protective equipment</span>
+            </div>
+            <div>
+                <button class="btn btn-white">Selecionar Padrão</button>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <form>
+                <div class="mb-3">
+                    <label for="requesterName" class="form-label">Requester's Name</label>
+                    <input type="text" class="form-control" id="requesterName" placeholder="John Doe" name="requesterName" required>
+                </div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="item" class="form-label">Equipamento</label>
+                        <select class="form-select" id="item" name="item" required>
+                            <option value="Safety Helmet">Safety Helmet</option>
+                            <option value="Safety Glasses">Safety Glasses</option>
+                            <option value="Face Shield">Face Shield</option>
+                            <option value="Ear Protection">Ear Protection</option>
+                            <option value="Respirator">Respirator</option>
+                            <option value="Dust Mask">Dust Mask</option>
+                            <option value="Safety Gloves">Safety Gloves</option>
+                            <option value="Chemical Resistant Gloves">Chemical Resistant Gloves</option>
+                            <option value="Safety Boots">Safety Boots</option>
+                            <option value="High-Visibility Vest">High-Visibility Vest</option>
+                            <option value="Fall Protection Harness">Fall Protection Harness</option>
+                            <option value="Welding Mask">Welding Mask</option>
+                            <option value="Fire Resistant Clothing">Fire Resistant Clothing</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="quantity" class="form-label">Quantidade</label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="operator" class="form-label">Operador</label>
+                    <select class="form-select" id="operator" name="operator" required>
+                        <option value="Production Line A">Production Line A</option>
+                        <option value="Production Line B">Production Line B</option>
+                        <option value="Maintenance Team">Maintenance Team</option>
+                        <option value="Warehouse Staff">Warehouse Staff</option>
+                        <option value="Quality Control">Quality Control</option>
+                        <option value="Laboratory">Laboratory</option>
+                        <option value="Field Operations">Field Operations</option>
+                        <option value="Construction Team">Construction Team</option>
+                        <option value="Electrical Team">Electrical Team</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="observation" class="form-label">Observação</label>
+                    <textarea class="form-control" id="observation" name="observation" rows="3" placeholder="Any additional details about the requested items"></textarea>
+                    <div class="form-text">Optional: Include any specific details about the items requested</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="reason" class="form-label">Motivo</label>
+                    <select class="form-select" id="reason" name="reason" required>
+                        <option value="New Employee Onboarding">New Employee Onboarding</option>
+                        <option value="Replacement (Damaged)">Replacement (Damaged)</option>
+                        <option value="Replacement (Worn Out)">Replacement (Worn Out)</option>
+                        <option value="Change in Job Role">Change in Job Role</option>
+                        <option value="New Safety Requirement">New Safety Requirement</option>
+                        <option value="Special Project">Special Project</option>
+                        <option value="Temporary Visitor">Temporary Visitor</option>
+                        <option value="Emergency Response">Emergency Response</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100">Submit Request</button>
+            </form>
+        </div>
+        
+        <div class="card-footer text-muted">
+            All fields are required unless marked as optional
+        </div>
+    </div>
+</main>
+
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
