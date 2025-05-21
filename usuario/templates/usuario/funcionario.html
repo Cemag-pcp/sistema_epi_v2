@@ -69,6 +69,10 @@
     </div>
 
     {% include 'usuario/modal/modal_funcionario.html' %}
+
+    <script>
+        const URL_CADASTRAR_FUNCIONARIO = "{% url 'usuario:cadastrar_funcionario' %}";
+    </script>
     
     <script src="{% static 'js/crud_funcionario.js'%}"></script>
 

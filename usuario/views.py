@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 
 def login_view(request):
     if request.method == 'POST':
@@ -38,5 +39,11 @@ def logout_view(request):
 def redirecionar(request):
     return redirect('usuario:login_view')
 
-def funcionario(request):
+def listar_funcionarios(request):
     return render(request, 'usuario/funcionario.html')
+
+def cadastrar_funcionario(request):
+    if request.method == 'POST':
+        # Aqui você pode adicionar a lógica para cadastrar o funcionário
+        pass
+    return JsonResponse({'status': 'success', 'message': 'Funcionário cadastrado com sucesso!'})

@@ -207,17 +207,19 @@
                 // Show loading spinner
                 saveButtonText.classList.add('d-none');
                 saveSpinner.classList.remove('d-none');
+
+                const urlAdd = saveEmployeeBtn.dataset.url
                 
                 // In a real application, you would post to the API
-                // const response = await fetch(API_URL, {
-                //     method: 'POST',
-                //     headers: {
-                //         'Content-Type': 'application/json',
-                //     },
-                //     body: JSON.stringify(employeeData),
-                // });
-                // if (!response.ok) throw new Error('Failed to add employee');
-                // const data = await response.json();
+                const response = await fetch(URL_CADASTRAR_FUNCIONARIO, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(employeeData),
+                });
+                if (!response.ok) throw new Error('Failed to add employee');
+                const data = await response.json();
                 
                 // For demonstration, we'll add to the sample data
                 // Simulate API delay

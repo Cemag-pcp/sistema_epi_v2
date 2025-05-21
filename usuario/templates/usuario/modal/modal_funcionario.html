@@ -8,6 +8,7 @@
             </div>
             <div class="modal-body">
                 <form id="employeeForm">
+                    {% csrf_token %}
                     <input type="hidden" id="employeeId">
                     <div class="mb-3">
                         <label for="matricula" class="form-label">Matrícula</label>
