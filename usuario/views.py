@@ -38,3 +38,5 @@ def logout_view(request):
 def redirecionar(request):
     return redirect('usuario:login_view')
 
+def funcionario(request):
+    return render(request, 'usuario/funcionario.html')

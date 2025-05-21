@@ -1,0 +1,89 @@
+<!-- Employee Modal -->
+<div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="employeeModalLabel">Adicionar Funcionário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="employeeForm">
+                    <input type="hidden" id="employeeId">
+                    <div class="mb-3">
+                        <label for="matricula" class="form-label">Matrícula</label>
+                        <input type="text" class="form-control" id="matricula" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="nome" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="setor" class="form-label">Setor</label>
+                        <select class="form-select" id="setor" required>
+                            <option value="">Selecione o Setor</option>
+                            <option value="Engenharia">Engenharia</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Vendas">Vendas</option>
+                            <option value="Recursos Humanos">Recursos Humanos</option>
+                            <option value="Financeiro">Financeiro</option>
+                            <option value="Produto">Produto</option>
+                            <option value="Design">Design</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cargo" class="form-label">Cargo</label>
+                        <input type="text" class="form-control" id="cargo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="responsavel" class="form-label">Responsável</label>
+                        <input type="text" class="form-control" id="responsavel" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dataAdmissao" class="form-label">Data Admissão</label>
+                        <input type="date" class="form-control" id="dataAdmissao" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" required>
+                            <option value="">Selecione o Status</option>
+                            <option value="Ativo">Ativo</option>
+                            <option value="Afastado">Afastado</option>
+                            <option value="Desligado">Desligado</option>
+                            <option value="Desativado">Desativado</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveEmployeeBtn">
+                    <span id="saveButtonText">Salvar</span>
+                    <span id="saveSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Desativação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja desativar este funcionário? O status será alterado para "Desativado".</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <span id="deleteButtonText">Desativar</span>
+                    <span id="deleteSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
