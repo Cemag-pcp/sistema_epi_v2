@@ -37,21 +37,20 @@
                     </div>
                     <div class="mb-3">
                         <label for="responsavel" class="form-label">Responsável</label>
-                        <input type="text" class="form-control" id="responsavel" required>
+                        <select class="form-select" id="responsavel" required>
+                            <option value="">Selecione o Setor</option>
+                            <option value="Engenharia">Engenharia</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Vendas">Vendas</option>
+                            <option value="Recursos Humanos">Recursos Humanos</option>
+                            <option value="Financeiro">Financeiro</option>
+                            <option value="Produto">Produto</option>
+                            <option value="Design">Design</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label for="dataAdmissao" class="form-label">Data Admissão</label>
                         <input type="date" class="form-control" id="dataAdmissao" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-select" id="status" required>
-                            <option value="">Selecione o Status</option>
-                            <option value="Ativo">Ativo</option>
-                            <option value="Afastado">Afastado</option>
-                            <option value="Desligado">Desligado</option>
-                            <option value="Desativado">Desativado</option>
-                        </select>
                     </div>
                 </form>
             </div>

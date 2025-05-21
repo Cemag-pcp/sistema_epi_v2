@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
+import json
 
 def login_view(request):
     if request.method == 'POST':
@@ -45,5 +46,18 @@ def listar_funcionarios(request):
 def cadastrar_funcionario(request):
     if request.method == 'POST':
         # Aqui você pode adicionar a lógica para cadastrar o funcionário
+        print(json.loads(request.body))
         pass
     return JsonResponse({'status': 'success', 'message': 'Funcionário cadastrado com sucesso!'})
+
+def editar_funcionario(request, id):
+    if request.method == 'PUT':
+        # Aqui você pode adicionar a lógica para editar o funcionário
+        print(id)
+        print(json.loads(request.body))
+        pass
+    elif request.method == 'PATCH':
+        print(id)
+        print(json.loads(request.body))
+        pass
+    return JsonResponse({'status': 'success', 'message': 'Funcionário editado com sucesso!'})

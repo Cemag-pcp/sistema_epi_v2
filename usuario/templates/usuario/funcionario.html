@@ -72,8 +72,10 @@
 
     <script>
         const URL_CADASTRAR_FUNCIONARIO = "{% url 'usuario:cadastrar_funcionario' %}";
+        const URL_EDITAR_FUNCIONARIO = "{% url 'usuario:editar_funcionario' 0 %}".replace('0/', '');
+        const URL_DESATIVAR_FUNCIONARIO = URL_EDITAR_FUNCIONARIO;
     </script>
     
-    <script src="{% static 'js/crud_funcionario.js'%}"></script>
+    <script type="module" src="{% static 'js/crud_funcionario.js'%}"></script>
 
 {% endblock %}
