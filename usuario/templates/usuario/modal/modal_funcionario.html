@@ -52,6 +52,10 @@
                         <label for="dataAdmissao" class="form-label">Data Admissão</label>
                         <input type="date" class="form-control" id="dataAdmissao" required>
                     </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="criarUsuario">
+                        <label class="form-check-label" for="criarUsuario">Criar Usuário</label>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -87,3 +91,47 @@
     </div>
 </div>
 
+<!-- User Creation Modal -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalLabel">Criar Usuário</h5>
+                <button type="button" class="btn-close" id="closeUserModal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <div class="mb-3">
+                        <label for="senha" class="form-label">Senha</label>
+                        <input type="password" class="form-control" id="senha" required>
+                        <div class="form-text">A senha deve ter pelo menos 6 caracteres.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmarSenha" class="form-label">Confirmar Senha</label>
+                        <input type="password" class="form-control" id="confirmarSenha" required>
+                        <div id="senhaFeedback" class="invalid-feedback">
+                            As senhas não correspondem.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tipoAcesso" class="form-label">Tipo Acesso</label>
+                        <select class="form-select" id="tipoAcesso" required>
+                            <option value="">Selecione o Tipo de Acesso</option>
+                            <option value="Administrador">Administrador</option>
+                            <option value="Gerente">Gerente</option>
+                            <option value="Operador">Operador</option>
+                            <option value="Visualizador">Visualizador</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelUserBtn">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveUserBtn">
+                    <span id="saveUserButtonText">Salvar</span>
+                    <span id="saveUserSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
