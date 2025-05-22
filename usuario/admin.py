@@ -27,4 +27,5 @@ class CustomUsuarioAdmin(UserAdmin):
 
 admin.site.register(Usuario, CustomUsuarioAdmin)
 admin.site.register(Funcionario)
+# 
 
