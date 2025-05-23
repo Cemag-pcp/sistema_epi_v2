@@ -34,7 +34,7 @@
                 </div>
                 
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover">
+                    <table id="employeeTable" class="table table-striped table-hover" style="width:100%">
                         <thead>
                             <tr>
                                 <th>Matrícula</th>
@@ -44,11 +44,11 @@
                                 <th>Responsável</th>
                                 <th>Data Admissão</th>
                                 <th>Status</th>
-                                <th>Actions</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
-                        <tbody id="employeeTableBody">
-                            <!-- Table rows will be populated by JavaScript -->
+                        <tbody>
+                            <!-- Table rows will be populated by DataTables -->
                         </tbody>
                     </table>
                 </div>
@@ -77,6 +77,8 @@
         const URL_LISTAR_FUNCIONARIOS = "{% url 'usuario:api_funcionarios' %}";
     </script>
     
+    <script type="module" src="{% static 'js/datatable_funcionario.js'%}"></script>
     <script type="module" src="{% static 'js/crud_funcionario.js'%}"></script>
+    
 
 {% endblock %}

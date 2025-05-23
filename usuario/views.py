@@ -69,7 +69,6 @@ def api_funcionarios(request):
             }
             for f in funcionarios
         ]
-        print(list_funcionarios)
 
         return JsonResponse(list_funcionarios, safe=False)
     return JsonResponse({'status': 'error', 'message': 'Método não permitido!'}, status=405)
@@ -84,8 +83,6 @@ def funcionario(request):
         try:
             data = json.loads(request.body)
             print(data)
-            
-            data_admissao = datetime.strptime(data['dataAdmissao'], "%Y-%m-%d").date()
 
             # Validação do json
             required_fields = ['nome', 'matricula', 'setor', 'cargo']
@@ -123,6 +120,7 @@ def funcionario(request):
             }, status=201)
         
         except ValidationError as e:
+            print('Validation error:', e.message_dict)
             return JsonResponse({
                 'success': False,
                 'message': 'Erro de validação',
@@ -130,7 +128,6 @@ def funcionario(request):
             }, status=400)
         
         except Exception as e:
-            print('teste',e)
             traceback_str = traceback.format_exc()  # Captura a stack trace completa como string
             print('Stack trace:', traceback_str)
             return JsonResponse({
@@ -160,6 +157,5 @@ def setores(request):
     if request.method == 'GET':
         setores = Setor.objects.all()
         lista_setores = list(setores.values())
-        print("oi")
         return JsonResponse(lista_setores, safe=False)
     return JsonResponse({'status': 'success', 'message': 'Setores listados com sucesso!'})
