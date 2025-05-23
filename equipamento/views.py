@@ -8,8 +8,6 @@ from django.core.exceptions import ValidationError
 
 import json
 
-# Create your views here.
-
 @login_required
 @somente_master
 @require_http_methods(["GET", "POST"])
