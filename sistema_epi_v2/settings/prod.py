@@ -4,9 +4,11 @@ import os
 
 # Configurações específicas de produção
 DEBUG = False
-ALLOWED_HOSTS = ['http://127.0.0.1']
+ALLOWED_HOSTS = ['http://127.0.0.1','sistema-epi-v2-testes.onrender.com','sistema-epi-v2.onrender.com']
 CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1'
+    'http://127.0.0.1', 
+    'https://sistema-epi-v2-testes.onrender.com',
+    'https://sistema-epi-v2.onrender.com'
 ]
 
 # Banco de dados para produção
@@ -28,8 +30,7 @@ DATABASES = {
 # STATIC_URL = '/static/'
 # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_ROOT = str(BASE_DIR.joinpath('staticfiles'))
-# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Middleware adicional para produção
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
