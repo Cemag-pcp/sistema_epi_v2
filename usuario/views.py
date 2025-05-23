@@ -157,6 +157,7 @@ def editar_funcionario(request, id):
 @login_required
 @somente_master
 def setores(request):
+    print('oi')
     if request.method == 'GET':
         setores = Setor.objects.all()
         lista_setores = list(setores.values())
