@@ -12,139 +12,95 @@
   </button>
 </div>
 
-<table class="table align-middle mb-0 bg-white">
-  <thead class="bg-light">
+<div class="row justify-content-between mb-3">
+  <div class="col-md-4 mb-2">
+    <label class="text-modal">Equipamento</label>
+    <input type="text" class="form-control text-modal" id="filterEquipamento" placeholder="Filtrar por Nome ou Código">
+  </div>
+  <div class="col-md-2">
+    <label class="text-modal">Status</label>
+    <select class="form-control text-modal" id="filterAtivo">
+      <option value="">Todos</option>
+      <option value="Ativo">Ativo</option>
+      <option value="Desativado">Desativado</option>
+    </select>
+  </div>
+</div>
+
+<table id="tabelaEquipamentos" class="table table-hover w-100">
+  <thead class="table-light">
     <tr>
-      <th>Name</th>
-      <th>Title</th>
-      <th>Status</th>
-      <th>Position</th>
-      <th>Actions</th>
+      <th class="text-center">#</th>
+      <th style="max-width: 300px;">Equipamento</th>
+      <th>Vida útil</th>
+      <th>CA</th>
+      <th>Ativo?</th>
+      <th>Ações</th>
     </tr>
   </thead>
   <tbody>
-    <tr>
-      <td>
+    {% for equipamento in equipamentos %}
+    <tr data-id="{{ equipamento.id }}">
+      <td>         
+        <div class="d-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle mx-auto" style="width: 40px; height: 40px; font-weight: bold;">
+            {{ equipamento.id }}
+        </div>
+      </td>
+      <td data-order="{{ equipamento.nome }}" data-codigo="{{ equipamento.codigo }}">
         <div class="d-flex align-items-center">
-          <img
-              src="https://mdbootstrap.com/img/new/avatars/8.jpg"
-              alt=""
-              style="width: 45px; height: 45px"
-              class="rounded-circle"
-              />
           <div class="ms-3">
-            <p class="fw-bold mb-1">John Doe</p>
-            <p class="text-muted mb-0">john.doe@gmail.com</p>
+            <p class="fw-bold mb-1 nome-equipamento">{{ equipamento.nome }}</p>
+            <p class="text-muted mb-0 codigo-equipamento">Código {{ equipamento.codigo }}</p>
           </div>
         </div>
       </td>
-      <td>
-        <p class="fw-normal mb-1">Software engineer</p>
-        <p class="text-muted mb-0">IT department</p>
+      <td style="align-content:center;" data-order="{{ equipamento.vida_util_dias }}">
+        <p class="fw-normal mb-1 vida-util-equipamento">{{ equipamento.vida_util_dias }} dias</p>
       </td>
-      <td>
-        <span class="badge badge-success rounded-pill d-inline status-approved">Ativo</span>
+      <td style="align-content:center;" class="ca-equipamento" data-order="{{ equipamento.ca|default:'0' }}">
+        {% if equipamento.ca == None %}
+          Não informado
+        {% else %}
+          {{ equipamento.ca }}
+        {% endif %}
       </td>
-      <td>Senior</td>
-        <td>
-            <div class="dropdown">
-                <button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-three-dots" style="color: black"></i>
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <li><a class="dropdown-item g-4" id="abrirModalEditarEquipamento"><i class="bi bi-pencil-square" style="margin-right: 8px;"></i><span>Editar</span></a></li>
-                    <li><a class="dropdown-item g-4" id="abrirModalDesativarEquipamento" style="color: #dc2626;"><i class="bi bi-trash" style="margin-right: 8px;"></i><span>Desativar</span></a></li>
-                </ul>
-            </div>
-        </td>
-    </tr>
-    <tr>
-      <td>
-        <div class="d-flex align-items-center">
-          <img
-              src="https://mdbootstrap.com/img/new/avatars/6.jpg"
-              class="rounded-circle"
-              alt=""
-              style="width: 45px; height: 45px"
-              />
-          <div class="ms-3">
-            <p class="fw-bold mb-1">Alex Ray</p>
-            <p class="text-muted mb-0">alex.ray@gmail.com</p>
+      <td class="status" style="align-content:center;" data-order="{{ equipamento.ativo }}">
+        {% if equipamento.ativo == True %}
+          <span class="badge badge-success rounded-pill d-inline status-approved">Ativo</span>
+        {% else %}
+          <span class="badge badge-success rounded-pill d-inline status-declined">Desativado</span>
+        {% endif %}
+      </td>
+      <td style="align-content:center;">
+          <div class="dropdown">
+              <button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-three-dots" style="color: black"></i>
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                  <li>
+                    <a data-id="{{equipamento.id}}"
+                      data-nome="{{equipamento.nome}}"
+                      data-codigo="{{equipamento.codigo}}"
+                      data-ca="{{equipamento.ca}}"
+                      data-vida-util-dias="{{equipamento.vida_util_dias}}"
+                      class="dropdown-item g-4 abrirModalEditarEquipamento" style="cursor: pointer;">
+                      <i class="bi bi-pencil-square" style="margin-right: 8px;"></i>
+                      Editar
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item g-4 abrirModalDesativarEquipamento" 
+                      data-nome="{{equipamento.nome}}" data-id="{{equipamento.id}}" 
+                      style="color: #dc2626; cursor: pointer;">
+                      <i class="bi bi-trash abrirModalDesativarEquipamento" style="margin-right: 8px;"></i>
+                      Desativar
+                    </a>
+                  </li>
+              </ul>
           </div>
-        </div>
-      </td>
-      <td>
-        <p class="fw-normal mb-1">Consultant</p>
-        <p class="text-muted mb-0">Finance</p>
-      </td>
-      <td>
-        <span class="badge badge-primary rounded-pill d-inline status-approved"
-              >Ativo</span
-          >
-      </td>
-      <td>Junior</td>
-      <td>
-            <div class="dropdown">
-                <button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                  <i class="bi bi-three-dots" style="color: black"></i>
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <li><a class="dropdown-item g-4" href="#"><i class="bi bi-pencil-square" style="margin-right: 8px;"></i><span>Editar</span></a></li>
-                    <li>
-                      <a class="dropdown-item g-4" href="#" style="color: #dc2626;">
-                        <i class="bi bi-trash" style="margin-right: 8px;"></i>
-                        <span>Desativar</span>
-                      </a>
-                    </li>
-                </ul>
-            </div>
       </td>
     </tr>
-    <tr>
-      <td>
-        <div class="d-flex align-items-center">
-          <img
-              src="https://mdbootstrap.com/img/new/avatars/7.jpg"
-              class="rounded-circle"
-              alt=""
-              style="width: 45px; height: 45px"
-              />
-          <div class="ms-3">
-            <p class="fw-bold mb-1">Kate Hunington</p>
-            <p class="text-muted mb-0">kate.hunington@gmail.com</p>
-          </div>
-        </div>
-      </td>
-      <td>
-        <p class="fw-normal mb-1">Designer</p>
-        <p class="text-muted mb-0">UI/UX</p>
-      </td>
-      <td>
-        <span class="badge badge-warning rounded-pill d-inline status-declined">Desativado</span>
-      </td>
-      <td>Senior</td>
-      <td>
-            <div class="dropdown">
-                <button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-three-dots" style="color: black"></i>
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <li>
-                      <a class="dropdown-item g-4" href="#">
-                        <i class="bi bi-pencil-square" style="margin-right: 8px;"></i>
-                        <span>Editar</span>
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item g-4" href="#" style="color: #dc2626;">
-                        <i class="bi bi-trash" style="margin-right: 8px;"></i>
-                        <span>Desativar</span>
-                      </a>
-                    </li>
-                </ul>
-            </div>
-      </td>
-    </tr>
+    {% endfor %}
   </tbody>
 </table>
 
@@ -153,7 +109,6 @@
 {% endblock %}
 
 {% block scripts %}
-
-<script src="{% static 'js/crud-equipamentos.js' %}"></script>
-
+<script type="module" src="{% static 'js/crud-equipamentos.js' %}"></script>
+<script type="module" src="{% static 'js/datatable.js' %}"></script>
 {% endblock %}

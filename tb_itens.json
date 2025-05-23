@@ -1,0 +1,339 @@
+{
+"tb_itens": [
+	{
+		"codigo" : 701455,
+		"descricao" : "CAMISA EM MALHA PP MANGA CURTA - CINZA ",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702052,
+		"descricao" : "VALVULA DE INALAÇÃO 3M",
+		"vida_util" : 120,
+		"ca" : null
+	},
+	{
+		"codigo" : 701006,
+		"descricao" : "CALÇA RETARDANTE A CHAMA SANTISTA PARA ELETRICISTA",
+		"vida_util" : 365,
+		"ca" : 31524
+	},
+	{
+		"codigo" : 705487,
+		"descricao" : "BALACLAVA ANTI CHAMAS 220GR\/M2 (Un)",
+		"vida_util" : 365,
+		"ca" : 30892
+	},
+	{
+		"codigo" : 700249,
+		"descricao" : " CINTO SEGURANÇA 04 PONTOS ARCORAGEM SEM TALABARTE",
+		"vida_util" : 365,
+		"ca" : 34669
+	},
+	{
+		"codigo" : 701452,
+		"descricao" : "CAMISA MANGA LONGA CINZA CEDROPAC LEVE 2 ",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702177,
+		"descricao" : "OCULOS AMPLA VISÃO DANNY",
+		"vida_util" : 365,
+		"ca" : 14883
+	},
+	{
+		"codigo" : 701042,
+		"descricao" : "PALMILHA EVA AIR C\/ GEL (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 700334,
+		"descricao" : "CINTO ERGONOMICO (PROT LOMBAR) (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 70039,
+		"descricao" : "CAPACETE PROTEÇÃO",
+		"vida_util" : 365,
+		"ca" : 29638
+	},
+	{
+		"codigo" : 701404,
+		"descricao" : " CALÇA CEDROPAC 2 C\/ ELÁSTICO CINZA",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 7023065,
+		"descricao" : "RESPIRADOR DESCARTÁVEL CARVÃO PFF1 CA448- 3M (Un)",
+		"vida_util" : 30,
+		"ca" : 448
+	},
+	{
+		"codigo" : 700130,
+		"descricao" : "TOUCA ESPECIAL P\/ SOLDADOR (Un)",
+		"vida_util" : 40,
+		"ca" : 0
+	},
+	{
+		"codigo" : 700178,
+		"descricao" : "ROUPA \/ MACACÃO DE PROTEÇÃO (Un)",
+		"vida_util" : 10,
+		"ca" : 38381
+	},
+	{
+		"codigo" : 702797,
+		"descricao" : "ÓCULOS SOBREPOR VERDE",
+		"vida_util" : 365,
+		"ca" : 10344
+	},
+	{
+		"codigo" : 700193,
+		"descricao" : "CAMISA SOCIAL MANGA CURTA (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 700985,
+		"descricao" : "CAPUZ BALACLAVA PRETO NINJA ",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 700038,
+		"descricao" : "BOTA 7 LEG CAPATAZ ALPARGATAS (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702028,
+		"descricao" : "LUVA LATEX NITRILON (Un)",
+		"vida_util" : 365,
+		"ca" : 43407
+	},
+	{
+		"codigo" : 702032,
+		"descricao" : "LUVA PVC C\/LONGO FORRADA (Un)",
+		"vida_util" : 365,
+		"ca" : 40304
+	},
+	{
+		"codigo" : 702043,
+		"descricao" : "MASC. C\/ VIS. MOVEL-SOLDADOR (Un)",
+		"vida_util" : 365,
+		"ca" : 5964
+	},
+	{
+		"codigo" : 702057,
+		"descricao" : "RESP. DESC. PFF2 (Un)",
+		"vida_util" : 365,
+		"ca" : 38504
+	},
+	{
+		"codigo" : 702058,
+		"descricao" : "FILTRO P\/POEIRA\/NEVOA\/GAS\/VAPOR 2078 (Un)",
+		"vida_util" : 365,
+		"ca" : 2078
+	},
+	{
+		"codigo" : 702067,
+		"descricao" : "PROTETOR FACIAL 8 INCOLOR (Un)",
+		"vida_util" : 365,
+		"ca" : 14197
+	},
+	{
+		"codigo" : 702068,
+		"descricao" : "RESPIRADOR SEMI FACIAL 7500\/7502 MED CA12011 3M (Un)",
+		"vida_util" : 365,
+		"ca" : 12011
+	},
+	{
+		"codigo" : 702069,
+		"descricao" : "TIRANTE FIXO P\/ RESP. 7500 CÓD. 7581 3M (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702077,
+		"descricao" : "OCULOS  P\/ TORNEIRO LENTE VERDE (Un)",
+		"vida_util" : 365,
+		"ca" : 9722
+	},
+	{
+		"codigo" : 702078,
+		"descricao" : "OCULOS VISION 3000 INCOLOR (Un)",
+		"vida_util" : 365,
+		"ca" : 28018
+	},
+	{
+		"codigo" : 702122,
+		"descricao" : "PROTETOR AURICULAR (Un)",
+		"vida_util" : 365,
+		"ca" : 5745
+	},
+	{
+		"codigo" : 702134,
+		"descricao" : "OCULOS SOBREPOR INCOLOR (Un)",
+		"vida_util" : 365,
+		"ca" : 34549
+	},
+	{
+		"codigo" : 702124,
+		"descricao" : "PROTETOR AURICULAR DESC ESPONJOSO (Un)",
+		"vida_util" : 365,
+		"ca" : 35260
+	},
+	{
+		"codigo" : 702146,
+		"descricao" : "PROTETOR AURICULAR TIPO CONCHA (Un)",
+		"vida_util" : 365,
+		"ca" : 14235
+	},
+	{
+		"codigo" : 702100,
+		"descricao" : "LUVA MULTITATO",
+		"vida_util" : 30,
+		"ca" : 29014
+	},
+	{
+		"codigo" : 702019,
+		"descricao" : "LUVA CANO LONGO ACOCHOADA (Un)",
+		"vida_util" : 30,
+		"ca" : 40167
+	},
+	{
+		"codigo" : 701052,
+		"descricao" : " CAMISA RETARDANTE A CHAMA PARA ELETRICISTA",
+		"vida_util" : 365,
+		"ca" : 31525
+	},
+	{
+		"codigo" : 702064,
+		"descricao" : "TIRANTE FIXO P\/ RESP. 6000 CÓD. 6281 (Un)",
+		"vida_util" : 365,
+		"ca" : 0
+	},
+	{
+		"codigo" : 702006,
+		"descricao" : "AVENTAL DE COURO SIMPLES (Un)",
+		"vida_util" : 40,
+		"ca" : 16030
+	},
+	{
+		"codigo" : 702008,
+		"descricao" : "AVENTAL DE COURO C\/ MANGAS (Un)",
+		"vida_util" : 40,
+		"ca" : 16070
+	},
+	{
+		"codigo" : 702017,
+		"descricao" : "LUVA DE VAQUETA C.CURTO (Un)",
+		"vida_util" : 15,
+		"ca" : 26749
+	},
+	{
+		"codigo" : 701039,
+		"descricao" : "BOTAS VAQUETA C\/ BIQUEIRA AÇO\/COMPOSITE",
+		"vida_util" : 365,
+		"ca" : 38530
+	},
+	{
+		"codigo" : 702020,
+		"descricao" : "LUVA CANO CURTO (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702061,
+		"descricao" : "CARTUCHO VAP ORG\/GASES ACIDOS BR 6003 - 3M (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702062,
+		"descricao" : "RETENTOR 5N11 (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702063,
+		"descricao" : "FILTRO P\/ PARTICULAS 5N11 P 6000\/7500 (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702065,
+		"descricao" : "RESPIRADOR DESCARTÁVEL CARVÃO PFF1 CA448- 3M (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702080,
+		"descricao" : "PERNEIRA P\/SOLDADOR (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702081,
+		"descricao" : "CARNEIRA C\/CATRACA P\/MASCARA CC (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702088,
+		"descricao" : "MÁSCARA CIRÚRGICA DESCARTÁVEL (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702092,
+		"descricao" : "LENTE ESCURA N 10 (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702093,
+		"descricao" : "LENTE ESCURA N 12 (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702109,
+		"descricao" : "LENTE BRANCA RETANGULAR (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702110,
+		"descricao" : "MANGOTE P\/SOLDADOR (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702111,
+		"descricao" : "MANGOTE DE TECIDO C\/ ELASTICO NOS PUNHOS (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702147,
+		"descricao" : "KIT ALMOFADA E ESPUMA INTERNA P\/ ABAFADOR MUPLER CÓD.350010230098 (Un)",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
+		"codigo" : 702018,
+		"descricao" : "LUVA CANO LONGO (Un)",
+		"vida_util" : 365,
+		"ca" : 18969
+	},
+	{
+		"codigo" : 702025,
+		"descricao" : "LUVA TRICOTADA DE ALGODÃO (Un)",
+		"vida_util" : 365,
+		"ca" : 34491
+	}
+]}
