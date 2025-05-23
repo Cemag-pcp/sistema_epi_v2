@@ -159,6 +159,6 @@ def setores(request):
     if request.method == 'GET':
         setores = Setor.objects.all()
         lista_setores = list(setores.values())
-
+        print("oi")
         return JsonResponse(lista_setores, safe=False)
     return JsonResponse({'status': 'success', 'message': 'Setores listados com sucesso!'})
