@@ -23,11 +23,18 @@ class UsuarioManager(BaseUserManager):
 
         return self.create_user(matricula, password, **extra_fields)
     
+class Setor(models.Model):
+    nome = models.CharField(max_length=150)
+
+    def __str__(self):
+        return self.nome
+    
 class Funcionario(models.Model):
     nome = models.CharField(max_length=150)
     matricula = models.IntegerField(unique=True)
-    setor = models.CharField(max_length=150)
+    setor = models.ForeignKey(Setor, on_delete=models.CASCADE, related_name='setor_funcionario')
     cargo = models.CharField(max_length=150)
+    responsavel = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='responsavel_funcionario')
     data_admissao = models.DateField(null=True)
     ativo = models.BooleanField(default=True)
 

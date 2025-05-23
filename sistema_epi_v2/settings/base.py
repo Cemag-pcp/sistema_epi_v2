@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'usuario',
     'equipamento',
     'solicitacao',
+    'padrao'
 ]
 
 MIDDLEWARE = [
@@ -109,7 +110,6 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'solicitacao/static'),
     os.path.join(BASE_DIR, 'usuario/static'),
 ]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = 'media/'
 
