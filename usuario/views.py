@@ -13,6 +13,7 @@ import json
 
 def login_view(request):
     if request.method == 'POST':
+        # matricula
         matricula = request.POST.get('matricula')
         password = request.POST.get('password')
 
