@@ -179,7 +179,7 @@ async function addEmployee(employeeData) {
             },
             body: JSON.stringify(employeeData),
         });
-        if (!response.ok) throw new Error('Failed to add employee');
+        if (!response.ok) throw new Error(`Falha em adicionar funcionário: ${response.statusText} , ${response.errors}`);
         const data = await response.json();
         
         // For demonstration, we'll add to the sample data
@@ -197,7 +197,7 @@ async function addEmployee(employeeData) {
         return newId;
     } catch (error) {
         console.error('Error adding employee:', error);
-        showAlert('Erro ao adicionar funcionário. Por favor, tente novamente.', 'danger');
+        showAlert(`Erro ao adicionar funcionário. Por favor, tente novamente.${error.message}`, 'danger');
         throw error;
     } finally {
         // Hide loading spinner
@@ -366,6 +366,31 @@ addEmployeeBtn.addEventListener('click', function() {
     employeeModal.show();
 });
 
+document.getElementById('employeeModal').addEventListener('show.bs.modal', function() {
+
+    const setorSelect = setorInput; // setorInput já é o select
+    // Limpa o select antes de preencher
+    setorSelect.innerHTML = '<option value="">Selecione o setor</option>';
+    console.log('Setor select:', setorSelect);
+    fetch('/setores/')
+        .then(response => {
+            if (!response.ok) throw new Error('Erro ao buscar setores');
+            return response.json();
+        })
+        .then(data => {
+            data.forEach(setor => {
+                const option = document.createElement('option');
+                option.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+                option.textContent = setor.nome || setor.id || setor;
+                setorSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao carregar setores:', error);
+            showAlert('Erro ao carregar setores.', 'danger');
+        });
+});
+
 // Save Employee button click
 saveEmployeeBtn.addEventListener('click', async function() {
     if (employeeForm.checkValidity()) {
@@ -523,6 +548,8 @@ function resetForm() {
     // Show the "Criar Usuário" checkbox for new employees
     criarUsuarioCheckbox.parentElement.classList.remove('d-none');
 }
+
+
 
 // Initial fetch
 fetchEmployees();

@@ -2,9 +2,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from usuario.models import Funcionario
+from usuario.models import Funcionario,Setor
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_http_methods
 from usuario.decorators import somente_master
+from django.core.exceptions import ValidationError
+from datetime import datetime
+import traceback
 import json
 
 def login_view(request):
@@ -46,11 +50,6 @@ def redirecionar(request):
 
 @login_required
 @somente_master
-def listar_funcionarios(request):
-    return render(request, 'usuario/funcionario.html')
-
-@login_required
-@somente_master
 def api_funcionarios(request):
     if request.method == 'GET':
         # Aqui você pode adicionar a lógica para listar os funcionários
@@ -71,68 +70,76 @@ def api_funcionarios(request):
             for f in funcionarios
         ]
         print(list_funcionarios)
-        # employees = [
-        # {
-        #     'id': 1,
-        #     'matricula': "F001",
-        #     'nome': "João Silva Morais",
-        #     'cargo': "Desenvolvedor Sênior",
-        #     'setor': "Engenharia",
-        #     'responsavel': "Carlos Mendes",
-        #     'dataAdmissao': "2020-05-12",
-        #     'status': "Ativo"
-        # },
-        # {
-        #     'id': 2,
-        #     'matricula': "F002",
-        #     'nome': "Maria Oliveira",
-        #     'cargo': "Gerente de Produto",
-        #     'setor': "Produto",
-        #     'responsavel': "Ana Souza",
-        #     'dataAdmissao': "2019-11-18",
-        #     'status': "Ativo"
-        # },
-        # {
-        #     'id': 3,
-        #     'matricula': "F003",
-        #     'nome': "Pedro Santos",
-        #     'cargo': "Designer UX",
-        #     'setor': "Design",
-        #     'responsavel': "Fernanda Lima",
-        #     'dataAdmissao': "2021-02-03",
-        #     'status': "Desativado"
-        # },
-        # {
-        #     'id': 4,
-        #     'matricula': "F004",
-        #     'nome': "Ana Costa",
-        #     'cargo': "Especialista de Marketing",
-        #     'setor': "Marketing",
-        #     'responsavel': "Roberto Alves",
-        #     'dataAdmissao': "2018-07-22",
-        #     'status': "Desativado"
-        # },
-        # {
-        #     'id': 5,
-        #     'matricula': "F005",
-        #     'nome': "Roberto Almeida",
-        #     'cargo': "Gerente de RH",
-        #     'setor': "Recursos Humanos",
-        #     'responsavel': "Carla Ferreira",
-        #     'dataAdmissao': "2017-09-15",
-        #     'status': "Ativo"
-        # }
-        # ]
+
         return JsonResponse(list_funcionarios, safe=False)
     return JsonResponse({'status': 'error', 'message': 'Método não permitido!'}, status=405)
 
 @login_required
 @somente_master
-def cadastrar_funcionario(request):
+@require_http_methods(["GET", "POST"])
+def funcionario(request):
+    if request.method == 'GET':
+        return render(request, 'usuario/funcionario.html')
     if request.method == 'POST':
-        # Aqui você pode adicionar a lógica para cadastrar o funcionário
-        print(json.loads(request.body))
-        pass
+        try:
+            data = json.loads(request.body)
+            print(data)
+            
+            data_admissao = datetime.strptime(data['dataAdmissao'], "%Y-%m-%d").date()
+
+            # Validação do json
+            required_fields = ['nome', 'matricula', 'setor', 'cargo']
+            if not all(field in data for field in required_fields):
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Campos obrigatórios faltando',
+                    'errors': {field: 'Este campo é obrigatório' for field in required_fields if field not in data}
+                }, status=400)
+            
+            #Criar o funcionário
+            funcionario = Funcionario(
+                nome=data['nome'],
+                matricula=data['matricula'],
+                setor_id=data['setor'],
+                cargo=data['cargo'],
+                data_admissao=data['dataAdmissao'],
+                ativo=True
+            )
+            funcionario.full_clean()  # Valida os dados do funcionário
+            funcionario.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Funcionário cadastrado com sucesso!',
+                'funcionario': {
+                    'id': funcionario.id,
+                    'nome': funcionario.nome,
+                    'matricula': funcionario.matricula,
+                    'setor': funcionario.setor.nome,
+                    'cargo': funcionario.cargo,
+                    'data_admissao': funcionario.data_admissao,
+                    'status': 'Ativo' if funcionario.ativo else 'Desativado'
+                }
+            }, status=201)
+        
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'message': 'Erro de validação',
+                'errors': e.message_dict
+            }, status=400)
+        
+        except Exception as e:
+            print('teste',e)
+            traceback_str = traceback.format_exc()  # Captura a stack trace completa como string
+            print('Stack trace:', traceback_str)
+            return JsonResponse({
+                'success': False,
+                'message': 'Erro ao cadastrar funcionário',
+                'errors': str(e)
+            }, status=500)
+        # pass
+
     return JsonResponse({'status': 'success', 'message': 'Funcionário cadastrado com sucesso!'})
 
 @login_required
@@ -140,11 +147,19 @@ def cadastrar_funcionario(request):
 def editar_funcionario(request, id):
     if request.method == 'PUT':
         # Aqui você pode adicionar a lógica para editar o funcionário
-        print(id)
         print(json.loads(request.body))
         pass
     elif request.method == 'PATCH':
-        print(id)
         print(json.loads(request.body))
         pass
     return JsonResponse({'status': 'success', 'message': 'Funcionário editado com sucesso!'})
+
+@login_required
+@somente_master
+def setores(request):
+    if request.method == 'GET':
+        setores = Setor.objects.all()
+        lista_setores = list(setores.values())
+
+        return JsonResponse(lista_setores, safe=False)
+    return JsonResponse({'status': 'success', 'message': 'Setores listados com sucesso!'})
