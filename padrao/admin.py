@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import Padrao, PadraoEquipamento, PadraoFuncionario
 
-# Register your models here.
+admin.site.register(Padrao)
+admin.site.register(PadraoEquipamento)
+admin.site.register(PadraoFuncionario)

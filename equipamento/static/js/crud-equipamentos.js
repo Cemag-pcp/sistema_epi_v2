@@ -1,10 +1,10 @@
 import { getCookie } from '/static/js/scripts.js';
 import { adicionarLinhaTabela } from './addRow.js';
-import { table, inicializarDataTable } from './datatable.js';
+import { table, inicializarDataTable } from './datatable-equipamentos.js';
 // CREATE EQUIPAMENTS
 
 document.addEventListener('DOMContentLoaded', () => {
-const abrirModalBtn = document.getElementById('abrirModalEquipamento');
+    const abrirModalBtn = document.getElementById('abrirModalEquipamento');
     const modal = new bootstrap.Modal(document.getElementById('modal-criar-equipamento'));
     const salvarBtn = document.getElementById('salvarEquipamento');
     const spinner = salvarBtn.querySelector('.spinner-border');
