@@ -1,6 +1,6 @@
 // API URL - Replace with your actual API endpoint
 import { getCookie } from "/static/js/scripts.js";
-import { fetchEmployees } from "./datatable_funcionario.js";
+import { initializeDataTable, dataTable } from "./datatable_funcionario.js";
 
 console.log('Script loaded');
 
@@ -14,7 +14,7 @@ const addEmployeeBtn = document.getElementById('addEmployeeBtn');
 const employeeModal = new bootstrap.Modal(document.getElementById('employeeModal'));
 const userModal = new bootstrap.Modal(document.getElementById('userModal'));
 const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-const employeeForm = document.getElementById('employeeForm');
+ const employeeForm = document.getElementById('employeeForm');
 const userForm = document.getElementById('userForm');
 const saveEmployeeBtn = document.getElementById('saveEmployeeBtn');
 const saveUserBtn = document.getElementById('saveUserBtn');
@@ -49,7 +49,7 @@ const senhaFeedback = document.getElementById('senhaFeedback');
 // Variables to store temporary data
 let tempEmployeeData = null;
 let isEditMode = false;
-export let dataTable = null;
+
 
 // Function to show alert
 export function showAlert(message, type = 'success') {
@@ -275,9 +275,20 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
     // Limpa a mensagem de erro do modal
     esconderErroModal();
 
+    console.log(isEditMode);
+
     const setorSelect = setorInput; // setorInput já é o select
+    let setorPreSelecionado;
     // Limpa o select antes de preencher
-    setorSelect.innerHTML = '<option value="">Selecione o setor</option>';
+    if (isEditMode){
+        setorPreSelecionado = setorInput.value;
+        console.log('Setor pré-selecionado:', setorPreSelecionado);
+        setorSelect.innerHTML = `<option value="">Selecione o setor</option>
+                                <option value="${setorPreSelecionado}" selected>${setorInput.options[setorInput.selectedIndex].textContent}</option>`;
+    }else{
+        setorSelect.innerHTML = '<option value="">Carregando setores...</option>';
+    }
+    
 
     fetch('/setores/')
         .then(response => {
@@ -285,9 +296,17 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
             return response.json();
         })
         .then(data => {
+            if (!isEditMode){
+                setorSelect.innerHTML = '<option value="">Selecione o setor</option>';
+            }
+            
             data.forEach(setor => {
                 const option = document.createElement('option');
                 option.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+                if (option.value === setorPreSelecionado) {
+                    // option.selected = true; // Marca o setor pré-selecionado
+                    return;
+                }
                 option.textContent = setor.nome || setor.id || setor;
                 setorSelect.appendChild(option);
             });
@@ -458,5 +477,74 @@ $('#searchInput').on('keyup', function() {
 $(document).ready(function() {
     fetchEmployees();
 });
+
+// Handle Edit button click
+export function handleEditClick(e) {
+    e.preventDefault();
+    const id = e.target.dataset.id;
+    const employee = employees.find(emp => emp.id == id);
+    
+    if (employee) {
+        employeeIdInput.value = employee.id;
+        matriculaInput.value = employee.matricula;
+        nomeInput.value = employee.nome;
+        cargoInput.value = employee.cargo;
+        responsavelInput.value = employee.responsavel;
+        dataAdmissaoInput.value = employee.dataAdmissao;
+
+        //criando option do setor do funcionario
+        const option = document.createElement('option');
+        option.value = employee.setorId || employee.setor; // Use setorId if available, otherwise fallback to setor
+        option.textContent = employee.setor || employee.setorNome || 'Setor Desconhecido'; // Fallback to setorNome or a default text
+        setorInput.appendChild(option);
+
+        setorInput.value = employee.setorId;
+        
+        console.log('Editing employee:', employee);
+
+        // Hide the "Criar Usuário" checkbox in edit mode
+        // criarUsuarioCheckbox.checked = false;
+        // criarUsuarioCheckbox.parentElement.classList.add('d-none');
+        
+        isEditMode = true;
+        employeeModalLabel.textContent = 'Editar Funcionário';
+        employeeModal.show();
+    }
+}
+
+// Handle Delete button click
+export function handleDeleteClick(e) {
+    e.preventDefault();
+    const id = e.target.dataset.id;
+    
+    confirmDeleteBtn.dataset.id = id;
+    deleteModal.show();
+}
+
+// Function to fetch employees from API
+export async function fetchEmployees() {
+    try {
+        loadingSpinner.classList.remove('d-none');
+        noResults.classList.add('d-none');
+        
+        // In a real application, you would fetch from the API
+        const response = await fetch(URL_LISTAR_FUNCIONARIOS);
+        if (!response.ok) throw new Error('Failed to fetch employees');
+        const data = await response.json();
+        // Armazenar os dados localmente
+        employees = data;
+        
+        // For demonstration, we'll use the sample data
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        initializeDataTable(data);
+    } catch (error) {
+        console.error('Error fetching employees:', error);
+        showAlert('Erro ao carregar funcionários. Por favor, tente novamente.', 'danger');
+    } finally {
+        loadingSpinner.classList.add('d-none');
+    }
+}
 
 

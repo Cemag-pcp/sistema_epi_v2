@@ -65,7 +65,8 @@ def api_funcionarios(request):
                 'cargo':f.cargo,
                 'responsavel': 'teste_responsavel',
                 'dataAdmissao': f.data_admissao,
-                'status': 'Ativo' if f.ativo else 'Desativado'
+                'status': 'Ativo' if f.ativo else 'Desativado',
+                'setorId': f.setor.id,
             }
             for f in funcionarios
         ]
@@ -115,7 +116,7 @@ def funcionario(request):
                     'setor': funcionario.setor.nome,
                     'cargo': funcionario.cargo,
                     'data_admissao': funcionario.data_admissao,
-                    'status': 'Ativo' if funcionario.ativo else 'Desativado'
+                    'status': 'Ativo' if funcionario.ativo else 'Desativado',
                 }
             }, status=201)
         
