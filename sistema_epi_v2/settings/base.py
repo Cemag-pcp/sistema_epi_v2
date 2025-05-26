@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'devolucao',
     'usuario',
     'equipamento',
+    'padrao',
     'solicitacao',
 ]
 
