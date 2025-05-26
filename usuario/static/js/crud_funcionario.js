@@ -1,9 +1,10 @@
 // API URL - Replace with your actual API endpoint
 import { getCookie } from "/static/js/scripts.js";
+import { fetchEmployees } from "./datatable_funcionario.js";
 
 console.log('Script loaded');
 
-let employees = [];
+export let employees = [];
 // DOM Elements
 const employeeTableBody = document.getElementById('employeeTableBody');
 const searchInput = document.getElementById('searchInput');
@@ -30,7 +31,7 @@ const deleteButtonText = document.getElementById('deleteButtonText');
 const deleteSpinner = document.getElementById('deleteSpinner');
 const criarUsuarioCheckbox = document.getElementById('criarUsuario');
 const closeUserModal = document.getElementById('closeUserModal');
-const cancelUserBtn = document.getElementById('cancelUserBtn');
+const erroMessage = document.getElementById('erro-modal');
 
 // Form fields
 const employeeIdInput = document.getElementById('employeeId');
@@ -48,9 +49,10 @@ const senhaFeedback = document.getElementById('senhaFeedback');
 // Variables to store temporary data
 let tempEmployeeData = null;
 let isEditMode = false;
+export let dataTable = null;
 
 // Function to show alert
-function showAlert(message, type = 'success') {
+export function showAlert(message, type = 'success') {
     alertText.textContent = message;
     alertMessage.className = `alert alert-${type} alert-dismissible fade show`;
     alertContainer.classList.remove('d-none');
@@ -61,107 +63,6 @@ function showAlert(message, type = 'success') {
     }, 5000);
 }
 
-// Function to get status badge class
-function getStatusBadgeClass(status) {
-    switch(status) {
-        case "Ativo":
-            return "bg-success text-white";
-        case "Desligado":
-            return "bg-danger text-white";
-        case "Afastado":
-            return "bg-warning text-dark";
-        case "Desativado":
-            return "bg-secondary text-white";
-        default:
-            return "bg-secondary text-white";
-    }
-}
-
-// Function to format date for display
-function formatDateForDisplay(dateString) {
-    return new Intl.DateTimeFormat('pt-BR').format(new Date(dateString+"T00:00:00"));
-}
-
-// Function to render employees
-function renderEmployees(employeesToRender) {
-    employeeTableBody.innerHTML = '';
-    
-    if (employeesToRender.length === 0) {
-        noResults.classList.remove('d-none');
-    } else {
-        noResults.classList.add('d-none');
-        
-        employeesToRender.forEach(employee => {
-            const row = document.createElement('tr');
-            
-            row.innerHTML = `
-                <td>${employee.matricula}</td>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                            <i class="bi bi-person"></i>
-                        </div>
-                        <span class="fw-bold">${employee.nome}</span>
-                    </div>
-                </td>
-                <td>${employee.setor}</td>
-                <td>${employee.cargo}</td>
-                <td>${employee.responsavel}</td>
-                <td>${formatDateForDisplay(employee.dataAdmissao)}</td>
-                <td>
-                    <span class="badge rounded-pill ${getStatusBadgeClass(employee.status)}">${employee.status}</span>
-                </td>
-                <td>
-                    <div class="dropdown">
-                        <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-three-dots-vertical"></i>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item edit-btn" href="#" data-id="${employee.id}">Editar</a></li>
-                            <li><a class="dropdown-item delete-btn" href="#" data-id="${employee.id}">Desativar</a></li>
-                        </ul>
-                    </div>
-                </td>
-            `;
-            
-            employeeTableBody.appendChild(row);
-        });
-
-        // Add event listeners to edit and delete buttons
-        document.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', handleEditClick);
-        });
-        
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', handleDeleteClick);
-        });
-    }
-}
-
-// Function to fetch employees from API
-async function fetchEmployees() {
-    try {
-        loadingSpinner.classList.remove('d-none');
-        noResults.classList.add('d-none');
-        
-        // In a real application, you would fetch from the API
-        const response = await fetch(URL_LISTAR_FUNCIONARIOS);
-        if (!response.ok) throw new Error('Failed to fetch employees');
-        const data = await response.json();
-        employees = data;
-        
-        // For demonstration, we'll use the sample data
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        renderEmployees(employees);
-    } catch (error) {
-        console.error('Error fetching employees:', error);
-        showAlert('Erro ao carregar funcionários. Por favor, tente novamente.', 'danger');
-    } finally {
-        loadingSpinner.classList.add('d-none');
-    }
-}
 
 // Function to add employee to API
 async function addEmployee(employeeData) {
@@ -179,25 +80,43 @@ async function addEmployee(employeeData) {
             },
             body: JSON.stringify(employeeData),
         });
-        if (!response.ok) throw new Error(`Falha em adicionar funcionário: ${response.statusText} , ${response.errors}`);
         const data = await response.json();
+
+        if (!response.ok){
+            if (data.errors) {
+                let errorMessage;
+                for (const erro in data.errors){
+                    errorMessage = data.errors[erro];
+                }
+                throw new Error(`Falha em adicionar funcionário: ${errorMessage}`);
+            }else{
+                throw new Error('Falha em adicionar funcionário');
+            }
+
+        } 
+        
         
         // For demonstration, we'll add to the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         const newId = employees.length > 0 ? Math.max(...employees.map(emp => emp.id)) + 1 : 1;
+        //Trocando o valor do id do setor para o nome
+        employeeData['setor'] = employeeData['setorNome'];
         const newEmployee = { id: newId, ...employeeData };
         employees.push(newEmployee);
         
-        renderEmployees(employees);
+        // renderEmployees(employees);
+        // Exemplo de atualização após adicionar um funcionário
+        dataTable.clear().rows.add(employees).draw();
         employeeModal.hide();
         
         // Return the new employee ID
         return newId;
     } catch (error) {
-        console.error('Error adding employee:', error);
+        console.error('Erro ao adicionar funcionário:', error);
         showAlert(`Erro ao adicionar funcionário. Por favor, tente novamente.${error.message}`, 'danger');
+        mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
@@ -234,7 +153,6 @@ async function updateEmployee(id, employeeData) {
             employees[index] = { ...employees[index], ...employeeData };
         }
         
-        renderEmployees(employees);
         employeeModal.hide();
         
         return id;
@@ -312,7 +230,6 @@ async function deactivateEmployee(id) {
             employees[index].status = 'Desativado';
         }
         
-        renderEmployees(employees);
         deleteModal.hide();
         showAlert('Funcionário desativado com sucesso!');
     } catch (error) {
@@ -345,19 +262,6 @@ function validatePasswordMatch() {
     }
 }
 
-// Search functionality
-searchInput.addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase();
-    const filteredEmployees = employees.filter(employee => 
-        employee.matricula.toLowerCase().includes(searchTerm) ||
-        employee.nome.toLowerCase().includes(searchTerm) ||
-        employee.cargo.toLowerCase().includes(searchTerm) ||
-        employee.setor.toLowerCase().includes(searchTerm) ||
-        employee.responsavel.toLowerCase().includes(searchTerm)
-    );
-    renderEmployees(filteredEmployees);
-});
-
 // Add New Employee button click
 addEmployeeBtn.addEventListener('click', function() {
     resetForm();
@@ -368,10 +272,13 @@ addEmployeeBtn.addEventListener('click', function() {
 
 document.getElementById('employeeModal').addEventListener('show.bs.modal', function() {
 
+    // Limpa a mensagem de erro do modal
+    esconderErroModal();
+
     const setorSelect = setorInput; // setorInput já é o select
     // Limpa o select antes de preencher
     setorSelect.innerHTML = '<option value="">Selecione o setor</option>';
-    console.log('Setor select:', setorSelect);
+
     fetch('/setores/')
         .then(response => {
             if (!response.ok) throw new Error('Erro ao buscar setores');
@@ -403,6 +310,8 @@ saveEmployeeBtn.addEventListener('click', async function() {
             setor: setorInput.value,
             responsavel: responsavelInput.value,
             dataAdmissao: dataAdmissaoInput.value,
+            setorNome: setorInput.options[setorInput.selectedIndex].textContent,
+            status: 'Ativo',
         };
         
         try {
@@ -480,38 +389,38 @@ saveUserBtn.addEventListener('click', async function() {
     }
 });
 
-// Handle Edit button click
-function handleEditClick(e) {
-    e.preventDefault();
-    const id = e.target.dataset.id;
-    const employee = employees.find(emp => emp.id == id);
-    
-    if (employee) {
-        employeeIdInput.value = employee.id;
-        matriculaInput.value = employee.matricula;
-        nomeInput.value = employee.nome;
-        cargoInput.value = employee.cargo;
-        setorInput.value = employee.setor;
-        responsavelInput.value = employee.responsavel;
-        dataAdmissaoInput.value = employee.dataAdmissao;
-        
-        // Hide the "Criar Usuário" checkbox in edit mode
-        criarUsuarioCheckbox.checked = false;
-        criarUsuarioCheckbox.parentElement.classList.add('d-none');
-        
-        isEditMode = true;
-        employeeModalLabel.textContent = 'Editar Funcionário';
-        employeeModal.show();
-    }
+function mostrarErroModal(mensagem) {
+    erroMessage.classList.remove('d-none'); // mostra a div
+    erroMessage.innerText = mensagem;       // insere o texto
 }
 
-// Handle Delete button click
-function handleDeleteClick(e) {
-    e.preventDefault();
-    const id = e.target.dataset.id;
+function esconderErroModal() {
+    erroMessage.classList.add('d-none'); // mostra a div
+    erroMessage.innerText = ''; 
+}
+
+// Reset form
+function resetForm() {
+    employeeForm.reset();
+    employeeIdInput.value = '';
     
-    confirmDeleteBtn.dataset.id = id;
-    deleteModal.show();
+    // Show the "Criar Usuário" checkbox for new employees
+    criarUsuarioCheckbox.parentElement.classList.remove('d-none');
+}
+
+// Function to handle API errors
+function handleApiError(error, defaultMessage) {
+    console.error(error);
+    
+    let errorMessage = defaultMessage;
+    
+    if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+    } else if (error.message) {
+        errorMessage = error.message;
+    }
+    
+    showAlert(errorMessage, 'danger');
 }
 
 // Confirm Delete button click
@@ -540,16 +449,14 @@ cancelUserBtn.addEventListener('click', function() {
     }
 });
 
-// Reset form
-function resetForm() {
-    employeeForm.reset();
-    employeeIdInput.value = '';
-    
-    // Show the "Criar Usuário" checkbox for new employees
-    criarUsuarioCheckbox.parentElement.classList.remove('d-none');
-}
-
-
+// Custom search functionality for DataTable
+$('#searchInput').on('keyup', function() {
+    dataTable.search(this.value).draw();
+});
 
 // Initial fetch
-fetchEmployees();
+$(document).ready(function() {
+    fetchEmployees();
+});
+
+
