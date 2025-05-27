@@ -1,16 +1,15 @@
-import { employees, showAlert, dataTable } from "./crud_funcionario.js";
+import { employees, showAlert, handleDeleteClick, handleEditClick, fetchEmployees } from "./crud_funcionario.js";
 
-let employees_local = employees
-let dataTable_local = dataTable
+export let dataTable;
 // Function to initialize DataTable
 export function initializeDataTable(data) {
     // Destroy existing DataTable if it exists
-    if (dataTable_local) {
-        dataTable_local.destroy();
+    if (dataTable) {
+        dataTable.destroy();
     }
     
     // Initialize DataTable
-    dataTable_local = $('#employeeTable').DataTable({
+    dataTable = $('#employeeTable').DataTable({
         data: data,
         columns: [
             { data: 'matricula' },
@@ -85,65 +84,8 @@ export function initializeDataTable(data) {
     });
 }
 
-// Handle Delete button click
-export function handleDeleteClick(e) {
-    e.preventDefault();
-    const id = e.target.dataset.id;
-    
-    confirmDeleteBtn.dataset.id = id;
-    deleteModal.show();
-}
 
-// Handle Edit button click
-export function handleEditClick(e) {
-    e.preventDefault();
-    const id = e.target.dataset.id;
-    const employee = employees.find(emp => emp.id == id);
-    
-    if (employee) {
-        employeeIdInput.value = employee.id;
-        matriculaInput.value = employee.matricula;
-        nomeInput.value = employee.nome;
-        cargoInput.value = employee.cargo;
-        setorInput.value = employee.setor;
-        responsavelInput.value = employee.responsavel;
-        dataAdmissaoInput.value = employee.dataAdmissao;
-        
-        // Hide the "Criar Usuário" checkbox in edit mode
-        criarUsuarioCheckbox.checked = false;
-        criarUsuarioCheckbox.parentElement.classList.add('d-none');
-        
-        isEditMode = true;
-        employeeModalLabel.textContent = 'Editar Funcionário';
-        employeeModal.show();
-    }
-}
 
-// Function to fetch employees from API
-export async function fetchEmployees() {
-    try {
-        loadingSpinner.classList.remove('d-none');
-        noResults.classList.add('d-none');
-        
-        // In a real application, you would fetch from the API
-        const response = await fetch(URL_LISTAR_FUNCIONARIOS);
-        if (!response.ok) throw new Error('Failed to fetch employees');
-        const data = await response.json();
-        // Armazenar os dados localmente
-        employees_local = data;
-        
-        // For demonstration, we'll use the sample data
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        initializeDataTable(data);
-    } catch (error) {
-        console.error('Error fetching employees:', error);
-        showAlert('Erro ao carregar funcionários. Por favor, tente novamente.', 'danger');
-    } finally {
-        loadingSpinner.classList.add('d-none');
-    }
-}
 
 // Function to format date for display
 export function formatDateForDisplay(dateString) {

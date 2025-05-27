@@ -1,6 +1,6 @@
 // API URL - Replace with your actual API endpoint
 import { getCookie } from "/static/js/scripts.js";
-import { fetchEmployees } from "./datatable_funcionario.js";
+import { initializeDataTable, dataTable } from "./datatable_funcionario.js";
 
 console.log('Script loaded');
 
@@ -14,7 +14,7 @@ const addEmployeeBtn = document.getElementById('addEmployeeBtn');
 const employeeModal = new bootstrap.Modal(document.getElementById('employeeModal'));
 const userModal = new bootstrap.Modal(document.getElementById('userModal'));
 const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-const employeeForm = document.getElementById('employeeForm');
+ const employeeForm = document.getElementById('employeeForm');
 const userForm = document.getElementById('userForm');
 const saveEmployeeBtn = document.getElementById('saveEmployeeBtn');
 const saveUserBtn = document.getElementById('saveUserBtn');
@@ -49,7 +49,7 @@ const senhaFeedback = document.getElementById('senhaFeedback');
 // Variables to store temporary data
 let tempEmployeeData = null;
 let isEditMode = false;
-export let dataTable = null;
+
 
 // Function to show alert
 export function showAlert(message, type = 'success') {
@@ -70,6 +70,7 @@ async function addEmployee(employeeData) {
         // Show loading spinner
         saveButtonText.classList.add('d-none');
         saveSpinner.classList.remove('d-none');
+        saveEmployeeBtn.disabled = true;
         
         // In a real application, you would post to the API
         const response = await fetch(URL_CADASTRAR_FUNCIONARIO, {
@@ -83,19 +84,9 @@ async function addEmployee(employeeData) {
         const data = await response.json();
 
         if (!response.ok){
-            if (data.errors) {
-                let errorMessage;
-                for (const erro in data.errors){
-                    errorMessage = data.errors[erro];
-                }
-                throw new Error(`Falha em adicionar funcionário: ${errorMessage}`);
-            }else{
-                throw new Error('Falha em adicionar funcionário');
-            }
+            errorValidacao(data, 'Falha ao adicionar funcionário');
+        }
 
-        } 
-        
-        
         // For demonstration, we'll add to the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -108,20 +99,21 @@ async function addEmployee(employeeData) {
         
         // renderEmployees(employees);
         // Exemplo de atualização após adicionar um funcionário
-        dataTable.clear().rows.add(employees).draw();
+        dataTable.clear().rows.add(employees).draw(false);
         employeeModal.hide();
         
         // Return the new employee ID
         return newId;
     } catch (error) {
         console.error('Erro ao adicionar funcionário:', error);
-        showAlert(`Erro ao adicionar funcionário. Por favor, tente novamente.${error.message}`, 'danger');
+        showAlert(`Erro ao adicionar funcionário.${error.message}`, 'danger');
         mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
         saveButtonText.classList.remove('d-none');
         saveSpinner.classList.add('d-none');
+        saveEmployeeBtn.disabled = false;
     }
 }
 
@@ -131,6 +123,7 @@ async function updateEmployee(id, employeeData) {
         // Show loading spinner
         saveButtonText.classList.add('d-none');
         saveSpinner.classList.remove('d-none');
+        saveEmployeeBtn.disabled = true;
         
         // In a real application, you would put to the API
         const response = await fetch(`${URL_EDITAR_FUNCIONARIO}${id}/`, {
@@ -141,29 +134,40 @@ async function updateEmployee(id, employeeData) {
             },
             body: JSON.stringify(employeeData),
         });
-        if (!response.ok) throw new Error('Failed to update employee');
-        const data = await response.json();
         
+        const data = await response.json();
+
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao atualizar funcionário');
+        }
+
+
         // For demonstration, we'll update the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
+        employeeData['setor'] = employeeData['setorNome'];
+        // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
         if (index !== -1) {
             employees[index] = { ...employees[index], ...employeeData };
         }
-        
+        // Refresh the DataTable
+        dataTable.row(index).data(employees[index]).draw(false);
         employeeModal.hide();
         
         return id;
     } catch (error) {
-        console.error('Error updating employee:', error);
-        showAlert('Erro ao atualizar funcionário. Por favor, tente novamente.', 'danger');
+        console.error('Erro ao atualizar funcionário:', error);
+        showAlert(`${error.message}`, 'danger');
+        mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
         saveButtonText.classList.remove('d-none');
         saveSpinner.classList.add('d-none');
+        saveEmployeeBtn.disabled = false;
+
     }
 }
 
@@ -173,17 +177,21 @@ async function createUser(userData) {
         // Show loading spinner
         saveUserButtonText.classList.add('d-none');
         saveUserSpinner.classList.remove('d-none');
+        saveUserBtn.disabled = true;
         
         // In a real application, you would post to the API
-        // const response = await fetch(USER_API_URL, {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //     },
-        //     body: JSON.stringify(userData),
-        // });
-        // if (!response.ok) throw new Error('Failed to create user');
-        // const data = await response.json();
+        const response = await fetch(URL_CADASTRAR_USUARIO, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(userData),
+        });
+        const data = await response.json();
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao criar usuário');
+        }
         
         // For demonstration, we'll simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -194,12 +202,15 @@ async function createUser(userData) {
         return true;
     } catch (error) {
         console.error('Error creating user:', error);
-        showAlert('Erro ao criar usuário. Por favor, tente novamente.', 'danger');
+        showAlert(`${error.message}`, 'danger');
+        mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
         saveUserButtonText.classList.remove('d-none');
         saveUserSpinner.classList.add('d-none');
+        saveUserBtn.disabled = false;
+
     }
 }
 
@@ -219,16 +230,23 @@ async function deactivateEmployee(id) {
             },
             body: JSON.stringify({ status: 'Desativado' }),
         });
-        if (!response.ok) throw new Error('Failed to deactivate employee');
+        console.log('Response data:', response);
+        const data = await response.json();
+        
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao desativar funcionário');
+        }
         
         // For demonstration, we'll update the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
+        // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
         if (index !== -1) {
             employees[index].status = 'Desativado';
         }
+        dataTable.row(index).data(employees[index]).draw(false);
         
         deleteModal.hide();
         showAlert('Funcionário desativado com sucesso!');
@@ -275,9 +293,20 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
     // Limpa a mensagem de erro do modal
     esconderErroModal();
 
+    console.log(isEditMode);
+
     const setorSelect = setorInput; // setorInput já é o select
+    let setorPreSelecionado;
     // Limpa o select antes de preencher
-    setorSelect.innerHTML = '<option value="">Selecione o setor</option>';
+    if (isEditMode){
+        setorPreSelecionado = setorInput.value;
+        console.log('Setor pré-selecionado:', setorPreSelecionado);
+        setorSelect.innerHTML = `<option value="">Selecione o setor</option>
+                                <option value="${setorPreSelecionado}" selected>${setorInput.options[setorInput.selectedIndex].textContent}</option>`;
+    }else{
+        setorSelect.innerHTML = '<option value="">Carregando setores...</option>';
+    }
+    
 
     fetch('/setores/')
         .then(response => {
@@ -285,9 +314,17 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
             return response.json();
         })
         .then(data => {
+            if (!isEditMode){
+                setorSelect.innerHTML = '<option value="">Selecione o setor</option>';
+            }
+            
             data.forEach(setor => {
                 const option = document.createElement('option');
                 option.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+                if (option.value === setorPreSelecionado) {
+                    // option.selected = true; // Marca o setor pré-selecionado
+                    return;
+                }
                 option.textContent = setor.nome || setor.id || setor;
                 setorSelect.appendChild(option);
             });
@@ -458,5 +495,86 @@ $('#searchInput').on('keyup', function() {
 $(document).ready(function() {
     fetchEmployees();
 });
+
+// Handle Edit button click
+export function handleEditClick(e) {
+    e.preventDefault();
+    const id = e.target.dataset.id;
+    const employee = employees.find(emp => emp.id == id);
+    
+    if (employee) {
+        employeeIdInput.value = employee.id;
+        matriculaInput.value = employee.matricula;
+        nomeInput.value = employee.nome;
+        cargoInput.value = employee.cargo;
+        responsavelInput.value = employee.responsavel;
+        dataAdmissaoInput.value = employee.dataAdmissao;
+
+        //criando option do setor do funcionario
+        const option = document.createElement('option');
+        option.value = employee.setorId || employee.setor; // Use setorId if available, otherwise fallback to setor
+        option.textContent = employee.setor || employee.setorNome || 'Setor Desconhecido'; // Fallback to setorNome or a default text
+        setorInput.appendChild(option);
+
+        setorInput.value = employee.setorId;
+        
+        console.log('Editing employee:', employee);
+
+        // Hide the "Criar Usuário" checkbox in edit mode
+        // criarUsuarioCheckbox.checked = false;
+        // criarUsuarioCheckbox.parentElement.classList.add('d-none');
+        
+        isEditMode = true;
+        employeeModalLabel.textContent = 'Editar Funcionário';
+        employeeModal.show();
+    }
+}
+
+// Handle Delete button click
+export function handleDeleteClick(e) {
+    e.preventDefault();
+    const id = e.target.dataset.id;
+    
+    confirmDeleteBtn.dataset.id = id;
+    deleteModal.show();
+}
+
+// Function to fetch employees from API
+export async function fetchEmployees() {
+    try {
+        loadingSpinner.classList.remove('d-none');
+        noResults.classList.add('d-none');
+        
+        // In a real application, you would fetch from the API
+        const response = await fetch(URL_LISTAR_FUNCIONARIOS);
+        if (!response.ok) throw new Error('Failed to fetch employees');
+        const data = await response.json();
+        // Armazenar os dados localmente
+        employees = data;
+        
+        // For demonstration, we'll use the sample data
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        initializeDataTable(data);
+    } catch (error) {
+        console.error('Error fetching employees:', error);
+        showAlert('Erro ao carregar funcionários. Por favor, tente novamente.', 'danger');
+    } finally {
+        loadingSpinner.classList.add('d-none');
+    }
+}
+
+function errorValidacao(data, error) {
+        if (data.errors) {
+            let errorMessage;
+            for (const erro in data.errors){
+                errorMessage = data.errors[erro];
+            }
+            throw new Error(`${errorMessage}`);
+        } else{
+            throw new Error(error);
+        }
+}
 
 
