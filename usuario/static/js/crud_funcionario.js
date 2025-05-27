@@ -70,6 +70,7 @@ async function addEmployee(employeeData) {
         // Show loading spinner
         saveButtonText.classList.add('d-none');
         saveSpinner.classList.remove('d-none');
+        saveEmployeeBtn.disabled = true;
         
         // In a real application, you would post to the API
         const response = await fetch(URL_CADASTRAR_FUNCIONARIO, {
@@ -83,19 +84,9 @@ async function addEmployee(employeeData) {
         const data = await response.json();
 
         if (!response.ok){
-            if (data.errors) {
-                let errorMessage;
-                for (const erro in data.errors){
-                    errorMessage = data.errors[erro];
-                }
-                throw new Error(`Falha em adicionar funcionário: ${errorMessage}`);
-            }else{
-                throw new Error('Falha em adicionar funcionário');
-            }
+            errorValidacao(data, 'Falha ao adicionar funcionário');
+        }
 
-        } 
-        
-        
         // For demonstration, we'll add to the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -108,20 +99,21 @@ async function addEmployee(employeeData) {
         
         // renderEmployees(employees);
         // Exemplo de atualização após adicionar um funcionário
-        dataTable.clear().rows.add(employees).draw();
+        dataTable.clear().rows.add(employees).draw(false);
         employeeModal.hide();
         
         // Return the new employee ID
         return newId;
     } catch (error) {
         console.error('Erro ao adicionar funcionário:', error);
-        showAlert(`Erro ao adicionar funcionário. Por favor, tente novamente.${error.message}`, 'danger');
+        showAlert(`Erro ao adicionar funcionário.${error.message}`, 'danger');
         mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
         saveButtonText.classList.remove('d-none');
         saveSpinner.classList.add('d-none');
+        saveEmployeeBtn.disabled = false;
     }
 }
 
@@ -131,6 +123,7 @@ async function updateEmployee(id, employeeData) {
         // Show loading spinner
         saveButtonText.classList.add('d-none');
         saveSpinner.classList.remove('d-none');
+        saveEmployeeBtn.disabled = true;
         
         // In a real application, you would put to the API
         const response = await fetch(`${URL_EDITAR_FUNCIONARIO}${id}/`, {
@@ -141,29 +134,40 @@ async function updateEmployee(id, employeeData) {
             },
             body: JSON.stringify(employeeData),
         });
-        if (!response.ok) throw new Error('Failed to update employee');
-        const data = await response.json();
         
+        const data = await response.json();
+
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao atualizar funcionário');
+        }
+
+
         // For demonstration, we'll update the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
+        employeeData['setor'] = employeeData['setorNome'];
+        // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
         if (index !== -1) {
             employees[index] = { ...employees[index], ...employeeData };
         }
-        
+        // Refresh the DataTable
+        dataTable.row(index).data(employees[index]).draw(false);
         employeeModal.hide();
         
         return id;
     } catch (error) {
-        console.error('Error updating employee:', error);
-        showAlert('Erro ao atualizar funcionário. Por favor, tente novamente.', 'danger');
+        console.error('Erro ao atualizar funcionário:', error);
+        showAlert(`${error.message}`, 'danger');
+        mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
         saveButtonText.classList.remove('d-none');
         saveSpinner.classList.add('d-none');
+        saveEmployeeBtn.disabled = false;
+
     }
 }
 
@@ -173,17 +177,21 @@ async function createUser(userData) {
         // Show loading spinner
         saveUserButtonText.classList.add('d-none');
         saveUserSpinner.classList.remove('d-none');
+        saveUserBtn.disabled = true;
         
         // In a real application, you would post to the API
-        // const response = await fetch(USER_API_URL, {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //     },
-        //     body: JSON.stringify(userData),
-        // });
-        // if (!response.ok) throw new Error('Failed to create user');
-        // const data = await response.json();
+        const response = await fetch(URL_CADASTRAR_USUARIO, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(userData),
+        });
+        const data = await response.json();
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao criar usuário');
+        }
         
         // For demonstration, we'll simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -194,12 +202,15 @@ async function createUser(userData) {
         return true;
     } catch (error) {
         console.error('Error creating user:', error);
-        showAlert('Erro ao criar usuário. Por favor, tente novamente.', 'danger');
+        showAlert(`${error.message}`, 'danger');
+        mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
         saveUserButtonText.classList.remove('d-none');
         saveUserSpinner.classList.add('d-none');
+        saveUserBtn.disabled = false;
+
     }
 }
 
@@ -219,16 +230,23 @@ async function deactivateEmployee(id) {
             },
             body: JSON.stringify({ status: 'Desativado' }),
         });
-        if (!response.ok) throw new Error('Failed to deactivate employee');
+        console.log('Response data:', response);
+        const data = await response.json();
+        
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao desativar funcionário');
+        }
         
         // For demonstration, we'll update the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
+        // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
         if (index !== -1) {
             employees[index].status = 'Desativado';
         }
+        dataTable.row(index).data(employees[index]).draw(false);
         
         deleteModal.hide();
         showAlert('Funcionário desativado com sucesso!');
@@ -545,6 +563,18 @@ export async function fetchEmployees() {
     } finally {
         loadingSpinner.classList.add('d-none');
     }
+}
+
+function errorValidacao(data, error) {
+        if (data.errors) {
+            let errorMessage;
+            for (const erro in data.errors){
+                errorMessage = data.errors[erro];
+            }
+            throw new Error(`${errorMessage}`);
+        } else{
+            throw new Error(error);
+        }
 }
 
 

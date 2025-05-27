@@ -1,6 +1,5 @@
 import { employees, showAlert, handleDeleteClick, handleEditClick, fetchEmployees } from "./crud_funcionario.js";
 
-let employees_local = employees
 export let dataTable;
 // Function to initialize DataTable
 export function initializeDataTable(data) {
