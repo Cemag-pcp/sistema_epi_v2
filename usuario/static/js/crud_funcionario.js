@@ -330,7 +330,7 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
             });
         })
         .catch(error => {
-            console.error('Erro ao carregar setores:', error);
+            console.error('Erro ao carregar setores:', error.response.status);
             showAlert('Erro ao carregar setores.', 'danger');
         });
 });
@@ -501,6 +501,9 @@ export function handleEditClick(e) {
     e.preventDefault();
     const id = e.target.dataset.id;
     const employee = employees.find(emp => emp.id == id);
+
+    // Iniciar a edição, mostrando o checkbox depois remover caso já exista usuário
+    criarUsuarioCheckbox.parentElement.classList.remove('d-none');
     
     if (employee) {
         employeeIdInput.value = employee.id;
@@ -520,9 +523,11 @@ export function handleEditClick(e) {
         
         console.log('Editing employee:', employee);
 
-        // Hide the "Criar Usuário" checkbox in edit mode
-        // criarUsuarioCheckbox.checked = false;
-        // criarUsuarioCheckbox.parentElement.classList.add('d-none');
+        // Hide the "Criar Usuário" checkbox in edit mode if usuario exists
+        if (employee.usuario){
+            criarUsuarioCheckbox.checked = false;
+            criarUsuarioCheckbox.parentElement.classList.add('d-none');
+        }
         
         isEditMode = true;
         employeeModalLabel.textContent = 'Editar Funcionário';

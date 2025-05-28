@@ -55,6 +55,8 @@ def api_funcionarios(request):
         # Aqui você pode adicionar a lógica para listar os funcionários
 
         funcionarios = Funcionario.objects.select_related('setor').all().order_by('id')
+        
+
 
         list_funcionarios = [
             {
@@ -67,6 +69,7 @@ def api_funcionarios(request):
                 'dataAdmissao': f.data_admissao,
                 'status': 'Ativo' if f.ativo else 'Desativado',
                 'setorId': f.setor.id,
+                'usuario': f.funcionario.tipo_acesso if hasattr(f, 'funcionario') else ''
             }
             for f in funcionarios
         ]
