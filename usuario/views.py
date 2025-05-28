@@ -244,7 +244,19 @@ def editar_funcionario(request, id):
 def setores(request):
     if request.method == 'GET':
         setores = Setor.objects.all()
-        lista_setores = list(setores.values())
+
+        lista_setores = [
+            {
+                'id':setor.id,
+                'nome':setor.nome,
+                'responsavel_id':setor.responsavel.id,
+                'responsavel_nome':setor.responsavel.nome,
+                'responsavel_matricula':setor.responsavel.matricula
+            }
+            for setor in setores
+        ]
+        print(lista_setores)
+        
         return JsonResponse(lista_setores, safe=False)
     return JsonResponse({'status': 'success', 'message': 'Setores listados com sucesso!'})
 

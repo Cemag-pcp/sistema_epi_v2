@@ -297,6 +297,9 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
 
     const setorSelect = setorInput; // setorInput já é o select
     let setorPreSelecionado;
+
+    const responsavelSelect = responsavelInput;
+    
     // Limpa o select antes de preencher
     if (isEditMode){
         setorPreSelecionado = setorInput.value;
@@ -319,14 +322,27 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
             }
             
             data.forEach(setor => {
-                const option = document.createElement('option');
-                option.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
-                if (option.value === setorPreSelecionado) {
-                    // option.selected = true; // Marca o setor pré-selecionado
-                    return;
+                //Setando os setores
+                const optionSetor = document.createElement('option');
+                optionSetor.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+                if (optionSetor.value !== setorPreSelecionado) {
+                    optionSetor.textContent = setor.nome || setor.id || setor;
+                    setorSelect.appendChild(optionSetor);
                 }
-                option.textContent = setor.nome || setor.id || setor;
-                setorSelect.appendChild(option);
+
+                //Setando os responsáveis
+                const optionResponsavel = document.createElement('option');
+                optionResponsavel.value = setor.responsavel_id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+
+                if (setor.responsavel_matricula && setor.responsavel_nome) {
+                    optionResponsavel.textContent = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
+                } else {
+                    optionResponsavel.textContent = setor.responsavel_id;
+                }
+
+                responsavelSelect.appendChild(optionResponsavel);
+
+                
             });
         })
         .catch(error => {
