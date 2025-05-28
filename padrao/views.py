@@ -145,9 +145,9 @@ def padroes(request):
 @require_http_methods(["GET", "PUT", "PATCH"])
 def alter_padrao(request, id):
     try:
-        equipamento = Padrao.objects.filter(id=id).first()
+        padrao = Padrao.objects.filter(id=id).first()
         
-        if not equipamento:
+        if not padrao:
             return JsonResponse(
                 {'success': False, 'message': 'Equipamento não encontrado'}, 
                 status=404
@@ -193,7 +193,6 @@ def alter_padrao(request, id):
                     },
                     'equipamentos': list(equipamentos),
                     'funcionarios_disponiveis': list(funcionarios),
-                    'solicitante': request.user.nome
                 }, status=200)
                 
             except Padrao.DoesNotExist:
@@ -253,13 +252,13 @@ def alter_padrao(request, id):
 
         elif request.method == 'PATCH':
             try:
-                equipamento.ativo = not equipamento.ativo
-                equipamento.save()
+                padrao.ativo = not padrao.ativo
+                padrao.save()
                 
                 return JsonResponse({
                     'success': True, 
-                    'message': f'Equipamento {"ativado" if equipamento.ativo else "desativado"} com sucesso',
-                    'novo_status': equipamento.ativo
+                    'message': f'Equipamento {"ativado" if padrao.ativo else "desativado"} com sucesso',
+                    'novo_status': padrao.ativo
                 })
                 
             except Exception as e:

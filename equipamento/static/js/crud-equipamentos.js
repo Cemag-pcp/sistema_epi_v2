@@ -151,8 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           
           const data = await response.json();
-
-          if (!response.ok) {
+            
+          if (!response.ok) {  
               // Extrai a mensagem de erro detalhada do backend
               const errorMsg = data.message || 
                               data.detail || 
@@ -195,7 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           
       } catch (error) {
-          console.error(error);
+          console.error(error.response);
+          console.log(error.response);
 
           Toast.fire({
               icon: 'error',
