@@ -1,13 +1,15 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from usuario.models import Funcionario,Setor,Usuario
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
-from usuario.decorators import somente_master
 from django.core.exceptions import ValidationError
+
+from usuario.models import Funcionario,Setor,Usuario
+from usuario.decorators import somente_master
 from datetime import datetime
+
 import traceback
 import json
 
@@ -54,19 +56,26 @@ def api_funcionarios(request):
     if request.method == 'GET':
         # Aqui você pode adicionar a lógica para listar os funcionários
 
-        funcionarios = Funcionario.objects.select_related('setor').all().order_by('id')
+        funcionarios = Funcionario.objects.select_related('setor','setor__responsavel').values(
+            'id', 'nome', 'matricula', 'setor__nome', 'setor__id',
+                'setor__responsavel__nome', 'setor__responsavel__matricula',
+                'cargo', 'data_admissao', 'ativo','funcionario'
+        ).order_by('id')
+        
+
 
         list_funcionarios = [
-            {
-                'id': f.id,
-                'nome': f.nome,
-                'matricula': f.matricula,
-                'setor': f.setor.nome,
-                'cargo':f.cargo,
-                'responsavel': 'teste_responsavel',
-                'dataAdmissao': f.data_admissao,
-                'status': 'Ativo' if f.ativo else 'Desativado',
-                'setorId': f.setor.id,
+           {
+                'id': f['id'],
+                'nome': f['nome'],
+                'matricula': f['matricula'],
+                'setor': f['setor__nome'],
+                'cargo': f['cargo'],
+                'responsavel': f"{f['setor__responsavel__matricula']} - {f['setor__responsavel__nome']}" if f['setor__responsavel__matricula'] else '',
+                'dataAdmissao': f['data_admissao'],
+                'status': 'Ativo' if f['ativo'] else 'Desativado',
+                'setorId': f['setor__id'],
+                'usuario': f['funcionario'] if f['funcionario'] else '',  # ajuste conforme sua modelagem
             }
             for f in funcionarios
         ]
@@ -241,7 +250,19 @@ def editar_funcionario(request, id):
 def setores(request):
     if request.method == 'GET':
         setores = Setor.objects.all()
-        lista_setores = list(setores.values())
+
+        lista_setores = [
+            {
+                'id':setor.id,
+                'nome':setor.nome,
+                'responsavel_id':setor.responsavel.id,
+                'responsavel_nome':setor.responsavel.nome,
+                'responsavel_matricula':setor.responsavel.matricula
+            }
+            for setor in setores
+        ]
+        print(lista_setores)
+        
         return JsonResponse(lista_setores, safe=False)
     return JsonResponse({'status': 'success', 'message': 'Setores listados com sucesso!'})
 
@@ -301,5 +322,28 @@ def usuario(request):
             return JsonResponse({
                 'success': False,
                 'message': 'Erro ao cadastrar usuário',
+                'errors': str(e)
+            }, status=500)
+        
+
+@login_required
+@somente_master
+def busca_setor(request,id):
+    if request.method == 'GET':
+        try:
+            setor = get_object_or_404(Setor,pk=id)
+
+            responsavel_setor = {
+                'matricula': setor.responsavel.matricula if setor.responsavel else None,
+                'nome': setor.responsavel.nome if setor.responsavel else None,
+            }
+
+            return JsonResponse(responsavel_setor)
+        
+        except Exception as e:
+            print('Stack trace:', traceback.format_exc())
+            return JsonResponse({
+                'success': False,
+                'message': 'Erro ao buscar Setores',
                 'errors': str(e)
             }, status=500)

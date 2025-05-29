@@ -19,9 +19,6 @@ export function initializeDataTable(data) {
                     if (type === 'display') {
                         return `
                             <div class="d-flex align-items-center">
-                                <div class="profile-img me-2">
-                                    <i class="bi bi-person"></i>
-                                </div>
                                 <span class="fw-bold">${data}</span>
                             </div>
                         `;
@@ -61,8 +58,8 @@ export function initializeDataTable(data) {
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item edit-btn" href="#" data-id="${data}">Editar</a></li>
-                                <li><a class="dropdown-item delete-btn" href="#" data-id="${data}">Desativar</a></li>
+                                <li><a class="dropdown-item edit-btn" href="#" data-id="${data}"><i class="bi bi-pencil-square" style="margin-right: 8px;"></i>Editar</a></li>
+                                <li><a class="dropdown-item delete-btn" href="#" data-id="${data}" style="color: #dc2626;"><i class="bi bi-trash" style="margin-right: 8px;"></i>Desativar</a></li>
                             </ul>
                         </div>
                     `;
@@ -98,7 +95,7 @@ function getStatusBadgeClass(status) {
         case "Ativo":
             return "bg-success text-white";
         case "Desativado":
-            return "bg-secondary text-white";
+            return "bg-danger text-white";
         default:
             return "bg-secondary text-white";
     }

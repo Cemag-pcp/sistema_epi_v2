@@ -297,6 +297,8 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
 
     const setorSelect = setorInput; // setorInput já é o select
     let setorPreSelecionado;
+
+    
     // Limpa o select antes de preencher
     if (isEditMode){
         setorPreSelecionado = setorInput.value;
@@ -319,21 +321,76 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
             }
             
             data.forEach(setor => {
-                const option = document.createElement('option');
-                option.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
-                if (option.value === setorPreSelecionado) {
-                    // option.selected = true; // Marca o setor pré-selecionado
-                    return;
+                //Setando os setores
+                const optionSetor = document.createElement('option');
+                optionSetor.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+                if (optionSetor.value !== setorPreSelecionado) {
+                    optionSetor.textContent = setor.nome || setor.id || setor;
+                    setorSelect.appendChild(optionSetor);
+                }else{
+                    responsavelInput.value = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
                 }
-                option.textContent = setor.nome || setor.id || setor;
-                setorSelect.appendChild(option);
+
+                //Setando os responsáveis
+                
+                // const optionResponsavel = document.createElement('option');
+                // optionResponsavel.value = setor.responsavel_id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+
+                // if (setor.responsavel_matricula && setor.responsavel_nome) {
+                //     optionResponsavel.textContent = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
+                // } else {
+                //     optionResponsavel.textContent = setor.responsavel_id;
+                // }
+
+                // responsavelSelect.appendChild(optionResponsavel);
+
+                
             });
         })
         .catch(error => {
-            console.error('Erro ao carregar setores:', error);
+            console.error('Erro ao carregar setores:', error.response.status);
             showAlert('Erro ao carregar setores.', 'danger');
         });
 });
+
+setorInput.addEventListener('change', function(){
+    console.log('teste mudança de setor')
+
+    const setorSelect = setorInput;
+    const idSetor = setorSelect.value;
+
+    responsavelInput.value = 'Carregando responsável...';
+
+    if(idSetor){
+        fetch(`/setores/${idSetor}/`)
+        .then(response => {
+            if (!response.ok){
+                if (!response.status == 404){
+                    throw new Error('Erro ao buscar responsável para este Setor!')
+                }else{
+                    return;
+                }
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data){
+                responsavelInput.value = data.matricula + ' - ' + data.nome;
+            }else{
+                responsavelInput.value = 'Nenhum responsável encontrado para este setor';
+            }
+            
+        })
+        .catch(error =>{
+            console.error(error);
+            responsavelInput.value = 'Nenhum responsável encontrado para este setor';
+        })
+    }else{
+        responsavelInput.value = 'Nenhum responsável encontrado para este setor';
+    }
+    
+
+})
 
 // Save Employee button click
 saveEmployeeBtn.addEventListener('click', async function() {
@@ -501,6 +558,9 @@ export function handleEditClick(e) {
     e.preventDefault();
     const id = e.target.dataset.id;
     const employee = employees.find(emp => emp.id == id);
+
+    // Iniciar a edição, mostrando o checkbox depois remover caso já exista usuário
+    criarUsuarioCheckbox.parentElement.classList.remove('d-none');
     
     if (employee) {
         employeeIdInput.value = employee.id;
@@ -520,9 +580,11 @@ export function handleEditClick(e) {
         
         console.log('Editing employee:', employee);
 
-        // Hide the "Criar Usuário" checkbox in edit mode
-        // criarUsuarioCheckbox.checked = false;
-        // criarUsuarioCheckbox.parentElement.classList.add('d-none');
+        // Hide the "Criar Usuário" checkbox in edit mode if usuario exists
+        if (employee.usuario){
+            criarUsuarioCheckbox.checked = false;
+            criarUsuarioCheckbox.parentElement.classList.add('d-none');
+        }
         
         isEditMode = true;
         employeeModalLabel.textContent = 'Editar Funcionário';
@@ -551,6 +613,7 @@ export async function fetchEmployees() {
         const data = await response.json();
         // Armazenar os dados localmente
         employees = data;
+        console.log(data);
         
         // For demonstration, we'll use the sample data
         // Simulate API delay
