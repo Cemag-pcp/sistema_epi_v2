@@ -26,7 +26,6 @@ class CustomUsuarioAdmin(UserAdmin):
     )
 
 admin.site.register(Usuario, CustomUsuarioAdmin)
-admin.site.register(Setor)
 admin.site.register(Funcionario)
 admin.site.register(Setor)
 
