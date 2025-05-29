@@ -56,22 +56,26 @@ def api_funcionarios(request):
     if request.method == 'GET':
         # Aqui você pode adicionar a lógica para listar os funcionários
 
-        funcionarios = Funcionario.objects.select_related('setor').all().order_by('id')
+        funcionarios = Funcionario.objects.select_related('setor','setor__responsavel').values(
+            'id', 'nome', 'matricula', 'setor__nome', 'setor__id',
+                'setor__responsavel__nome', 'setor__responsavel__matricula',
+                'cargo', 'data_admissao', 'ativo','funcionario'
+        ).order_by('id')
         
 
 
         list_funcionarios = [
-            {
-                'id': f.id,
-                'nome': f.nome,
-                'matricula': f.matricula,
-                'setor': f.setor.nome,
-                'cargo':f.cargo,
-                'responsavel': f'{f.setor.responsavel.matricula} - {f.setor.responsavel.nome}',
-                'dataAdmissao': f.data_admissao,
-                'status': 'Ativo' if f.ativo else 'Desativado',
-                'setorId': f.setor.id,
-                'usuario': f.funcionario.tipo_acesso if hasattr(f, 'funcionario') else ''
+           {
+                'id': f['id'],
+                'nome': f['nome'],
+                'matricula': f['matricula'],
+                'setor': f['setor__nome'],
+                'cargo': f['cargo'],
+                'responsavel': f"{f['setor__responsavel__matricula']} - {f['setor__responsavel__nome']}" if f['setor__responsavel__matricula'] else '',
+                'dataAdmissao': f['data_admissao'],
+                'status': 'Ativo' if f['ativo'] else 'Desativado',
+                'setorId': f['setor__id'],
+                'usuario': f['funcionario'] if f['funcionario'] else '',  # ajuste conforme sua modelagem
             }
             for f in funcionarios
         ]
@@ -329,16 +333,12 @@ def busca_setor(request,id):
         try:
             setor = get_object_or_404(Setor,pk=id)
 
-            setor_dict = {
-                'id': setor.id,
-                'nome': setor.nome,
-                'responsavel': {
-                    'matricula': setor.responsavel.matricula,
-                    'nome': setor.responsavel.nome,
-                } if setor.responsavel else None
+            responsavel_setor = {
+                'matricula': setor.responsavel.matricula if setor.responsavel else None,
+                'nome': setor.responsavel.nome if setor.responsavel else None,
             }
 
-            return JsonResponse(setor_dict)
+            return JsonResponse(responsavel_setor)
         
         except Exception as e:
             print('Stack trace:', traceback.format_exc())

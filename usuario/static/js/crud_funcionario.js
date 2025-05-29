@@ -361,20 +361,34 @@ setorInput.addEventListener('change', function(){
 
     responsavelInput.value = 'Carregando responsável...';
 
-    fetch(`/setores/${idSetor}/`)
+    if(idSetor){
+        fetch(`/setores/${idSetor}/`)
         .then(response => {
             if (!response.ok){
-                if (response.status == 404){
-                    console.error('Erro 404')
+                if (!response.status == 404){
+                    throw new Error('Erro ao buscar responsável para este Setor!')
+                }else{
+                    return;
                 }
-                throw new Error('Erro ao buscar responsável para este Setor!')
             }
             return response.json();
         })
         .then(data => {
-            console.log(data);
-            responsavelInput.value = data.responsavel.matricula + ' - ' + data.responsavel.nome;
+            if (data){
+                responsavelInput.value = data.matricula + ' - ' + data.nome;
+            }else{
+                responsavelInput.value = 'Nenhum responsável encontrado para este setor';
+            }
+            
         })
+        .catch(error =>{
+            console.error(error);
+            responsavelInput.value = 'Nenhum responsável encontrado para este setor';
+        })
+    }else{
+        responsavelInput.value = 'Nenhum responsável encontrado para este setor';
+    }
+    
 
 })
 
@@ -599,6 +613,7 @@ export async function fetchEmployees() {
         const data = await response.json();
         // Armazenar os dados localmente
         employees = data;
+        console.log(data);
         
         // For demonstration, we'll use the sample data
         // Simulate API delay
