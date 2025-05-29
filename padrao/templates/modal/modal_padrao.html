@@ -1,0 +1,178 @@
+<div class="modal fade" id="modal-criar-padrao" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-white d-flex justify-content-between align-items-start">
+        <div>
+          <h3 class="modal-title">Adicionar Padrão</h3>
+          <span class="desc-modal-title">Adicione Padrões de Solicitação. Clique em salvar quando terminar.</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="form-criar-padrao">
+        <div class="modal-body">
+            <div id="clone-container-2">
+                <div class="card clone-form-2 p-2 mb-3">
+                    <p class="request text-modal text-end">1ª Solicitação do Padrão</p>
+                    <div class="mb-3">
+                        <label class="form-label text-modal">Nome do Solicitante</label>
+                        <input type="text" class="form-control text-modal" placeholder="John Doe" name="requesterName" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-9">
+                            <label class="form-label text-modal">Equipamento</label>
+                            <select class="form-select text-modal" name="item" required>
+                                <option value="Safety Helmet">Safety Helmet</option>
+                                <option value="Safety Glasses">Safety Glasses</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-modal">Quantidade</label>
+                            <input type="number" class="form-control text-modal" name="quantity" min="1" value="1" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-modal">Funcionário</label>
+                        <select class="form-select text-modal" name="operator" required>
+                            <option value="Production Line A">Production Line A</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-modal">Observação</label>
+                        <textarea class="form-control text-modal" name="observation" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-modal">Motivo</label>
+                        <select class="form-select text-modal" name="reason" required>
+                            <option value="New Employee Onboarding">New Employee Onboarding</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <button type="button" id="remove-last-2" class="btn btn-outline-danger mb-3">
+                    <i class="bi bi-dash-lg"></i>
+                </button>
+                <button type="button" id="add-clone-2" class="btn btn-outline-success mb-3">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <div class="d-flex justify-content-between">
+                <button class="btn btn-primary d-flex align-items-center gap-2" id="salvarPadrao">              
+                    <span class="spinner-border spinner-border-sm" style="display:none"></span>
+                    <span role="status">Salvar</span>
+                </button>
+            </div>
+        </div>
+    </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modal-editar-padrao" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-white d-flex justify-content-between align-items-start">
+        <div>
+          <h3 class="modal-title">Editar Padrão</h3>
+          <span class="desc-modal-title">Edite Padrões de Solicitação. Clique em salvar quando terminar.</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="form-editar-padrao">
+        <div class="modal-body">
+            <div id="clone-container-3">
+                <div class="card clone-form-3 p-2 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <button type="button" class="btn btn-sm bg-transparent border-0 toggle-collapse" 
+                                    data-bs-toggle="collapse" data-bs-target="#formFields-0" aria-expanded="true">
+                                <i class="bi bi-chevron-up"></i>
+                            </button>
+                            <p class="request text-modal mb-0">1ª Solicitação do Padrão</p>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-specific" data-index="0">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+
+                    <div class="collapse" id="formFields-0">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label text-modal">Equipamento</label>
+                                <select class="form-select text-modal" name="item" required>
+                                    <option value="Safety Helmet">Safety Helmet</option>
+                                    <option value="Safety Glasses">Safety Glasses</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-9">
+                                <label class="form-label text-modal">Funcionário</label>
+                                <select class="form-select text-modal" name="operator" required>
+                                    <option value="Production Line A">Production Line A</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-modal">Quantidade</label>
+                                <input type="number" class="form-control text-modal" name="quantity" min="1" value="1" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <div>
+
+                </div>
+                <button type="button" id="add-clone-3" class="btn btn-outline-success mb-3">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <div class="d-flex justify-content-between">
+                <button class="btn btn-primary d-flex align-items-center gap-2" id="editarPadrao">              
+                    <span class="spinner-border spinner-border-sm" style="display:none"></span>
+                    <span role="status">Salvar</span>
+                </button>
+            </div>
+        </div>
+    </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modal-desativar-padrao" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+            <h5 class="modal-title" id="modal-desativar-padrao-title">Desativar EPI</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+          <div class="row">
+            <span class="desc-modal-title">Tem certeza que deseja desativar o padrão de EPI : <span style="color: red;" id="padrao-desativado">xxxxxxxx</span> ?</span>
+          </div>
+      </div>
+      <div class="modal-footer">
+          <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-danger d-flex align-items-center gap-2" data-id="" id="desativarPadrao">              
+              <span class="spinner-border spinner-border-sm" style="display:none"></span>
+              <span role="status">Salvar Alterações</span>
+          </button>
+      </div>
+    </div>
+  </div>
+</div>

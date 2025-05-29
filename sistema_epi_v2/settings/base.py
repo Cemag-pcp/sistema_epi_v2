@@ -107,6 +107,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'core/static'),
     os.path.join(BASE_DIR, 'devolucao/static'),
     os.path.join(BASE_DIR, 'equipamento/static'),
+    os.path.join(BASE_DIR, 'padrao/static'),
     os.path.join(BASE_DIR, 'solicitacao/static'),
     os.path.join(BASE_DIR, 'usuario/static'),
 ]

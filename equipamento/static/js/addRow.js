@@ -1,4 +1,4 @@
-import { table, inicializarDataTable } from './datatable.js';
+import { table, inicializarDataTable } from './datatable-equipamentos.js';
 
 // Função para adicionar nova linha à tabela
 export function adicionarLinhaTabela(equipamento) {

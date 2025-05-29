@@ -1,10 +1,10 @@
 import { getCookie } from '/static/js/scripts.js';
 import { adicionarLinhaTabela } from './addRow.js';
-import { table, inicializarDataTable } from './datatable.js';
+import { table, inicializarDataTable } from './datatable-equipamentos.js';
 // CREATE EQUIPAMENTS
 
 document.addEventListener('DOMContentLoaded', () => {
-const abrirModalBtn = document.getElementById('abrirModalEquipamento');
+    const abrirModalBtn = document.getElementById('abrirModalEquipamento');
     const modal = new bootstrap.Modal(document.getElementById('modal-criar-equipamento'));
     const salvarBtn = document.getElementById('salvarEquipamento');
     const spinner = salvarBtn.querySelector('.spinner-border');
@@ -151,8 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           
           const data = await response.json();
-
-          if (!response.ok) {
+            
+          if (!response.ok) {  
               // Extrai a mensagem de erro detalhada do backend
               const errorMsg = data.message || 
                               data.detail || 
@@ -195,7 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           
       } catch (error) {
-          console.error(error);
+          console.error(error.response);
+          console.log(error.response);
 
           Toast.fire({
               icon: 'error',
