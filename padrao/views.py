@@ -212,25 +212,16 @@ def alter_padrao(request, id):
                         status=400
                     )
 
-                # Atualização dos campos
-                equipamento.nome = data.get('nome', equipamento.nome)
-                equipamento.codigo = data.get('codigo', equipamento.codigo)
-                equipamento.vida_util_dias = int(data.get('vida_util_dias', equipamento.vida_util_dias))
-                equipamento.ca = data.get('ca', equipamento.ca)
-                
-                equipamento.full_clean()  # Valida o modelo antes de salvar
-                equipamento.save()
-                
                 return JsonResponse({
                     'success': True, 
                     'message': 'Equipamento atualizado com sucesso',
                     'data': {
-                        'id': equipamento.id,
-                        'nome': equipamento.nome,
-                        'codigo': equipamento.codigo,
-                        'vida_util_dias': equipamento.vida_util_dias,
-                        'ca': equipamento.ca,
-                        'ativo': equipamento.ativo
+                        'id': 'equipamento.id',
+                        'nome': 'equipamento.nome',
+                        'codigo': 'equipamento.codigo',
+                        'vida_util_dias': 'equipamento.vida_util_dias',
+                        'ca': 'equipamento.ca',
+                        'ativo': 'equipamento.ativo'
                     }
                 })
 
