@@ -95,7 +95,7 @@ function getStatusBadgeClass(status) {
         case "Ativo":
             return "bg-success text-white";
         case "Desativado":
-            return "bg-secondary text-white";
+            return "bg-danger text-white";
         default:
             return "bg-secondary text-white";
     }

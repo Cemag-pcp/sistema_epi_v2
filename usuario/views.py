@@ -1,13 +1,15 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from usuario.models import Funcionario,Setor,Usuario
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
-from usuario.decorators import somente_master
 from django.core.exceptions import ValidationError
+
+from usuario.models import Funcionario,Setor,Usuario
+from usuario.decorators import somente_master
 from datetime import datetime
+
 import traceback
 import json
 
@@ -65,7 +67,7 @@ def api_funcionarios(request):
                 'matricula': f.matricula,
                 'setor': f.setor.nome,
                 'cargo':f.cargo,
-                'responsavel': 'teste_responsavel',
+                'responsavel': f'{f.setor.responsavel.matricula} - {f.setor.responsavel.nome}',
                 'dataAdmissao': f.data_admissao,
                 'status': 'Ativo' if f.ativo else 'Desativado',
                 'setorId': f.setor.id,
@@ -316,5 +318,32 @@ def usuario(request):
             return JsonResponse({
                 'success': False,
                 'message': 'Erro ao cadastrar usuário',
+                'errors': str(e)
+            }, status=500)
+        
+
+@login_required
+@somente_master
+def busca_setor(request,id):
+    if request.method == 'GET':
+        try:
+            setor = get_object_or_404(Setor,pk=id)
+
+            setor_dict = {
+                'id': setor.id,
+                'nome': setor.nome,
+                'responsavel': {
+                    'matricula': setor.responsavel.matricula,
+                    'nome': setor.responsavel.nome,
+                } if setor.responsavel else None
+            }
+
+            return JsonResponse(setor_dict)
+        
+        except Exception as e:
+            print('Stack trace:', traceback.format_exc())
+            return JsonResponse({
+                'success': False,
+                'message': 'Erro ao buscar Setores',
                 'errors': str(e)
             }, status=500)

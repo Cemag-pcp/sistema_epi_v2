@@ -298,7 +298,6 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
     const setorSelect = setorInput; // setorInput já é o select
     let setorPreSelecionado;
 
-    const responsavelSelect = responsavelInput;
     
     // Limpa o select antes de preencher
     if (isEditMode){
@@ -328,19 +327,22 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
                 if (optionSetor.value !== setorPreSelecionado) {
                     optionSetor.textContent = setor.nome || setor.id || setor;
                     setorSelect.appendChild(optionSetor);
+                }else{
+                    responsavelInput.value = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
                 }
 
                 //Setando os responsáveis
-                const optionResponsavel = document.createElement('option');
-                optionResponsavel.value = setor.responsavel_id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+                
+                // const optionResponsavel = document.createElement('option');
+                // optionResponsavel.value = setor.responsavel_id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
 
-                if (setor.responsavel_matricula && setor.responsavel_nome) {
-                    optionResponsavel.textContent = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
-                } else {
-                    optionResponsavel.textContent = setor.responsavel_id;
-                }
+                // if (setor.responsavel_matricula && setor.responsavel_nome) {
+                //     optionResponsavel.textContent = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
+                // } else {
+                //     optionResponsavel.textContent = setor.responsavel_id;
+                // }
 
-                responsavelSelect.appendChild(optionResponsavel);
+                // responsavelSelect.appendChild(optionResponsavel);
 
                 
             });
@@ -350,6 +352,31 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
             showAlert('Erro ao carregar setores.', 'danger');
         });
 });
+
+setorInput.addEventListener('change', function(){
+    console.log('teste mudança de setor')
+
+    const setorSelect = setorInput;
+    const idSetor = setorSelect.value;
+
+    responsavelInput.value = 'Carregando responsável...';
+
+    fetch(`/setores/${idSetor}/`)
+        .then(response => {
+            if (!response.ok){
+                if (response.status == 404){
+                    console.error('Erro 404')
+                }
+                throw new Error('Erro ao buscar responsável para este Setor!')
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            responsavelInput.value = data.responsavel.matricula + ' - ' + data.responsavel.nome;
+        })
+
+})
 
 // Save Employee button click
 saveEmployeeBtn.addEventListener('click', async function() {

@@ -13,4 +13,5 @@ urlpatterns = [
     path('api/funcionarios/', views.api_funcionarios, name='api_funcionarios'),  # API para listar funcionários
     path('setores/', views.setores, name='setores'),  # Página de setores
     path('usuario/',views.usuario, name='usuario'),  # Página de usuários
+    path('setores/<int:id>/', views.busca_setor, name='busca_setor'), # Buscar um setor específico com o id
 ]

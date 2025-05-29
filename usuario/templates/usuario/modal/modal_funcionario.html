@@ -1,5 +1,5 @@
 <!-- Employee Modal -->
-<div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true">
+<div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -30,9 +30,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="responsavel" class="form-label">Responsável</label>
-                        <select class="form-select" id="responsavel">
-                            <option value="">Selecione o Responsável</option>
-                        </select>
+                        <input class="form-control" id="responsavel" disabled>
                     </div>
                     <div class="mb-3">
                         <label for="dataAdmissao" class="form-label">Data Admissão</label>
@@ -57,7 +55,7 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -79,7 +77,7 @@
 </div>
 
 <!-- User Creation Modal -->
-<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true" data-bs-backdrop="static">
+<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
