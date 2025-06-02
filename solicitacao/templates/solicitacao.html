@@ -18,10 +18,14 @@
             </div>
             <div>
                 <label for="" class="text-modal">Padrões</label>
-                <select class="form-control" name="" id="">
-                    <option value=""></option>
-                    <option value="1">TESTE</option>
-                    <option value="2">TESTE TESTE</option>
+                <select class="form-control" name="" id="padrao-select">
+                   <option value="" {% if not query_value %}selected{% endif %}></option>
+                    {% for padrao in padroes %}
+                    <option value="{{ padrao.id }}" 
+                            {% if query_value == padrao.id %}selected{% endif %}>
+                        {{ padrao.nome }}
+                    </option>
+                    {% endfor %}
                 </select>
             </div>
         </div>
@@ -93,4 +97,5 @@
 
 {% block scripts %}
     <script src="{% static 'js/clone.js' %}"></script>
+    <script src="{% static 'js/get_padroes_solicitacao.js' %}"></script>
 {% endblock %}

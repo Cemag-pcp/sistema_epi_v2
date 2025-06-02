@@ -52,7 +52,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     matricula = models.IntegerField(unique=True)
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
-    funcionario = models.OneToOneField(Funcionario, on_delete=models.CASCADE, related_name='funcionario')
+    funcionario = models.OneToOneField(Funcionario, on_delete=models.SET_NULL, related_name='funcionario', null=True, blank=True)
     tipo_acesso = models.CharField(max_length=20, choices=TYPE_CHOICES, default='operador')
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)

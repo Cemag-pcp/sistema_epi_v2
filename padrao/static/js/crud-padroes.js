@@ -1,5 +1,6 @@
 import { getCookie } from "../../../static/js/scripts.js";
 import { addCloneForm, removeSpecificClone, preencherModalEdicao } from "./edit-padroes/utils.js";
+import { inicializarDataTable } from "./datatable-padroes.js";
 
 // CREATE PADROES
 
@@ -22,8 +23,93 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     abrirModalBtn.addEventListener('click', () => {
-        form.reset();
         modal.show();
+    });
+
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        spinner.style.display = 'inline-block';
+        salvarBtn.disabled = true;
+        
+        // Coletar dados básicos do padrão
+        const nomePadrao = form.querySelector('input[name="padrao_name"]').value;
+        const setorId = form.querySelector('input[name="setor_name"]').value;
+        
+        // Estrutura para agrupar equipamentos por funcionário
+        const funcionariosMap = new Map();
+        
+        // Coletar dados de todos os formulários clonados
+        document.querySelectorAll('.clone-form-2').forEach((formClone, index) => {
+            const funcionarioId = formClone.querySelector('.funcionario').value;
+            const equipamentoId = formClone.querySelector('.equipamento').value;
+            const quantidade = formClone.querySelector('.quantidade').value;
+            const observacao = formClone.querySelector('.observacao').value;
+            const motivo = formClone.querySelector('.motivo').value;
+            
+            // Criar estrutura agrupada por funcionário
+            if (!funcionariosMap.has(funcionarioId)) {
+                funcionariosMap.set(funcionarioId, {
+                    funcionario_id: funcionarioId,
+                    equipamentos: []
+                });
+            }
+            
+            funcionariosMap.get(funcionarioId).equipamentos.push({
+                equipamento_id: equipamentoId,
+                quantidade: quantidade,
+                observacoes: observacao,
+                motivo: motivo
+            });
+        });
+        
+        // Converter Map para array
+        const funcionariosData = Array.from(funcionariosMap.values());
+        
+        // Dados completos para envio
+        const payload = {
+            nome: nomePadrao,
+            setor_id: setorId,
+            funcionarios: funcionariosData
+        };
+        
+        // Enviar para a API
+        fetch('/padroes/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro na requisição');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Padrão criado com sucesso!'
+                });
+                modal.hide();
+                inicializarDataTable(); // Atualizar a tabela se necessário
+            } else {
+                throw new Error(data.message || 'Erro ao criar padrão');
+            }
+        })
+        .catch(error => {
+            Toast.fire({
+                icon: 'error',
+                title: error.message || 'Erro ao salvar padrão'
+            });
+        })
+        .finally(() => {
+            spinner.style.display = 'none';
+            salvarBtn.disabled = false;
+        });
     });
 });
 
@@ -31,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     const modal = new bootstrap.Modal(document.getElementById('modal-editar-padrao'));
+    const form = document.getElementById('form-editar-padrao');
     const salvarBtn = document.getElementById('editarPadrao');
     const spinner = salvarBtn.querySelector('.spinner-border');
     const addBtn = document.getElementById('add-clone-3');
@@ -52,7 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', async function(event) {
         if (event.target.classList.contains('abrirModalEditarPadrao')) {
             const padraoId = event.target.getAttribute('data-id');
-            const modal = new bootstrap.Modal(document.getElementById('modal-editar-padrao'));
+            const modal = document.getElementById('modal-editar-padrao');
+            modal.setAttribute('data-id', padraoId);
+            const modalInstance = new bootstrap.Modal(modal);
             
             try {
 
@@ -85,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 Swal.close();
                 // Mostrar o modal
-                modal.show();
+                modalInstance.show();
                 
             } catch (error) {
                 Swal.close();
@@ -111,21 +200,78 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Evento para salvar as alterações
-    salvarBtn.addEventListener('click', function() {
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
         spinner.style.display = 'inline-block';
         salvarBtn.disabled = true;
         
-        // Simular envio (substitua por sua lógica real)
-        setTimeout(() => {
+        // Coletar todos os formulários clonados
+        const forms = document.querySelectorAll('.clone-form-3');
+        const padraoId = document.querySelector('#modal-editar-padrao').getAttribute('data-id');
+        const requests = [];
+        
+        // Processar cada formulário
+        forms.forEach((form, index) => {
+            const item = form.querySelector('select[name="item"]').value;
+            const operator = form.querySelector('select[name="operator"]').value;
+            const quantity = form.querySelector('input[name="quantity"]').value;
+            const observation = form.querySelector('textarea[name="observation"]').value;
+            
+            requests.push({
+                item_id: item, // ou apenas item se for o nome
+                operator_id: operator,
+                quantity: quantity,
+                observation: observation
+            });
+        });
+        
+        // Dados para enviar
+        const data = {
+            padrao_id: padraoId,
+            requests: requests
+        };
+        
+        // Enviar para o backend (substitua pela sua URL real)
+        fetch(`/padroes/${padraoId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') // Adicione esta função se necessário
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro na requisição');
+            }
+            return response.json();
+        })
+        .then(data => {
             spinner.style.display = 'none';
             salvarBtn.disabled = false;
-            modal.hide();
             
+            if (data.success) {
+                modal.hide();
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Padrão atualizado com sucesso!'
+                });
+            } else {
+                Toast.fire({
+                    icon: 'error',
+                    title: data.message || 'Erro ao atualizar padrão'
+                });
+            }
+        })
+        .catch(error => {
+            spinner.style.display = 'none';
+            salvarBtn.disabled = false;
             Toast.fire({
-                icon: 'success',
-                title: 'Padrão atualizado com sucesso!'
+                icon: 'error',
+                title: 'Erro na comunicação com o servidor'
             });
-        }, 1500);
+            console.error('Error:', error);
+        });
     });
 });
 
@@ -165,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
           const id = salvarBtn.getAttribute('data-id');
           
-          const response = await fetch(`/padrao/${id}/`, {
+          const response = await fetch(`/padroes/${id}/`, {
               method: 'PATCH',
               headers: {
                   'Content-Type': 'application/json',
@@ -186,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (data.success) {
               modal.hide();
-              if ($.fn.DataTable.isDataTable('#tabelaPadrao')) {
+              if ($.fn.DataTable.isDataTable('#tabelaPadroes')) {
                   table.destroy();
               }
               const row = document.querySelector(`tr[data-id="${id}"]`);

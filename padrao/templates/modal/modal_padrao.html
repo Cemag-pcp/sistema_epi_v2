@@ -10,44 +10,47 @@
       </div>
       <form id="form-criar-padrao">
         <div class="modal-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-12">
+                    <label class="form-label text-modal">Nome do Padrão</label>
+                    <input type="text" class="form-control text-modal" name="padrao_name" required>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label text-modal">Setor do Padrão Criado</label>
+                    <select type="text" class="form-control text-modal" id="padrao_setor" name="padrao_setor" required>
+                    </select>
+                </div>
+            </div>  
             <div id="clone-container-2">
                 <div class="card clone-form-2 p-2 mb-3">
                     <p class="request text-modal text-end">1ª Solicitação do Padrão</p>
-                    <div class="mb-3">
-                        <label class="form-label text-modal">Nome do Solicitante</label>
-                        <input type="text" class="form-control text-modal" placeholder="John Doe" name="requesterName" required>
-                    </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-9">
                             <label class="form-label text-modal">Equipamento</label>
-                            <select class="form-select text-modal" name="item" required>
-                                <option value="Safety Helmet">Safety Helmet</option>
-                                <option value="Safety Glasses">Safety Glasses</option>
+                            <select class="form-select text-modal equipamento" name="item" required>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label text-modal">Quantidade</label>
+                            <label class="form-label text-modal quantidade">Quantidade</label>
                             <input type="number" class="form-control text-modal" name="quantity" min="1" value="1" required>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-modal">Funcionário</label>
-                        <select class="form-select text-modal" name="operator" required>
-                            <option value="Production Line A">Production Line A</option>
+                        <select class="form-select text-modal funcionario" name="operator" required>
                         </select>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-modal">Observação</label>
-                        <textarea class="form-control text-modal" name="observation" rows="3"></textarea>
+                        <textarea class="form-control text-modal observacao" name="observation" rows="1"></textarea>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label text-modal">Motivo</label>
-                        <select class="form-select text-modal" name="reason" required>
-                            <option value="New Employee Onboarding">New Employee Onboarding</option>
+                        <select class="form-select text-modal motivo" name="reason" required>
                         </select>
                     </div>
                 </div>
@@ -76,7 +79,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="modal-editar-padrao" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="false">
+<div class="modal fade" id="modal-editar-padrao" data-id="" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-white d-flex justify-content-between align-items-start">
@@ -125,27 +128,31 @@
                                 <input type="number" class="form-control text-modal" name="quantity" min="1" value="1" required>
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label text-modal">Observação</label>
+                                <textarea class="form-control text-modal" name="observation" rows="1"></textarea>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="d-flex justify-content-between">
-                <div>
-
-                </div>
+            <div class="d-flex justify-content-end">
                 <button type="button" id="add-clone-3" class="btn btn-outline-success mb-3">
                     <i class="bi bi-plus-lg"></i>
                 </button>
             </div>
 
         </div>
-        <div class="modal-footer">
-            <div class="d-flex justify-content-between">
-                <button class="btn btn-primary d-flex align-items-center gap-2" id="editarPadrao">              
-                    <span class="spinner-border spinner-border-sm" style="display:none"></span>
-                    <span role="status">Salvar</span>
-                </button>
-            </div>
+        <div class="modal-footer justify-content-between">
+            <a class="btn btn-white d-flex align-items-center gap-2" href="{% url 'solicitacao:solicitacao' %}">              
+                <span role="status">Solicitar Padrão</span>
+            </a>
+            <button class="btn btn-primary d-flex align-items-center gap-2" id="editarPadrao">              
+                <span class="spinner-border spinner-border-sm" style="display:none"></span>
+                <span role="status">Salvar</span>
+            </button>
         </div>
     </form>
     </div>
