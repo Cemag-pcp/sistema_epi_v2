@@ -1,0 +1,36 @@
+<!-- Edit Setor Modal -->
+<div class="modal fade" id="editSetorModal" tabindex="-1" aria-labelledby="editSetorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSetorModalLabel">Editar Setor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editSetorForm">
+                    <input type="hidden" id="setorId">
+                    <div class="mb-3">
+                        <label for="nomeSetor" class="form-label">Nome do Setor</label>
+                        <input type="text" class="form-control" id="nomeSetor" readonly>
+                        <div class="form-text">O nome do setor não pode ser alterado</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="responsavelSetor" class="form-label">Responsável</label>
+                        <select class="form-select" id="responsavelSetor" required>
+                            <option value="">Selecione o responsável</option>
+                        </select>
+                        <div class="form-text">O responsável deve ter um tipo de acesso Solicitante</div>
+                    </div>
+                    <div id="erro-modal" class="alert alert-danger d-none erro-modal"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveSetorBtn">
+                    <span id="saveButtonText">Salvar</span>
+                    <span id="saveSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

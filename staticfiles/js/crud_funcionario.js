@@ -1,9 +1,10 @@
 // API URL - Replace with your actual API endpoint
 import { getCookie } from "/static/js/scripts.js";
+import { initializeDataTable, dataTable } from "./datatable_funcionario.js";
 
 console.log('Script loaded');
 
-let employees = [];
+export let employees = [];
 // DOM Elements
 const employeeTableBody = document.getElementById('employeeTableBody');
 const searchInput = document.getElementById('searchInput');
@@ -13,7 +14,7 @@ const addEmployeeBtn = document.getElementById('addEmployeeBtn');
 const employeeModal = new bootstrap.Modal(document.getElementById('employeeModal'));
 const userModal = new bootstrap.Modal(document.getElementById('userModal'));
 const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-const employeeForm = document.getElementById('employeeForm');
+ const employeeForm = document.getElementById('employeeForm');
 const userForm = document.getElementById('userForm');
 const saveEmployeeBtn = document.getElementById('saveEmployeeBtn');
 const saveUserBtn = document.getElementById('saveUserBtn');
@@ -30,7 +31,7 @@ const deleteButtonText = document.getElementById('deleteButtonText');
 const deleteSpinner = document.getElementById('deleteSpinner');
 const criarUsuarioCheckbox = document.getElementById('criarUsuario');
 const closeUserModal = document.getElementById('closeUserModal');
-const cancelUserBtn = document.getElementById('cancelUserBtn');
+const erroMessage = document.getElementById('erro-modal');
 
 // Form fields
 const employeeIdInput = document.getElementById('employeeId');
@@ -49,8 +50,9 @@ const senhaFeedback = document.getElementById('senhaFeedback');
 let tempEmployeeData = null;
 let isEditMode = false;
 
+
 // Function to show alert
-function showAlert(message, type = 'success') {
+export function showAlert(message, type = 'success') {
     alertText.textContent = message;
     alertMessage.className = `alert alert-${type} alert-dismissible fade show`;
     alertContainer.classList.remove('d-none');
@@ -61,107 +63,6 @@ function showAlert(message, type = 'success') {
     }, 5000);
 }
 
-// Function to get status badge class
-function getStatusBadgeClass(status) {
-    switch(status) {
-        case "Ativo":
-            return "bg-success text-white";
-        case "Desligado":
-            return "bg-danger text-white";
-        case "Afastado":
-            return "bg-warning text-dark";
-        case "Desativado":
-            return "bg-secondary text-white";
-        default:
-            return "bg-secondary text-white";
-    }
-}
-
-// Function to format date for display
-function formatDateForDisplay(dateString) {
-    return new Intl.DateTimeFormat('pt-BR').format(new Date(dateString+"T00:00:00"));
-}
-
-// Function to render employees
-function renderEmployees(employeesToRender) {
-    employeeTableBody.innerHTML = '';
-    
-    if (employeesToRender.length === 0) {
-        noResults.classList.remove('d-none');
-    } else {
-        noResults.classList.add('d-none');
-        
-        employeesToRender.forEach(employee => {
-            const row = document.createElement('tr');
-            
-            row.innerHTML = `
-                <td>${employee.matricula}</td>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                            <i class="bi bi-person"></i>
-                        </div>
-                        <span class="fw-bold">${employee.nome}</span>
-                    </div>
-                </td>
-                <td>${employee.setor}</td>
-                <td>${employee.cargo}</td>
-                <td>${employee.responsavel}</td>
-                <td>${formatDateForDisplay(employee.dataAdmissao)}</td>
-                <td>
-                    <span class="badge rounded-pill ${getStatusBadgeClass(employee.status)}">${employee.status}</span>
-                </td>
-                <td>
-                    <div class="dropdown">
-                        <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-three-dots-vertical"></i>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item edit-btn" href="#" data-id="${employee.id}">Editar</a></li>
-                            <li><a class="dropdown-item delete-btn" href="#" data-id="${employee.id}">Desativar</a></li>
-                        </ul>
-                    </div>
-                </td>
-            `;
-            
-            employeeTableBody.appendChild(row);
-        });
-
-        // Add event listeners to edit and delete buttons
-        document.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', handleEditClick);
-        });
-        
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', handleDeleteClick);
-        });
-    }
-}
-
-// Function to fetch employees from API
-async function fetchEmployees() {
-    try {
-        loadingSpinner.classList.remove('d-none');
-        noResults.classList.add('d-none');
-        
-        // In a real application, you would fetch from the API
-        const response = await fetch(URL_LISTAR_FUNCIONARIOS);
-        if (!response.ok) throw new Error('Failed to fetch employees');
-        const data = await response.json();
-        employees = data;
-        
-        // For demonstration, we'll use the sample data
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        renderEmployees(employees);
-    } catch (error) {
-        console.error('Error fetching employees:', error);
-        showAlert('Erro ao carregar funcionários. Por favor, tente novamente.', 'danger');
-    } finally {
-        loadingSpinner.classList.add('d-none');
-    }
-}
 
 // Function to add employee to API
 async function addEmployee(employeeData) {
@@ -169,6 +70,7 @@ async function addEmployee(employeeData) {
         // Show loading spinner
         saveButtonText.classList.add('d-none');
         saveSpinner.classList.remove('d-none');
+        saveEmployeeBtn.disabled = true;
         
         // In a real application, you would post to the API
         const response = await fetch(URL_CADASTRAR_FUNCIONARIO, {
@@ -179,30 +81,39 @@ async function addEmployee(employeeData) {
             },
             body: JSON.stringify(employeeData),
         });
-        if (!response.ok) throw new Error(`Falha em adicionar funcionário: ${response.statusText} , ${response.errors}`);
         const data = await response.json();
-        
+
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao adicionar funcionário');
+        }
+
         // For demonstration, we'll add to the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         const newId = employees.length > 0 ? Math.max(...employees.map(emp => emp.id)) + 1 : 1;
+        //Trocando o valor do id do setor para o nome
+        employeeData['setor'] = employeeData['setorNome'];
         const newEmployee = { id: newId, ...employeeData };
         employees.push(newEmployee);
         
-        renderEmployees(employees);
+        // renderEmployees(employees);
+        // Exemplo de atualização após adicionar um funcionário
+        dataTable.clear().rows.add(employees).draw(false);
         employeeModal.hide();
         
         // Return the new employee ID
         return newId;
     } catch (error) {
-        console.error('Error adding employee:', error);
-        showAlert(`Erro ao adicionar funcionário. Por favor, tente novamente.${error.message}`, 'danger');
+        console.error('Erro ao adicionar funcionário:', error);
+        showAlert(`Erro ao adicionar funcionário.${error.message}`, 'danger');
+        mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
         saveButtonText.classList.remove('d-none');
         saveSpinner.classList.add('d-none');
+        saveEmployeeBtn.disabled = false;
     }
 }
 
@@ -212,6 +123,7 @@ async function updateEmployee(id, employeeData) {
         // Show loading spinner
         saveButtonText.classList.add('d-none');
         saveSpinner.classList.remove('d-none');
+        saveEmployeeBtn.disabled = true;
         
         // In a real application, you would put to the API
         const response = await fetch(`${URL_EDITAR_FUNCIONARIO}${id}/`, {
@@ -222,30 +134,40 @@ async function updateEmployee(id, employeeData) {
             },
             body: JSON.stringify(employeeData),
         });
-        if (!response.ok) throw new Error('Failed to update employee');
-        const data = await response.json();
         
+        const data = await response.json();
+
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao atualizar funcionário');
+        }
+
+
         // For demonstration, we'll update the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
+        employeeData['setor'] = employeeData['setorNome'];
+        // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
         if (index !== -1) {
             employees[index] = { ...employees[index], ...employeeData };
         }
-        
-        renderEmployees(employees);
+        // Refresh the DataTable
+        dataTable.row(index).data(employees[index]).draw(false);
         employeeModal.hide();
         
         return id;
     } catch (error) {
-        console.error('Error updating employee:', error);
-        showAlert('Erro ao atualizar funcionário. Por favor, tente novamente.', 'danger');
+        console.error('Erro ao atualizar funcionário:', error);
+        showAlert(`${error.message}`, 'danger');
+        mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
         saveButtonText.classList.remove('d-none');
         saveSpinner.classList.add('d-none');
+        saveEmployeeBtn.disabled = false;
+
     }
 }
 
@@ -255,17 +177,21 @@ async function createUser(userData) {
         // Show loading spinner
         saveUserButtonText.classList.add('d-none');
         saveUserSpinner.classList.remove('d-none');
+        saveUserBtn.disabled = true;
         
         // In a real application, you would post to the API
-        // const response = await fetch(USER_API_URL, {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //     },
-        //     body: JSON.stringify(userData),
-        // });
-        // if (!response.ok) throw new Error('Failed to create user');
-        // const data = await response.json();
+        const response = await fetch(URL_CADASTRAR_USUARIO, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(userData),
+        });
+        const data = await response.json();
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao criar usuário');
+        }
         
         // For demonstration, we'll simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -276,12 +202,15 @@ async function createUser(userData) {
         return true;
     } catch (error) {
         console.error('Error creating user:', error);
-        showAlert('Erro ao criar usuário. Por favor, tente novamente.', 'danger');
+        showAlert(`${error.message}`, 'danger');
+        mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
         saveUserButtonText.classList.remove('d-none');
         saveUserSpinner.classList.add('d-none');
+        saveUserBtn.disabled = false;
+
     }
 }
 
@@ -301,18 +230,24 @@ async function deactivateEmployee(id) {
             },
             body: JSON.stringify({ status: 'Desativado' }),
         });
-        if (!response.ok) throw new Error('Failed to deactivate employee');
+        console.log('Response data:', response);
+        const data = await response.json();
+        
+        if (!response.ok){
+            errorValidacao(data, 'Falha ao desativar funcionário');
+        }
         
         // For demonstration, we'll update the sample data
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
+        // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
         if (index !== -1) {
             employees[index].status = 'Desativado';
         }
+        dataTable.row(index).data(employees[index]).draw(false);
         
-        renderEmployees(employees);
         deleteModal.hide();
         showAlert('Funcionário desativado com sucesso!');
     } catch (error) {
@@ -345,19 +280,6 @@ function validatePasswordMatch() {
     }
 }
 
-// Search functionality
-searchInput.addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase();
-    const filteredEmployees = employees.filter(employee => 
-        employee.matricula.toLowerCase().includes(searchTerm) ||
-        employee.nome.toLowerCase().includes(searchTerm) ||
-        employee.cargo.toLowerCase().includes(searchTerm) ||
-        employee.setor.toLowerCase().includes(searchTerm) ||
-        employee.responsavel.toLowerCase().includes(searchTerm)
-    );
-    renderEmployees(filteredEmployees);
-});
-
 // Add New Employee button click
 addEmployeeBtn.addEventListener('click', function() {
     resetForm();
@@ -368,28 +290,107 @@ addEmployeeBtn.addEventListener('click', function() {
 
 document.getElementById('employeeModal').addEventListener('show.bs.modal', function() {
 
+    // Limpa a mensagem de erro do modal
+    esconderErroModal();
+
+    console.log(isEditMode);
+
     const setorSelect = setorInput; // setorInput já é o select
+    let setorPreSelecionado;
+
+    
     // Limpa o select antes de preencher
-    setorSelect.innerHTML = '<option value="">Selecione o setor</option>';
-    console.log('Setor select:', setorSelect);
+    if (isEditMode){
+        setorPreSelecionado = setorInput.value;
+        console.log('Setor pré-selecionado:', setorPreSelecionado);
+        setorSelect.innerHTML = `<option value="">Selecione o setor</option>
+                                <option value="${setorPreSelecionado}" selected>${setorInput.options[setorInput.selectedIndex].textContent}</option>`;
+    }else{
+        setorSelect.innerHTML = '<option value="">Carregando setores...</option>';
+    }
+    
+
     fetch('/setores/')
         .then(response => {
             if (!response.ok) throw new Error('Erro ao buscar setores');
             return response.json();
         })
         .then(data => {
+            if (!isEditMode){
+                setorSelect.innerHTML = '<option value="">Selecione o setor</option>';
+            }
+            
             data.forEach(setor => {
-                const option = document.createElement('option');
-                option.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
-                option.textContent = setor.nome || setor.id || setor;
-                setorSelect.appendChild(option);
+                //Setando os setores
+                const optionSetor = document.createElement('option');
+                optionSetor.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+                if (optionSetor.value !== setorPreSelecionado) {
+                    optionSetor.textContent = setor.nome || setor.id || setor;
+                    setorSelect.appendChild(optionSetor);
+                }else{
+                    responsavelInput.value = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
+                }
+
+                //Setando os responsáveis
+                
+                // const optionResponsavel = document.createElement('option');
+                // optionResponsavel.value = setor.responsavel_id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+
+                // if (setor.responsavel_matricula && setor.responsavel_nome) {
+                //     optionResponsavel.textContent = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
+                // } else {
+                //     optionResponsavel.textContent = setor.responsavel_id;
+                // }
+
+                // responsavelSelect.appendChild(optionResponsavel);
+
+                
             });
         })
         .catch(error => {
-            console.error('Erro ao carregar setores:', error);
+            console.error('Erro ao carregar setores:', error.response.status);
             showAlert('Erro ao carregar setores.', 'danger');
         });
 });
+
+setorInput.addEventListener('change', function(){
+    console.log('teste mudança de setor')
+
+    const setorSelect = setorInput;
+    const idSetor = setorSelect.value;
+
+    responsavelInput.value = 'Carregando responsável...';
+
+    if(idSetor){
+        fetch(`/setores/${idSetor}/`)
+        .then(response => {
+            if (!response.ok){
+                if (!response.status == 404){
+                    throw new Error('Erro ao buscar responsável para este Setor!')
+                }else{
+                    return;
+                }
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data){
+                responsavelInput.value = data.matricula + ' - ' + data.nome;
+            }else{
+                responsavelInput.value = 'Nenhum responsável encontrado para este setor';
+            }
+            
+        })
+        .catch(error =>{
+            console.error(error);
+            responsavelInput.value = 'Nenhum responsável encontrado para este setor';
+        })
+    }else{
+        responsavelInput.value = 'Nenhum responsável encontrado para este setor';
+    }
+    
+
+})
 
 // Save Employee button click
 saveEmployeeBtn.addEventListener('click', async function() {
@@ -403,6 +404,8 @@ saveEmployeeBtn.addEventListener('click', async function() {
             setor: setorInput.value,
             responsavel: responsavelInput.value,
             dataAdmissao: dataAdmissaoInput.value,
+            setorNome: setorInput.options[setorInput.selectedIndex].textContent,
+            status: 'Ativo',
         };
         
         try {
@@ -480,38 +483,38 @@ saveUserBtn.addEventListener('click', async function() {
     }
 });
 
-// Handle Edit button click
-function handleEditClick(e) {
-    e.preventDefault();
-    const id = e.target.dataset.id;
-    const employee = employees.find(emp => emp.id == id);
-    
-    if (employee) {
-        employeeIdInput.value = employee.id;
-        matriculaInput.value = employee.matricula;
-        nomeInput.value = employee.nome;
-        cargoInput.value = employee.cargo;
-        setorInput.value = employee.setor;
-        responsavelInput.value = employee.responsavel;
-        dataAdmissaoInput.value = employee.dataAdmissao;
-        
-        // Hide the "Criar Usuário" checkbox in edit mode
-        criarUsuarioCheckbox.checked = false;
-        criarUsuarioCheckbox.parentElement.classList.add('d-none');
-        
-        isEditMode = true;
-        employeeModalLabel.textContent = 'Editar Funcionário';
-        employeeModal.show();
-    }
+function mostrarErroModal(mensagem) {
+    erroMessage.classList.remove('d-none'); // mostra a div
+    erroMessage.innerText = mensagem;       // insere o texto
 }
 
-// Handle Delete button click
-function handleDeleteClick(e) {
-    e.preventDefault();
-    const id = e.target.dataset.id;
+function esconderErroModal() {
+    erroMessage.classList.add('d-none'); // mostra a div
+    erroMessage.innerText = ''; 
+}
+
+// Reset form
+function resetForm() {
+    employeeForm.reset();
+    employeeIdInput.value = '';
     
-    confirmDeleteBtn.dataset.id = id;
-    deleteModal.show();
+    // Show the "Criar Usuário" checkbox for new employees
+    criarUsuarioCheckbox.parentElement.classList.remove('d-none');
+}
+
+// Function to handle API errors
+function handleApiError(error, defaultMessage) {
+    console.error(error);
+    
+    let errorMessage = defaultMessage;
+    
+    if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+    } else if (error.message) {
+        errorMessage = error.message;
+    }
+    
+    showAlert(errorMessage, 'danger');
 }
 
 // Confirm Delete button click
@@ -540,16 +543,101 @@ cancelUserBtn.addEventListener('click', function() {
     }
 });
 
-// Reset form
-function resetForm() {
-    employeeForm.reset();
-    employeeIdInput.value = '';
-    
-    // Show the "Criar Usuário" checkbox for new employees
+// Custom search functionality for DataTable
+$('#searchInput').on('keyup', function() {
+    dataTable.search(this.value).draw();
+});
+
+// Initial fetch
+$(document).ready(function() {
+    fetchEmployees();
+});
+
+// Handle Edit button click
+export function handleEditClick(e) {
+    e.preventDefault();
+    const id = e.target.dataset.id;
+    const employee = employees.find(emp => emp.id == id);
+
+    // Iniciar a edição, mostrando o checkbox depois remover caso já exista usuário
     criarUsuarioCheckbox.parentElement.classList.remove('d-none');
+    
+    if (employee) {
+        employeeIdInput.value = employee.id;
+        matriculaInput.value = employee.matricula;
+        nomeInput.value = employee.nome;
+        cargoInput.value = employee.cargo;
+        responsavelInput.value = employee.responsavel;
+        dataAdmissaoInput.value = employee.dataAdmissao;
+
+        //criando option do setor do funcionario
+        const option = document.createElement('option');
+        option.value = employee.setorId || employee.setor; // Use setorId if available, otherwise fallback to setor
+        option.textContent = employee.setor || employee.setorNome || 'Setor Desconhecido'; // Fallback to setorNome or a default text
+        setorInput.appendChild(option);
+
+        setorInput.value = employee.setorId;
+        
+        console.log('Editing employee:', employee);
+
+        // Hide the "Criar Usuário" checkbox in edit mode if usuario exists
+        if (employee.usuario){
+            criarUsuarioCheckbox.checked = false;
+            criarUsuarioCheckbox.parentElement.classList.add('d-none');
+        }
+        
+        isEditMode = true;
+        employeeModalLabel.textContent = 'Editar Funcionário';
+        employeeModal.show();
+    }
+}
+
+// Handle Delete button click
+export function handleDeleteClick(e) {
+    e.preventDefault();
+    const id = e.target.dataset.id;
+    
+    confirmDeleteBtn.dataset.id = id;
+    deleteModal.show();
+}
+
+// Function to fetch employees from API
+export async function fetchEmployees() {
+    try {
+        loadingSpinner.classList.remove('d-none');
+        noResults.classList.add('d-none');
+        
+        // In a real application, you would fetch from the API
+        const response = await fetch(URL_LISTAR_FUNCIONARIOS);
+        if (!response.ok) throw new Error('Failed to fetch employees');
+        const data = await response.json();
+        // Armazenar os dados localmente
+        employees = data;
+        console.log(data);
+        
+        // For demonstration, we'll use the sample data
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        initializeDataTable(data);
+    } catch (error) {
+        console.error('Error fetching employees:', error);
+        showAlert('Erro ao carregar funcionários. Por favor, tente novamente.', 'danger');
+    } finally {
+        loadingSpinner.classList.add('d-none');
+    }
+}
+
+function errorValidacao(data, error) {
+        if (data.errors) {
+            let errorMessage;
+            for (const erro in data.errors){
+                errorMessage = data.errors[erro];
+            }
+            throw new Error(`${errorMessage}`);
+        } else{
+            throw new Error(error);
+        }
 }
 
 
-
-// Initial fetch
-fetchEmployees();

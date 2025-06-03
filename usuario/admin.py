@@ -6,7 +6,8 @@ from django.utils.translation import gettext_lazy as _
 class CustomUsuarioAdmin(UserAdmin):
     model = Usuario
 
-    list_display = ('matricula', 'nome', 'is_staff', 'is_superuser')
+
+    list_display = ('matricula', 'nome','is_staff', 'is_superuser')
     list_filter = ('is_staff', 'is_superuser')
     search_fields = ('matricula', 'nome')
     ordering = ('matricula',)
