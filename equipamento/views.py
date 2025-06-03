@@ -17,9 +17,7 @@ def equipamento(request):
 
     if request.method == 'GET':
         
-        all_equipamentos = Equipamento.objects.all().order_by("id")
-
-        equipamentos = list(all_equipamentos.values())
+        equipamentos = list(Equipamento.objects.values().order_by("id"))
 
         return render(request, 'equipamento.html', {'equipamentos':equipamentos})
     

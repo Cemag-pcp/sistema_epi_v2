@@ -195,6 +195,10 @@ export async function preencherModalEdicao(data) {
                     const qtyInput = currentForm.querySelector('input[name="quantity"]');
                     if (qtyInput) qtyInput.value = equip.quantidade;
                     
+                    // Preencher observações
+                    const obsInput = currentForm.querySelector('textarea[name="observation"]');
+                    if (obsInput) obsInput.value = equip.observacoes || '';
+                    
                     // Configurar botão de remoção
                     const removeBtn = currentForm.querySelector('.remove-specific');
                     if (removeBtn) {

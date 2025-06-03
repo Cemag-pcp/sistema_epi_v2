@@ -31,6 +31,7 @@ class PadraoEquipamento(models.Model):
     padrao_funcionario = models.ForeignKey(PadraoFuncionario, on_delete=models.CASCADE, related_name='equipamentos')
     equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE)
     quantidade = models.PositiveIntegerField(default=1)
+    observacoes = models.CharField(max_length=255, blank=True, null=True)
     
     class Meta:
         unique_together = ('padrao_funcionario', 'equipamento')
