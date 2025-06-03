@@ -191,8 +191,6 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
         }
         // Se for o erro específico que deve permitir confirmação:
         
-
-        
         
         // For demonstration, we'll update the sample data
         // Simulate API delay
@@ -204,10 +202,13 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
             setorDataLocal[index].responsavel_id = updatedSetor.responsavel.id;
             setorDataLocal[index].responsavel__matricula = updatedSetor.responsavel.matricula;
         }
-        if (updatedSetor.setorVazio){
-            const indexSetorVazio = setorDataLocal.findIndex(setor => setor.id == updatedSetor.setorVazio);
+
+        let indexSetorVazio;
+
+        if (updatedSetor.responsavel.setorVazio){
+            indexSetorVazio = setorDataLocal.findIndex(setor => setor.id == updatedSetor.responsavel.setorVazio);
             if (indexSetorVazio !== -1){
-                setorDataLocal[indexSetorVazio].responsavel__nome = '';
+                setorDataLocal[indexSetorVazio].responsavel__nome = '--';
                 setorDataLocal[indexSetorVazio].responsavel_id = '';
                 setorDataLocal[indexSetorVazio].responsavel__matricula = '';
             }

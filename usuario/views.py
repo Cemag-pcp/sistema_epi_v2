@@ -256,15 +256,25 @@ def editar_funcionario(request, id):
 @somente_master
 def api_setores(request):
     if request.method == 'GET':
-        setores = list(Setor.objects.select_related('responsavel').values(
+        setores = Setor.objects.select_related('responsavel').values(
             'id',
             'nome',
             'responsavel_id',
             'responsavel__nome',
             'responsavel__matricula'
-        ))
+        )
+
+        setores_list = [
+            {
+                **s,
+                'responsavel_id': s['responsavel_id'] if s['responsavel_id'] else '',
+                'responsavel__nome': s['responsavel__nome'] if s['responsavel_id'] else '--',
+                'responsavel__matricula': s['responsavel__matricula'] if s['responsavel_id'] else '',
+            }
+            for s in setores
+        ]
         
-        return JsonResponse(setores, safe=False)
+        return JsonResponse(setores_list, safe=False)
     return JsonResponse({'status': 'success', 'message': 'Setores listados com sucesso!'})
 
 @login_required
