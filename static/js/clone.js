@@ -41,7 +41,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (input.tagName === "SELECT") {
                     input.selectedIndex = 0;
                 } else if (input.type !== "submit") {
-                    input.value = "";
+                    if(!input.classList.contains('requestName')){
+                        input.value = "";
+                    }
                 }
             });
 

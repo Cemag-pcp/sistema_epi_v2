@@ -7,7 +7,7 @@ from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 
 from usuario.models import Funcionario,Setor,Usuario
-from usuario.decorators import somente_master
+from usuario.decorators import somente_master, master_solicit
 from datetime import datetime
 
 import traceback
@@ -22,15 +22,15 @@ def login_view(request):
         user = authenticate(request, username=matricula, password=password)
         if user:
             login(request, user)
-            if user.tipo_acesso == 'master':
-                print('Redirecionando para a página de administração')
-                # Redirecionar para a página inicial de solicitações
-            elif user.tipo_acesso == 'solicitante':
-                print('Redirecionando para a página de funcionário')
-                # Enquanto ainda não existe uma página de solicitação EPI, vamos redirecionar para a home
-            else:
-                print('Redirecionando para a página padrão')
-                #Enquanto ainda não existe uma página de (inventário??) vamos redirecionar para a home
+            # if user.tipo_acesso == 'master':
+            #     print('Redirecionando para a página de administração')
+            #     # Redirecionar para a página inicial de solicitações
+            # elif user.tipo_acesso == 'solicitante':
+            #     print('Redirecionando para a página de funcionário')
+            #     # Enquanto ainda não existe uma página de solicitação EPI, vamos redirecionar para a home
+            # else:
+            #     print('Redirecionando para a página padrão')
+            #     #Enquanto ainda não existe uma página de (inventário??) vamos redirecionar para a home
             print(request.POST.get('next'))
             next_url = request.POST.get('next') or 'core:home'  # 'home' pode ser o nome da URL
             return redirect(next_url)
@@ -246,18 +246,21 @@ def editar_funcionario(request, id):
         )
 
 @login_required
-@somente_master
+@master_solicit
 def setores(request):
     if request.method == 'GET':
-        setores = Setor.objects.all()
+        if request.user.is_superuser:
+            setores = Setor.objects.all()
+        else:
+            setores = Setor.objects.filter(id=request.user.funcionario.setor.id)
 
         lista_setores = [
             {
                 'id':setor.id,
                 'nome':setor.nome,
-                'responsavel_id':setor.responsavel.id,
-                'responsavel_nome':setor.responsavel.nome,
-                'responsavel_matricula':setor.responsavel.matricula
+                'responsavel_id':setor.responsavel.id if setor.responsavel else None,
+                'responsavel_nome':setor.responsavel.nome if setor.responsavel else None,
+                'responsavel_matricula':setor.responsavel.matricula if setor.responsavel else None
             }
             for setor in setores
         ]

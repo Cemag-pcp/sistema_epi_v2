@@ -30,46 +30,55 @@
             </div>
         </div>
         
-        <div class="card-body">
-           <form>
+        <div class="card-body" id="card-loading">
+            <div class="text-center" id="spinner" ><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>
+            <form id="form-card-solict" style="display: none;">
                 <div id="clone-container-1">
                     <div class="card clone-form-1 p-2 mb-3">
                         <p class="request text-modal text-end">1ª Solicitação</p>
                         <div class="mb-3">
-                            <label class="form-label text-modal">Requester's Name</label>
-                            <input type="text" class="form-control text-modal" placeholder="John Doe" name="requesterName" required>
+                            <label class="form-label text-modal">Nome do Solicitante</label>
+                            <input type="text" class="form-control text-modal requestName" data-id="{{request.user.id}}" value="{{request.user.nome}}" name="requesterName" disabled>
                         </div>
 
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label text-modal">Equipamento</label>
-                                <select class="form-select text-modal" name="item" required>
-                                    <option value="Safety Helmet">Safety Helmet</option>
-                                    <option value="Safety Glasses">Safety Glasses</option>
+                                <select class="form-select text-modal equipamento" name="equipamento" required>
+                                    <option value="" selected hidden disabled>Selecione um equipamento...</option>
+                                    {% for equipamento in equipamentos %}
+                                    <option value="{{ equipamento.id }}">{{ equipamento.codigo }} - {{ equipamento.nome }}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-modal">Quantidade</label>
-                                <input type="number" class="form-control text-modal" name="quantity" min="1" value="1" required>
+                                <input type="number" class="form-control text-modal quantidade" name="quantidade" min="1" value="1" required>
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label text-modal">Operador</label>
-                            <select class="form-select text-modal" name="operator" required>
-                                <option value="Production Line A">Production Line A</option>
+                            <label class="form-label text-modal">Funcionários</label>
+                            <select class="form-select text-modal funcionario" name="funcionario" required>
+                                <option value="" selected hidden disabled>Selecione um funcionário...</option>
+                                {% for funcionario in funcionarios %}
+                                <option value="{{ funcionario.id }}">{{ funcionario.matricula }} - {{ funcionario.nome }}</option>
+                                {% endfor %}
                             </select>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label text-modal">Observação</label>
-                            <textarea class="form-control text-modal" name="observation" rows="3"></textarea>
+                            <textarea class="form-control text-modal observacoes" name="observacoes" rows="3"></textarea>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label text-modal">Motivo</label>
-                            <select class="form-select text-modal" name="reason" required>
-                                <option value="New Employee Onboarding">New Employee Onboarding</option>
+                            <select class="form-select text-modal motivo" name="motivo" required>
+                                <option value="" selected hidden disabled>Selecione um motivo</option>
+                                {% for motivo in motivos %}
+                                    <option value="{{ motivo.id }}">{{ motivo.nome }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                     </div>
@@ -96,6 +105,7 @@
 {% endblock %}
 
 {% block scripts %}
+    <script type="module" src="{% static 'js/get_solicitacoes.js' %}"></script>
+    <script type="module" src="{% static 'js/get_padroes_solicitacao.js' %}"></script>
     <script src="{% static 'js/clone.js' %}"></script>
-    <script src="{% static 'js/get_padroes_solicitacao.js' %}"></script>
 {% endblock %}
