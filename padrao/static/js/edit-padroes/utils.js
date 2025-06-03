@@ -109,6 +109,7 @@ export function removeSpecificClone(indexToRemove) {
 export async function preencherModalEdicao(data) {
     const modalTitle = document.querySelector('#modal-editar-padrao .modal-title');
     const cloneContainer = document.getElementById('clone-container-3');
+    const padrao_nome = document.getElementById("padrao_name_edit");
     
     // Limpar clones existentes (exceto o primeiro)
     const clones = cloneContainer.querySelectorAll('.clone-form-3');
@@ -120,6 +121,7 @@ export async function preencherModalEdicao(data) {
     
     // Atualizar título do modal
     modalTitle.textContent = `Editar ${data.padrao.nome}`;
+    padrao_nome.value = data.padrao.nome;
     
     // Preencher o primeiro formulário
     const firstForm = cloneContainer.querySelector('.clone-form-3');
@@ -198,6 +200,10 @@ export async function preencherModalEdicao(data) {
                     // Preencher observações
                     const obsInput = currentForm.querySelector('textarea[name="observation"]');
                     if (obsInput) obsInput.value = equip.observacoes || '';
+
+                    // Preencher motivo
+                    const reasonSelect = currentForm.querySelector('select[name="reason"]');
+                    if (reasonSelect) reasonSelect.value = equip.motivo || '';
                     
                     // Configurar botão de remoção
                     const removeBtn = currentForm.querySelector('.remove-specific');

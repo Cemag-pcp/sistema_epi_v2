@@ -1,6 +1,6 @@
 import { getCookie } from "../../../static/js/scripts.js";
 import { addCloneForm, removeSpecificClone, preencherModalEdicao } from "./edit-padroes/utils.js";
-import { inicializarDataTable } from "./datatable-padroes.js";
+import { table } from "./datatable-padroes.js";
 
 // CREATE PADROES
 
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Coletar dados básicos do padrão
         const nomePadrao = form.querySelector('input[name="padrao_name"]').value;
-        const setorId = form.querySelector('input[name="setor_name"]').value;
+        const setorId = form.querySelector('select[name="padrao_setor"]').value;
         
         // Estrutura para agrupar equipamentos por funcionário
         const funcionariosMap = new Map();
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         // Enviar para a API
-        fetch('/padroes/', {
+        fetch('/padroes/api/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error('Erro na requisição');
+                throw new Error(response.message || 'Erro ao criar padrão');
             }
             return response.json();
         })
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: 'Padrão criado com sucesso!'
                 });
                 modal.hide();
-                inicializarDataTable(); // Atualizar a tabela se necessário
+                table.ajax.reload();
             } else {
                 throw new Error(data.message || 'Erro ao criar padrão');
             }
@@ -116,9 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // UPDATE PADROES
 
 document.addEventListener('DOMContentLoaded', () => {
-    const modal = new bootstrap.Modal(document.getElementById('modal-editar-padrao'));
     const form = document.getElementById('form-editar-padrao');
     const salvarBtn = document.getElementById('editarPadrao');
+    const solicPadrao = document.getElementById('solicitar-padrao');
     const spinner = salvarBtn.querySelector('.spinner-border');
     const addBtn = document.getElementById('add-clone-3');
 
@@ -199,15 +199,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    solicPadrao.addEventListener('click', function() {
+        const modal = document.getElementById('modal-editar-padrao');
+        const padraoId = modal.getAttribute('data-id');
+
+        window.location = `/solicitacao/?padrao=${padraoId}`
+    })
+
     // Evento para salvar as alterações
     form.addEventListener('submit', function(event) {
         event.preventDefault();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modal-editar-padrao')); 
         spinner.style.display = 'inline-block';
         salvarBtn.disabled = true;
         
         // Coletar todos os formulários clonados
         const forms = document.querySelectorAll('.clone-form-3');
         const padraoId = document.querySelector('#modal-editar-padrao').getAttribute('data-id');
+        const padraoNome = document.getElementById('padrao_name_edit').value;
         const requests = [];
         
         // Processar cada formulário
@@ -216,20 +225,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const operator = form.querySelector('select[name="operator"]').value;
             const quantity = form.querySelector('input[name="quantity"]').value;
             const observation = form.querySelector('textarea[name="observation"]').value;
+            const motivo = form.querySelector('select[name="reason"]').value;
             
             requests.push({
                 item_id: item, // ou apenas item se for o nome
                 operator_id: operator,
                 quantity: quantity,
-                observation: observation
+                observation: observation,
+                motivo: motivo
             });
         });
         
         // Dados para enviar
         const data = {
+            padrao_nome: padraoNome,
             padrao_id: padraoId,
             requests: requests
         };
+
+        console.log(data)
         
         // Enviar para o backend (substitua pela sua URL real)
         fetch(`/padroes/${padraoId}/`, {
@@ -240,11 +254,15 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: JSON.stringify(data)
         })
-        .then(response => {
+        .then(async response => {
+            const responseData = await response.json(); // Sempre tentar parsear o JSON
+    
             if (!response.ok) {
-                throw new Error('Erro na requisição');
+                // Usar a mensagem do backend se disponível, caso contrário mensagem genérica
+                throw new Error(responseData.message || `Erro na requisição: ${response.status}`);
             }
-            return response.json();
+            
+            return responseData;
         })
         .then(data => {
             spinner.style.display = 'none';
@@ -256,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     icon: 'success',
                     title: 'Padrão atualizado com sucesso!'
                 });
+                table.ajax.reload();
             } else {
                 Toast.fire({
                     icon: 'error',
@@ -268,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
             salvarBtn.disabled = false;
             Toast.fire({
                 icon: 'error',
-                title: 'Erro na comunicação com o servidor'
+                title: error.message || 'Ocorreu um erro ao carregar os dados do padrão',
             });
             console.error('Error:', error);
         });
@@ -332,37 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (data.success) {
               modal.hide();
-              if ($.fn.DataTable.isDataTable('#tabelaPadroes')) {
-                  table.destroy();
-              }
-              const row = document.querySelector(`tr[data-id="${id}"]`);
-              if (row) {
-                  const statusCell = row.querySelector('.status');
-                  const badgeSpan = statusCell.querySelector('.badge');
-
-                  if (data.novo_status) {
-                      badgeSpan.textContent = 'Ativo';
-                      badgeSpan.classList.remove('status-declined');
-                      badgeSpan.classList.add('status-approved');
-                      badgeSpan.classList.remove('badge-danger');
-                      badgeSpan.classList.add('badge-success');
-                  } else {
-                      badgeSpan.textContent = 'Desativado';
-                      badgeSpan.classList.remove('status-approved');
-                      badgeSpan.classList.add('status-declined');
-                      badgeSpan.classList.remove('badge-success');
-                      badgeSpan.classList.add('badge-danger');
-                  }
-                  
-                  Toast.fire({
-                      icon: 'success',
-                      title: 'Item deletado com sucesso!'
-                  });
-                        
-                  // Atualiza o atributo data-order para manter a ordenação correta
-                  statusCell.setAttribute('data-order', data.novo_status.toString());
-                  inicializarDataTable();
-              }
+              table.ajax.reload();
           } else {
               throw new Error(data.message || 'Erro ao atualizar equipamento');
           }

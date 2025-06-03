@@ -1,9 +1,13 @@
-
+import { getCookie } from "../../../../static/js/scripts.js";
 
 document.addEventListener('DOMContentLoaded', async () =>{
      try {
         // Se nenhum setor selecionado, limpa todos os selects
         document.querySelectorAll('.equipamento').forEach(select => {
+            select.innerHTML = '<option value="" selected disabled hidden>Carregando...</option>';
+        });
+
+        document.querySelectorAll('.motivo').forEach(select => {
             select.innerHTML = '<option value="" selected disabled hidden>Carregando...</option>';
         });
 
@@ -25,27 +29,43 @@ document.addEventListener('DOMContentLoaded', async () =>{
         }
 
         // Gerar opções HTML
-        let optionsHTML = '<option value="" selected disabled hidden>Selecione um funcionário</option>';
+        let optionsHTML = '<option value="" selected disabled hidden>Selecione um equipamento</option>';
         
+        console.log(data);
+
         if (data.equipamentos && data.equipamentos.length) {
-            data.equipamentos.forEach(func => {
-                optionsHTML += `<option value="${func.id}">${func.matricula} - ${func.nome}</option>`;
+            data.equipamentos.forEach(equip => {
+                optionsHTML += `<option value="${equip.id}">${equip.codigo} - ${equip.nome}</option>`;
             });
         } else {
-            optionsHTML += '<option value="" disabled>Nenhum funcionário encontrado</option>';
+            optionsHTML += '<option value="" disabled>Nenhum equipamento encontrado</option>';
+        }
+
+        let optionsHTMLMotivo = '<option value="" selected disabled hidden>Selecione um Motivo</option>';
+
+        if (data.motivos && data.motivos.length) {
+            data.motivos.forEach(mot => {
+                optionsHTMLMotivo += `<option value="${mot.id}">${mot.nome}</option>`;
+            });
+        } else {
+            optionsHTMLMotivo += '<option value="" disabled>Nenhum Motivo encontrado</option>';
         }
 
         // Atualizar TODOS os selects de funcionário (incluindo clones)
-        document.querySelectorAll('.funcionario').forEach(select => {
+        document.querySelectorAll('.equipamento').forEach(select => {
             select.innerHTML = optionsHTML;
         });
 
+        document.querySelectorAll('.motivo').forEach(select => {
+            select.innerHTML = optionsHTMLMotivo;
+        });
+
     } catch (error) {
-        console.error('Erro ao carregar funcionários:', error);
+        console.error('Erro ao carregar equipamento:', error);
         // Mostrar feedback visual para o usuário
         Toast.fire({
             icon: 'error',
-            title: 'Erro ao carregar funcionários'
+            title: 'Erro ao carregar equipamento'
         });
     }
 })
