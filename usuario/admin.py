@@ -6,14 +6,14 @@ from django.utils.translation import gettext_lazy as _
 class CustomUsuarioAdmin(UserAdmin):
     model = Usuario
 
-    list_display = ('matricula', 'nome', 'tipo_acesso', 'is_staff', 'is_superuser')
-    list_filter = ('is_staff', 'is_superuser', 'tipo_acesso')
+    list_display = ('matricula', 'nome','is_staff', 'is_superuser')
+    list_filter = ('is_staff', 'is_superuser')
     search_fields = ('matricula', 'nome')
     ordering = ('matricula',)
 
     fieldsets = (
         (None, {'fields': ('matricula', 'password')}),
-        (_('Informações Pessoais'), {'fields': ('nome', 'funcionario', 'tipo_acesso')}),
+        (_('Informações Pessoais'), {'fields': ('nome', 'funcionario')}),
         (_('Permissões'), {'fields': ('is_staff', 'is_superuser')}),
         (_('Datas Importantes'), {'fields': ('last_login',)}),
     )
@@ -21,7 +21,7 @@ class CustomUsuarioAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('matricula', 'nome', 'funcionario', 'tipo_acesso', 'password1', 'password2'),
+            'fields': ('matricula', 'nome', 'funcionario', 'password1', 'password2'),
         }),
     )
 

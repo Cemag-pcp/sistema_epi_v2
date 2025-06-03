@@ -36,6 +36,14 @@
                         <label for="dataAdmissao" class="form-label">Data Admissão</label>
                         <input type="date" class="form-control" id="dataAdmissao" required>
                     </div>
+                    <div class="mb-3">
+                        <label for="tipoAcesso" class="form-label">Tipo Acesso</label>
+                        <select class="form-select" id="tipoAcesso" required>
+                            <option value="">Selecione o Tipo de Acesso</option>
+                            <option value="solicitante">Solicitante</option>
+                            <option value="operador">Operador</option>
+                        </select>
+                    </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="criarUsuario">
                         <label class="form-check-label" for="criarUsuario">Criar Usuário</label>
@@ -97,15 +105,6 @@
                         <div id="senhaFeedback" class="invalid-feedback">
                             As senhas não correspondem.
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="tipoAcesso" class="form-label">Tipo Acesso</label>
-                        <select class="form-select" id="tipoAcesso" required>
-                            <option value="">Selecione o Tipo de Acesso</option>
-                            <option value="master">Master</option>
-                            <option value="solicitante">Solicitante</option>
-                            <option value="operador">Operador</option>
-                        </select>
                     </div>
                 </form>
             </div>
