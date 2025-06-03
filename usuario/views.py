@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 from usuario.models import Funcionario,Setor,Usuario
 from usuario.decorators import somente_master
@@ -22,10 +23,10 @@ def login_view(request):
         user = authenticate(request, username=matricula, password=password)
         if user:
             login(request, user)
-            if user.tipo_acesso == 'master':
+            if (user.is_superuser) or (user.is_authenticated and user.funcionario.tipo_acesso == 'master'):
                 print('Redirecionando para a página de administração')
                 # Redirecionar para a página inicial de solicitações
-            elif user.tipo_acesso == 'solicitante':
+            elif user.funcionario.tipo_acesso == 'solicitante':
                 print('Redirecionando para a página de funcionário')
                 # Enquanto ainda não existe uma página de solicitação EPI, vamos redirecionar para a home
             else:
@@ -59,7 +60,7 @@ def api_funcionarios(request):
         funcionarios = Funcionario.objects.select_related('setor','setor__responsavel').values(
             'id', 'nome', 'matricula', 'setor__nome', 'setor__id',
                 'setor__responsavel__nome', 'setor__responsavel__matricula',
-                'cargo', 'data_admissao', 'ativo','funcionario'
+                'cargo', 'data_admissao', 'ativo','funcionario','tipo_acesso',
         ).order_by('id')
         
 
@@ -76,6 +77,7 @@ def api_funcionarios(request):
                 'status': 'Ativo' if f['ativo'] else 'Desativado',
                 'setorId': f['setor__id'],
                 'usuario': f['funcionario'] if f['funcionario'] else '',  # ajuste conforme sua modelagem
+                'tipoAcesso': f['tipo_acesso'],
             }
             for f in funcionarios
         ]
@@ -95,7 +97,7 @@ def funcionario(request):
             print(data)
 
             # Validação do json
-            required_fields = ['nome', 'matricula', 'setor', 'cargo']
+            required_fields = ['nome', 'matricula', 'setor', 'cargo','tipoAcesso']
             if not all(field in data for field in required_fields):
                 return JsonResponse({
                     'success': False,
@@ -110,7 +112,8 @@ def funcionario(request):
                 setor_id=data['setor'],
                 cargo=data['cargo'],
                 data_admissao=data['dataAdmissao'],
-                ativo=True
+                tipo_acesso=data['tipoAcesso'],
+                ativo=True,
             )
             funcionario.full_clean()  # Valida os dados do funcionário
             funcionario.save()
@@ -125,6 +128,7 @@ def funcionario(request):
                     'setor': funcionario.setor.nome,
                     'cargo': funcionario.cargo,
                     'data_admissao': funcionario.data_admissao,
+                    'tipo_acesso': funcionario.tipo_acesso,
                     'status': 'Ativo' if funcionario.ativo else 'Desativado',
                 }
             }, status=201)
@@ -163,7 +167,7 @@ def editar_funcionario(request, id):
                 data = json.loads(request.body) if request.body else {}
                 print(data)
                 # Validação do json
-                required_fields = ['nome', 'matricula', 'setor', 'cargo']
+                required_fields = ['nome', 'matricula', 'setor', 'cargo','tipoAcesso']
                 if not all(field in data for field in required_fields):
                     return JsonResponse({
                         'success': False,
@@ -172,11 +176,13 @@ def editar_funcionario(request, id):
                     }, status=400)
 
                 # Atualização dos campos
+                # Fazer algo depois para retornar não-modificado caso não mude nada nos atributos
                 funcionario.nome = data.get('nome', funcionario.nome)
                 funcionario.matricula = data.get('matricula', funcionario.matricula)
                 funcionario.setor_id = data.get('setor', funcionario.setor_id)
                 funcionario.cargo = data.get('cargo', funcionario.cargo)
                 funcionario.data_admissao = data.get('dataAdmissao', funcionario.data_admissao)
+                funcionario.tipo_acesso = data.get('tipoAcesso', funcionario.tipo_acesso)
                 
                 
                 funcionario.full_clean()  # Valida o modelo antes de salvar
@@ -192,6 +198,7 @@ def editar_funcionario(request, id):
                         'setor': funcionario.setor.nome,
                         'cargo': funcionario.cargo,
                         'data_admissao': funcionario.data_admissao,
+                        'tipo_acesso': funcionario.tipo_acesso,
                         'status': 'Ativo' if funcionario.ativo else 'Desativado',
                         }
                     }, status=201)
@@ -247,29 +254,34 @@ def editar_funcionario(request, id):
 
 @login_required
 @somente_master
-def setores(request):
+def api_setores(request):
     if request.method == 'GET':
-        setores = Setor.objects.all()
-
-        lista_setores = [
-            {
-                'id':setor.id,
-                'nome':setor.nome,
-                'responsavel_id':setor.responsavel.id,
-                'responsavel_nome':setor.responsavel.nome,
-                'responsavel_matricula':setor.responsavel.matricula
-            }
-            for setor in setores
-        ]
-        print(lista_setores)
+        setores = list(Setor.objects.select_related('responsavel').values(
+            'id',
+            'nome',
+            'responsavel_id',
+            'responsavel__nome',
+            'responsavel__matricula'
+        ))
         
-        return JsonResponse(lista_setores, safe=False)
+        return JsonResponse(setores, safe=False)
     return JsonResponse({'status': 'success', 'message': 'Setores listados com sucesso!'})
 
 @login_required
 @somente_master
-@require_http_methods(["POST"])
+@require_http_methods(["GET","POST"])
 def usuario(request):
+    if request.method == 'GET':
+        usuarios = list(Usuario.objects.filter(funcionario__tipo_acesso='solicitante').select_related('funcionario').values(
+            'id',
+            'nome',
+            'funcionario__tipo_acesso',
+            'funcionario__id',
+            'funcionario__nome',
+            'funcionario__matricula'
+        ))
+
+        return JsonResponse(usuarios, safe=False)
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -277,7 +289,7 @@ def usuario(request):
 
 
             # Validação do json
-            required_fields = ['nome', 'matricula', 'funcionarioId', 'tipoAcesso']
+            required_fields = ['nome', 'matricula', 'funcionarioId']
             if not all(field in data for field in required_fields):
                 return JsonResponse({
                     'success': False,
@@ -286,17 +298,21 @@ def usuario(request):
                 }, status=400)
 
             # Criar o usuário
-            usuario = Usuario(
-                nome=data['nome'],
-                matricula=data['matricula'],
-                funcionario_id=data['funcionarioId'],
-                tipo_acesso=data['tipoAcesso'],
-                is_staff=True,  # Definindo como True para permitir acesso ao admin
-                is_superuser=False  # Definindo como False por padrão
-            )
-            usuario.set_password(data.get('password', 'default_password'))  # Definindo uma senha padrão se não for fornecida
-            usuario.full_clean()  # Valida os dados do usuário
-            usuario.save()
+            with transaction.atomic():
+                usuario = Usuario(
+                    nome=data['nome'],
+                    matricula=data['matricula'],
+                    funcionario_id=data['funcionarioId'],
+                    is_staff=True,  # Definindo como True para permitir acesso ao admin
+                    is_superuser=False  # Definindo como False por padrão
+                )
+                usuario.set_password(data.get('password', 'default_password'))  # Definindo uma senha padrão se não for fornecida
+                usuario.full_clean()  # Valida os dados do usuário
+                usuario.save()
+
+                funcionario = get_object_or_404(Funcionario,pk=data['funcionarioId'])
+                funcionario.tipo_acesso = data['tipoAcesso']
+                funcionario.save()
 
             return JsonResponse({
                 'success': True,
@@ -305,7 +321,7 @@ def usuario(request):
                     'id': usuario.id,
                     'nome': usuario.nome,
                     'matricula': usuario.matricula,
-                    'tipo_acesso': usuario.tipo_acesso,
+                    'tipo_acesso': funcionario.tipo_acesso,
                     'funcionario_id': usuario.funcionario_id,
                 }
             }, status=201)
@@ -347,3 +363,82 @@ def busca_setor(request,id):
                 'message': 'Erro ao buscar Setores',
                 'errors': str(e)
             }, status=500)
+        
+@login_required
+@somente_master
+def setores(request):
+    if request.method == 'GET':
+        return render(request,'usuario/setores.html')
+    
+@login_required
+@somente_master
+def editar_setor(request,id):
+    #Editar o responsável do setor
+    try:
+        setor = Setor.objects.filter(id=id).first()
+        
+        if not setor:
+            return JsonResponse(
+                {'success': False, 'message': 'Setor não encontrado'}, 
+                status=404
+            )
+
+        if request.method == 'PATCH':
+            try:
+
+                data = json.loads(request.body) if request.body else {}
+                print(data)
+                forcar = data['forcar'] == True
+                # print(forcar)
+
+                if forcar:
+                    print('entrou no forcar')
+                    with transaction.atomic():
+                        novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
+                        setor_antigo = Setor.objects.filter(id=novo_responsavel.setor.id).first()
+                        setor_antigo.responsavel=None
+                        setor_antigo.save()
+
+                        novo_responsavel.setor = setor
+                        novo_responsavel.save()
+
+                        setor.responsavel = novo_responsavel
+                        setor.save()
+                else:
+                    for s in data.get('setores',[]):
+                        print(data['responsavel'] == s['responsavel_id'])
+                        if data['responsavel'] == s['responsavel_id'] and setor.id != s['id']:
+                            return JsonResponse(
+                            {'success': False, 'message': f'Solicitante escolhido já é responsável de outro setor!'},
+                            status=500
+                        )
+
+                    
+                    novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
+                    setor.responsavel = novo_responsavel
+                    setor.save()
+                
+                return JsonResponse({
+                    'success': True, 
+                    'message': f'Responsavel alterado com sucesso!',
+                    'responsavel': {'id':setor.responsavel.id, 
+                                    'nome': setor.responsavel.nome, 
+                                    'matricula': setor.responsavel.matricula, 
+                                    'setorVazio': setor_antigo.id if setor_antigo else ''
+                                    }
+                }, status=201)
+                
+            except Exception as e:
+                print('Stack trace:', traceback.format_exc())
+                print(e)
+                return JsonResponse(
+                    {'success': False, 'message': f'Erro ao alterar responsável: {str(e)}'},
+                    status=500
+                )
+
+    except Exception as e:
+        print(e)
+        return JsonResponse(
+            {'success': False, 'message': f'Erro interno no servidor: {str(e)}'},
+            status=500
+        )
