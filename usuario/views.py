@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from usuario.models import Funcionario,Setor,Usuario
-from usuario.decorators import somente_master
+from usuario.decorators import somente_master, master_solicit
 from datetime import datetime
 
 import traceback

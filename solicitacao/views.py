@@ -1,19 +1,36 @@
 from django.shortcuts import render
-from padrao.models import Padrao
+from padrao.models import Padrao, PadraoEquipamento
+from equipamento.models import Equipamento
+from usuario.models import Funcionario
 from django.http import JsonResponse
 
-
-def solicitacao(request):
+def solicitacao_template(request):
     query_value = request.GET.get('query', '')
     
-    # Todos os padrões (ou filtrados se necessário)
-    padroes = Padrao.objects.all().values('id', 'nome')
+    if request.user.is_superuser == True:
+        padroes = Padrao.objects.filter(ativo=True).values('id', 'nome')
+    else:
+        padroes = Padrao.objects.filter(setor=request.user.funcionario.setor, 
+                                        ativo=True).values('id', 'nome')
     
     return render(request, 'solicitacao.html', {
         'padroes': padroes,
-        'query_value': query_value  # Passamos o valor da query para o template
+        'query_value': query_value,  # Passamos o valor da query para o template
     })
 
-def get_padroes(request):
+def solicitacao(request):
+    
+    if request.user.is_superuser == True:
+        funcionarios = list(Funcionario.objects.values('id', 'nome', 'matricula'))
+    else:
+        funcionarios = list(Funcionario.objects.filter(setor=request.user.funcionario.setor).values('id', 'nome', 'matricula'))
 
-    return JsonResponse({'success':True})
+    equipamentos = list(Equipamento.objects.values('id', 'nome', 'codigo'))
+
+    motivos = [{'id': reason[0], 'nome': reason[1]} for reason in PadraoEquipamento.REASON_CHOICES]
+    
+    return JsonResponse({
+        'funcionarios': funcionarios,
+        'equipamentos': equipamentos,
+        'motivo': motivos
+    }, status=200)

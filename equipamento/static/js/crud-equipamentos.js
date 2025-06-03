@@ -22,12 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     abrirModalBtn.addEventListener('click', () => {
-        form.reset();
         modal.show();
     });
     
-    salvarBtn.addEventListener('click', async () => {
+    form.addEventListener('submit', async (event) => {
         try {
+            event.preventDefault();
             spinner.style.display = 'inline-block';
             salvarBtn.disabled = true;
             
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (!response.ok) {
-                const errorMsg = data.message || data.detail || 
+                const errorMsg = data.errors.codigo || data.errors.vida_util_dias || 
                                (data.errors ? JSON.stringify(data.errors) : 'Erro desconhecido');
                 throw new Error(errorMsg);
             }

@@ -60,6 +60,7 @@ def equipamento(request):
             })
             
         except ValidationError as e:
+            print(e.message_dict)
             return JsonResponse({
                 'success': False,
                 'message': 'Erro de validação',
@@ -127,7 +128,7 @@ def alter_equipamento(request, id):
                 )
             except ValidationError as e:
                 return JsonResponse(
-                    {'success': False, 'message': 'Dados inválidos', 'errors': e.message_dict},
+                    {'success': False, 'message': 'O código registrado já existe', 'errors': e.message_dict},
                     status=400
                 )
             except ValueError as e:

@@ -15,7 +15,12 @@
 <div class="row justify-content-between mb-3">
   <div class="col-md-4 mb-2">
     <label class="text-modal">Padrões</label>
-    <input type="text" class="form-control text-modal" id="filterPadroes" placeholder="Filtrar por Nome ou Código">
+    <div class="input-group mb-3">
+      <input type="text" class="form-control text-modal" id="filterPadroes" placeholder="Filtrar por Nome ou Código">
+      <button class="btn btn-white" type="button" id="button-filtrar-padrao">
+        <i id="search-icon-glass" class="fa-solid fa-magnifying-glass"></i>
+      </button>
+    </div>    
   </div>
   <div class="col-md-2">
     <label class="text-modal">Status</label>
@@ -28,118 +33,20 @@
 </div>
 
 <table id="tabelaPadroes" class="table table-hover w-100">
-  <thead class="table-light">
-    <tr>
-      <th class="text-center">#</th>
-      <th style="max-width: 300px;">Nome do Padrão</th>
-      <th>Setor</th>
-      <th>Funcionário</th>
-      <th>Itens</th>
-      <th>Ativo?</th>
-      <th>Data Criação</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for padrao in padroes %}
-      <tr data-id="{{ padrao.id }}">
-        <td class="align-content-center">         
-          <div class="d-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle mx-auto" style="width: 40px; height: 40px; font-weight: bold;">
-              {{ padrao.id }}
-          </div>
-        </td>
-        <td style="align-content:center;" data-order="{{ padrao.nome }}">
-            <p class="fw-bold mb-1 nome-padrao">{{ padrao.nome }}</p>
-        </td>
-        <td style="align-content:center;" data-order="{{ padrao.setor_nome }}">
-          <p class="fw-normal mb-1 vida-util-equipamento">{{ padrao.setor_nome }}</p>
-        </td>
-        <td style="align-content:center;">
-          <div class="d-flex flex-column">
-            <button class="btn btn-sm btn-outline-dark toggle-funcionarios" 
-                    data-id="{{ padrao.id }}" 
-                    data-shown="false">
-              <span class="funcionario-count fw-bold">{{ padrao.funcionarios|length }} funcionários</span>
-              <i class="bi bi-chevron-down"></i>
-            </button>
-            <div class="funcionarios-list mt-2" id="funcionarios-{{ padrao.id }}" style="display: none;">
-              <div class="d-flex flex-column gap-2">
-                {% for funcionario in padrao.funcionarios %}
-                  <div class="d-flex align-items-center">
-                    <span class="badge bg-secondary me-2">{{ funcionario.matricula }}</span>
-                    <span>{{ funcionario.nome }}</span>
-                  </div>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-        </td>
-        <td style="align-content:center;" class="ca-equipamento">
-          <div class="d-flex flex-column">
-            <button class="btn btn-sm btn-outline-dark toggle-itens" 
-                    data-id="{{ padrao.id }}" 
-                    data-shown="false">
-              <span class="item-count fw-bold">
-                  {{ padrao.total_itens }} item{{ padrao.total_itens|pluralize }}
-              </span>
-              <i class="bi bi-chevron-down"></i>
-            </button>
-            <div class="itens-list mt-2" id="itens-{{ padrao.id }}" style="display: none;">
-              <div class="d-flex flex-column gap-2">
-                {% for funcionario in padrao.funcionarios %}
-                  {% if funcionario.itens %}
-                    <div class="d-flex flex-column">
-                      <small class="text-muted">{{ funcionario.matricula }} - {{ funcionario.nome }}</small>
-                      <div class="d-flex flex-wrap gap-1">
-                        {% for item in funcionario.itens %}
-                          <span class="badge bg-secondary">{{ item.nome }}  ({{ item.quantidade }})</span>
-                        {% endfor %}
-                      </div>
-                    </div>
-                  {% endif %}
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-        </td>
-        <td class="status" style="align-content:center;" data-order="{{ padrao.ativo }}">
-          {% if padrao.ativo %}
-            <span class="badge badge-success rounded-pill d-inline status-approved">Ativo</span>
-          {% else %}
-            <span class="badge badge-danger rounded-pill d-inline status-declined">Desativado</span>
-          {% endif %}
-        </td>
-        <td style="align-content:center;" data-order="{{ padrao.data_criacao|date:'Y-m-d H:i:s' }}">
-          {{ padrao.data_criacao|date:"d/m/Y H:i" }}
-        </td>
-        <td style="align-content:center;">
-            <div class="dropdown">
-                <button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-three-dots" style="color: black"></i>
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <li>
-                      <a data-id="{{ padrao.id }}"
-                        data-nome="{{ padrao.nome }}"
-                        class="dropdown-item g-4 abrirModalEditarPadrao" style="cursor: pointer;">
-                        <i class="bi bi-pencil-square" style="margin-right: 8px;"></i>
-                        Editar
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item g-4 abrirModalDesativarPadrao" 
-                        data-nome="{{ padrao.nome }}" data-id="{{ padrao.id }}" 
-                        style="color: #dc2626; cursor: pointer;">
-                        <i class="bi bi-trash" style="margin-right: 8px;"></i>
-                        {% if padrao.ativo %}Desativar{% else %}Reativar{% endif %}
-                      </a>
-                    </li>
-                </ul>
-            </div>
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
+    <thead class="table-light">
+        <tr>
+            <th class="text-center">#</th>
+            <th style="max-width: 300px;">Nome do Padrão</th>
+            <th>Setor</th>
+            <th>Funcionário</th>
+            <th>Itens</th>
+            <th>Ativo?</th>
+            <th>Data Criação</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
 </table>
 
 {% include 'modal/modal_padrao.html' %}
@@ -153,4 +60,5 @@
 <script type="module" src="{% static 'js/crud-padroes.js' %}"></script>
 <script type="module" src="{% static 'js/get/setores.js' %}"></script>
 <script type="module" src="{% static 'js/get/funcionarios.js' %}"></script>
+<script type="module" src="{% static 'js/get/equipamentos.js' %}"></script>
 {% endblock %}

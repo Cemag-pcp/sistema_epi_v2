@@ -28,9 +28,16 @@ class PadraoFuncionario(models.Model):
         unique_together = ('padrao', 'funcionario')
 
 class PadraoEquipamento(models.Model):
+    REASON_CHOICES = [
+        ('primeira entrega', 'Primeira Entrega'),
+        ('substituicao', 'Substituição'),
+        ('devolucao', 'Devolução'),
+    ]
+
     padrao_funcionario = models.ForeignKey(PadraoFuncionario, on_delete=models.CASCADE, related_name='equipamentos')
     equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE)
     quantidade = models.PositiveIntegerField(default=1)
+    motivo = models.CharField(max_length=20, choices=REASON_CHOICES, default='substituicao')
     observacoes = models.CharField(max_length=255, blank=True, null=True)
     
     class Meta:
