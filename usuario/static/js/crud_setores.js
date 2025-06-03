@@ -169,23 +169,18 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
             body: JSON.stringify({ responsavel: parseInt(responsavel), setores: setorDataLocal, forcar:forcar }),
         });
         const updatedSetor = await response.json();
-        // if (!response.ok){
-        //     const dataError = updatedSetor;
-        //     throw new Error(dataError.message);
-        // }
-        
+
         if (!response.ok){
             const errorMessage = updatedSetor.message || 'Erro ao atualizar responsável.';
             if (errorMessage.includes('já é responsável de outro setor')) {
             const result = await Swal.fire({
                 icon: 'warning',
                 title: 'Confirmação necessária',
-                text: errorMessage + ' Deseja continuar mesmo assim? O setor deste responsável ficará sem responsável!',
+                text: errorMessage + ' O setor deste responsável ficará sem responsável! Deseja continuar mesmo assim?',
                 showCancelButton: true,
                 confirmButtonText: 'Sim, continuar',
                 cancelButtonText: 'Cancelar'
             });
-
             if (result.isConfirmed) {
                 // Reenvia a requisição com um sinalizador (ex: forçar)
                 return await updateSetorResponsavel(id, responsavel, true);
@@ -208,12 +203,21 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
             setorDataLocal[index].responsavel__nome = updatedSetor.responsavel.nome;
             setorDataLocal[index].responsavel_id = updatedSetor.responsavel.id;
             setorDataLocal[index].responsavel__matricula = updatedSetor.responsavel.matricula;
-
         }
+        if (updatedSetor.setorVazio){
+            const indexSetorVazio = setorDataLocal.findIndex(setor => setor.id == updatedSetor.setorVazio);
+            if (indexSetorVazio !== -1){
+                setorDataLocal[indexSetorVazio].responsavel__nome = '';
+                setorDataLocal[indexSetorVazio].responsavel_id = '';
+                setorDataLocal[indexSetorVazio].responsavel__matricula = '';
+            }
+        }
+        
         
         // Altera a linha do setor editado
         // setorDataTable.clear().rows.add(setorDataLocal).draw();
         setorDataTable.row(index).data(setorDataLocal[index]).draw(false);
+        setorDataTable.row(indexSetorVazio).data(setorDataLocal[indexSetorVazio]).draw(false);
         
         editSetorModal.hide();
         showAlert('Responsável do setor atualizado com sucesso!');

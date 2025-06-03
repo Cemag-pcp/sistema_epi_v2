@@ -388,14 +388,19 @@ def editar_setor(request,id):
 
                 data = json.loads(request.body) if request.body else {}
                 print(data)
-                forcar = data['forcar'] == 'true'
+                forcar = data['forcar'] == True
+                # print(forcar)
 
-                if forcar == True:
+                if forcar:
+                    print('entrou no forcar')
                     with transaction.atomic():
                         novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
                         setor_antigo = Setor.objects.filter(id=novo_responsavel.setor.id).first()
-                        setor_antigo.responsavel = None
+                        setor_antigo.responsavel=None
                         setor_antigo.save()
+
+                        novo_responsavel.setor = setor
+                        novo_responsavel.save()
 
                         setor.responsavel = novo_responsavel
                         setor.save()
@@ -407,19 +412,24 @@ def editar_setor(request,id):
                             {'success': False, 'message': f'Solicitante escolhido já é responsável de outro setor!'},
                             status=500
                         )
-                
+
                     
-                novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
-                setor.responsavel = novo_responsavel
-                setor.save()
+                    novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
+                    setor.responsavel = novo_responsavel
+                    setor.save()
                 
                 return JsonResponse({
                     'success': True, 
                     'message': f'Responsavel alterado com sucesso!',
-                    'responsavel': {'id':setor.responsavel.id, 'nome': setor.responsavel.nome, 'matricula': setor.responsavel.matricula}
+                    'responsavel': {'id':setor.responsavel.id, 
+                                    'nome': setor.responsavel.nome, 
+                                    'matricula': setor.responsavel.matricula, 
+                                    'setorVazio': setor_antigo.id if setor_antigo else ''
+                                    }
                 }, status=201)
                 
             except Exception as e:
+                print('Stack trace:', traceback.format_exc())
                 print(e)
                 return JsonResponse(
                     {'success': False, 'message': f'Erro ao alterar responsável: {str(e)}'},
@@ -427,6 +437,7 @@ def editar_setor(request,id):
                 )
 
     except Exception as e:
+        print(e)
         return JsonResponse(
             {'success': False, 'message': f'Erro interno no servidor: {str(e)}'},
             status=500
