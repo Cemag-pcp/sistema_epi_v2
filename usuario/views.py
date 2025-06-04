@@ -72,7 +72,7 @@ def api_funcionarios(request):
                 'matricula': f['matricula'],
                 'setor': f['setor__nome'],
                 'cargo': f['cargo'],
-                'responsavel': f"{f['setor__responsavel__matricula']} - {f['setor__responsavel__nome']}" if f['setor__responsavel__matricula'] else '',
+                'responsavel': f"{f['setor__responsavel__matricula']} - {f['setor__responsavel__nome']}" if f['setor__responsavel__matricula'] else '--',
                 'dataAdmissao': f['data_admissao'],
                 'status': 'Ativo' if f['ativo'] else 'Desativado',
                 'setorId': f['setor__id'],
@@ -400,7 +400,7 @@ def editar_setor(request,id):
                 print(data)
                 forcar = data['forcar'] == True
                 # print(forcar)
-
+                setor_antigo = None
                 if forcar:
                     print('entrou no forcar')
                     with transaction.atomic():

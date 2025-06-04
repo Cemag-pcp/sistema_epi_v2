@@ -28,7 +28,11 @@ export function initializeDataTable(data) {
             },
             { data: 'setor' },
             { data: 'cargo' },
-            { data: 'responsavel' },
+            { data: 'responsavel',
+              createdCell: function(td, cellData, rowData, row, col) {
+                        td.className = 'text-center';
+                    }
+             },
             { 
                 data: 'dataAdmissao',
                 render: function(data, type, row) {

@@ -203,6 +203,8 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
             setorDataLocal[index].responsavel__matricula = updatedSetor.responsavel.matricula;
         }
 
+        setorDataTable.row(index).data(setorDataLocal[index]).draw(false);
+        
         let indexSetorVazio;
 
         if (updatedSetor.responsavel.setorVazio){
@@ -212,13 +214,14 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
                 setorDataLocal[indexSetorVazio].responsavel_id = '';
                 setorDataLocal[indexSetorVazio].responsavel__matricula = '';
             }
+            setorDataTable.row(indexSetorVazio).data(setorDataLocal[indexSetorVazio]).draw(false);
         }
         
         
         // Altera a linha do setor editado
         // setorDataTable.clear().rows.add(setorDataLocal).draw();
-        setorDataTable.row(index).data(setorDataLocal[index]).draw(false);
-        setorDataTable.row(indexSetorVazio).data(setorDataLocal[indexSetorVazio]).draw(false);
+        
+        
         
         editSetorModal.hide();
         showAlert('Responsável do setor atualizado com sucesso!');
