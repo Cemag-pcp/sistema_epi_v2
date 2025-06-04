@@ -70,13 +70,15 @@
             </div>
 
         </div>
-        <div class="modal-footer">
-            <div class="d-flex justify-content-between">
-                <button class="btn btn-primary d-flex align-items-center gap-2" id="salvarPadrao">              
-                    <span class="spinner-border spinner-border-sm" style="display:none"></span>
-                    <span role="status">Salvar</span>
-                </button>
-            </div>
+        <div class="modal-footer justify-content-between">
+            <button type="submit" class="btn btn-white d-flex align-items-center gap-2 criar-solicitar" id="criarSolicitarPadrao">              
+                <span class="spinner-border spinner-border-sm" style="display:none"></span>
+                <span role="status">Criar e Solicitar</span>
+            </button>
+            <button type="submit" class="btn btn-primary d-flex align-items-center gap-2 criar" id="salvarPadrao">              
+                <span class="spinner-border spinner-border-sm" style="display:none"></span>
+                <span role="status">Criar Padrão</span>
+            </button>
         </div>
     </form>
     </div>
@@ -160,10 +162,11 @@
 
         </div>
         <div class="modal-footer justify-content-between">
-            <a class="btn btn-white d-flex align-items-center gap-2" id="solicitar-padrao">              
+            <button type="submit" class="btn btn-white d-flex align-items-center gap-2 editar-solicitar" id="editar-solicitar-padrao">  
+                <span class="spinner-border spinner-border-sm" style="display:none"></span>            
                 <span role="status">Solicitar Padrão</span>
-            </a>
-            <button class="btn btn-primary d-flex align-items-center gap-2" id="editarPadrao">              
+            </button>
+            <button type="submit" class="btn btn-primary d-flex align-items-center gap-2" id="editarPadrao">              
                 <span class="spinner-border spinner-border-sm" style="display:none"></span>
                 <span role="status">Salvar</span>
             </button>

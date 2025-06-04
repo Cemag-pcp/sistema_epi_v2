@@ -25,15 +25,6 @@ export function loadFormDataRequest() {
                 option.textContent = `${funcionario.matricula} - ${funcionario.nome}`;
                 funcionarioSelect.appendChild(option);
             });
-
-            // Preencher motivos
-            const motivoSelect = document.querySelector('.motivo');
-            data.motivo.forEach(motivo => {
-                const option = document.createElement('option');
-                option.value = motivo.id;
-                option.textContent = motivo.nome;
-                motivoSelect.appendChild(option);
-            });
         })
         .catch(error => {
             console.error('Erro ao carregar dados:', error);

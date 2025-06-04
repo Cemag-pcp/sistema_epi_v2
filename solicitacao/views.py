@@ -12,10 +12,13 @@ def solicitacao_template(request):
     else:
         padroes = Padrao.objects.filter(setor=request.user.funcionario.setor, 
                                         ativo=True).values('id', 'nome')
+        
+    motivos = [{'id': reason[0], 'nome': reason[1]} for reason in PadraoEquipamento.REASON_CHOICES]
     
     return render(request, 'solicitacao.html', {
         'padroes': padroes,
         'query_value': query_value,  # Passamos o valor da query para o template
+        'motivos': motivos
     })
 
 def solicitacao(request):
@@ -26,11 +29,8 @@ def solicitacao(request):
         funcionarios = list(Funcionario.objects.filter(setor=request.user.funcionario.setor).values('id', 'nome', 'matricula'))
 
     equipamentos = list(Equipamento.objects.values('id', 'nome', 'codigo'))
-
-    motivos = [{'id': reason[0], 'nome': reason[1]} for reason in PadraoEquipamento.REASON_CHOICES]
     
     return JsonResponse({
         'funcionarios': funcionarios,
         'equipamentos': equipamentos,
-        'motivo': motivos
     }, status=200)

@@ -8,7 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const abrirModalBtn = document.getElementById('abrirModalPadroes');
     const modal = new bootstrap.Modal(document.getElementById('modal-criar-padrao'));
     const salvarBtn = document.getElementById('salvarPadrao');
+    const criarSolicitarBtn = document.getElementById('criarSolicitarPadrao');
     const spinner = salvarBtn.querySelector('.spinner-border');
+    const spinnerRequest = criarSolicitarBtn.querySelector('.spinner-border');
     const form = document.getElementById('form-criar-padrao');
     const Toast = Swal.mixin({
         toast: true,
@@ -29,7 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', function(event) {
         event.preventDefault();
         spinner.style.display = 'inline-block';
+        spinnerRequest.style.display = 'inline-block';
         salvarBtn.disabled = true;
+        criarSolicitarBtn.disabled = true;
         
         // Coletar dados básicos do padrão
         const nomePadrao = form.querySelector('input[name="padrao_name"]').value;
@@ -96,6 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 modal.hide();
                 table.ajax.reload();
+                if (event.submitter.classList.contains('criar-solicitar')) {
+                    window.location = `/solicitacao/?padrao=${data.padrao_id}`
+                }
             } else {
                 throw new Error(data.message || 'Erro ao criar padrão');
             }
@@ -109,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
         .finally(() => {
             spinner.style.display = 'none';
             salvarBtn.disabled = false;
+            spinnerRequest.style.display = 'none';
+            criarSolicitarBtn.disabled = false;
         });
     });
 });
@@ -117,9 +126,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('form-editar-padrao');
+    const solicitarBtn = document.getElementById('editar-solicitar-padrao');
     const salvarBtn = document.getElementById('editarPadrao');
-    const solicPadrao = document.getElementById('solicitar-padrao');
     const spinner = salvarBtn.querySelector('.spinner-border');
+    const spinnerEditar = solicitarBtn.querySelector('.spinner-border');
     const addBtn = document.getElementById('add-clone-3');
 
     // Configuração do Toast
@@ -199,19 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    solicPadrao.addEventListener('click', function() {
-        const modal = document.getElementById('modal-editar-padrao');
-        const padraoId = modal.getAttribute('data-id');
-
-        window.location = `/solicitacao/?padrao=${padraoId}`
-    })
-
     // Evento para salvar as alterações
     form.addEventListener('submit', function(event) {
         event.preventDefault();
         const modal = bootstrap.Modal.getInstance(document.getElementById('modal-editar-padrao')); 
         spinner.style.display = 'inline-block';
         salvarBtn.disabled = true;
+        spinnerEditar.style.display = 'inline-block';
+        solicitarBtn.disabled = true;
         
         // Coletar todos os formulários clonados
         const forms = document.querySelectorAll('.clone-form-3');
@@ -265,8 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return responseData;
         })
         .then(data => {
-            spinner.style.display = 'none';
-            salvarBtn.disabled = false;
             
             if (data.success) {
                 modal.hide();
@@ -275,6 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: 'Padrão atualizado com sucesso!'
                 });
                 table.ajax.reload();
+                if (event.submitter.classList.contains('editar-solicitar')) {
+                    window.location = `/solicitacao/?padrao=${data.padrao_id}`
+                }
             } else {
                 Toast.fire({
                     icon: 'error',
@@ -283,14 +289,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         })
         .catch(error => {
-            spinner.style.display = 'none';
-            salvarBtn.disabled = false;
             Toast.fire({
                 icon: 'error',
                 title: error.message || 'Ocorreu um erro ao carregar os dados do padrão',
             });
             console.error('Error:', error);
-        });
+        })
+        .finally(f => {
+            spinner.style.display = 'none';
+            salvarBtn.disabled = false;
+            spinnerEditar.style.display = 'none';
+            solicitarBtn.disabled = false;
+        })
     });
 });
 

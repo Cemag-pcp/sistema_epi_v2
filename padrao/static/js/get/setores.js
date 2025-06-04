@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () =>{
 
         const selectSetores = document.getElementById('padrao_setor');
 
-        const response = await fetch('/setores/', {
+        const response = await fetch('/api_setores/', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

@@ -225,7 +225,7 @@ def alter_padrao(request, id):
                 padrao = Padrao.objects.get(id=id)
                 
                 # Obter todos os equipamentos disponíveis
-                equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome')
+                equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo')
                 
                 if request.user.is_superuser:
                     funcionarios = Funcionario.objects.filter(setor=padrao.setor,ativo=True).values('id', 'matricula', 'nome')
@@ -334,7 +334,8 @@ def alter_padrao(request, id):
                     
                 return JsonResponse({
                     'success': True,
-                    'message': 'Padrão atualizado com sucesso'
+                    'message': 'Padrão atualizado com sucesso',
+                    'padrao_id': padrao.id
                 })
                 
             except Padrao.DoesNotExist:
@@ -378,7 +379,7 @@ def equipaments_padrao(request):
 
     if request.method == 'GET':
 
-        equipamentos = list(Equipamento.objects.values("id","codigo","nome").order_by("id"))
+        equipamentos = list(Equipamento.objects.filter(ativo=True).values("id","codigo","nome").order_by("id"))
 
         motivos = [{'id': reason[0], 'nome': reason[1]} for reason in PadraoEquipamento.REASON_CHOICES]
 
