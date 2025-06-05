@@ -362,8 +362,12 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           if (data.success) {
-              modal.hide();
-              table.ajax.reload();
+            Toast.fire({
+                icon: 'success',
+                title: 'Status do padrão alterado com sucesso!'
+            });
+            modal.hide();
+            table.ajax.reload();
           } else {
               throw new Error(data.message || 'Erro ao atualizar equipamento');
           }
