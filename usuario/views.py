@@ -253,10 +253,17 @@ def editar_funcionario(request, id):
         )
 
 @login_required
-@somente_master
+@master_solicit
 def api_setores(request):
     if request.method == 'GET':
-        setores = list(Setor.objects.select_related('responsavel').values(
+        setor_id = request.GET.get('setor_id')
+        
+        query = Setor.objects.select_related('responsavel')
+        
+        if setor_id:
+            query = query.filter(id=setor_id)
+        
+        setores = list(query.values(
             'id',
             'nome',
             'responsavel_id',
@@ -265,7 +272,8 @@ def api_setores(request):
         ))
         
         return JsonResponse(setores, safe=False)
-    return JsonResponse({'status': 'success', 'message': 'Setores listados com sucesso!'})
+        
+    return JsonResponse({'status': 'error', 'message': 'Método não permitido'}, status=405)
 
 @login_required
 @somente_master

@@ -2,8 +2,6 @@
 import { getCookie } from "/static/js/scripts.js";
 import { initializeDataTable, dataTable } from "./datatable_funcionario.js";
 
-console.log('Script loaded');
-
 export let employees = [];
 // DOM Elements
 const employeeTableBody = document.getElementById('employeeTableBody');
@@ -14,7 +12,7 @@ const addEmployeeBtn = document.getElementById('addEmployeeBtn');
 const employeeModal = new bootstrap.Modal(document.getElementById('employeeModal'));
 const userModal = new bootstrap.Modal(document.getElementById('userModal'));
 const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
- const employeeForm = document.getElementById('employeeForm');
+const employeeForm = document.getElementById('employeeForm');
 const userForm = document.getElementById('userForm');
 const saveEmployeeBtn = document.getElementById('saveEmployeeBtn');
 const saveUserBtn = document.getElementById('saveUserBtn');
@@ -89,10 +87,11 @@ async function addEmployee(employeeData) {
 
         // For demonstration, we'll add to the sample data
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // await new Promise(resolve => setTimeout(resolve, 1000));
         
         const newId = employees.length > 0 ? Math.max(...employees.map(emp => emp.id)) + 1 : 1;
         //Trocando o valor do id do setor para o nome
+        employeeData['setorId'] = parseInt(employeeData['setor']);
         employeeData['setor'] = employeeData['setorNome'];
         const newEmployee = { id: newId, ...employeeData };
         employees.push(newEmployee);
@@ -144,7 +143,7 @@ async function updateEmployee(id, employeeData) {
 
         // For demonstration, we'll update the sample data
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // await new Promise(resolve => setTimeout(resolve, 1000));
 
         employeeData['setor'] = employeeData['setorNome'];
         // Atualizar o datatable sem reinicializar
@@ -194,7 +193,7 @@ async function createUser(userData) {
         }
         
         // For demonstration, we'll simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // await new Promise(resolve => setTimeout(resolve, 1000));
         
         userModal.hide();
         showAlert('Usuário criado com sucesso!');
@@ -239,7 +238,7 @@ async function deactivateEmployee(id) {
         
         // For demonstration, we'll update the sample data
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
@@ -310,7 +309,7 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
     }
     
 
-    fetch('/setores/')
+    fetch('/api_setores/')
         .then(response => {
             if (!response.ok) throw new Error('Erro ao buscar setores');
             return response.json();
@@ -328,7 +327,7 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
                     optionSetor.textContent = setor.nome || setor.id || setor;
                     setorSelect.appendChild(optionSetor);
                 }else{
-                    responsavelInput.value = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
+                    responsavelInput.value = setor.responsavel__matricula + ' - ' + setor.responsavel__nome;
                 }
 
                 //Setando os responsáveis
@@ -362,7 +361,7 @@ setorInput.addEventListener('change', function(){
     responsavelInput.value = 'Carregando responsável...';
 
     if(idSetor){
-        fetch(`/setores/${idSetor}/`)
+        fetch(`/api_setores/${idSetor}/`)
         .then(response => {
             if (!response.ok){
                 if (!response.status == 404){
@@ -405,6 +404,7 @@ saveEmployeeBtn.addEventListener('click', async function() {
             responsavel: responsavelInput.value,
             dataAdmissao: dataAdmissaoInput.value,
             setorNome: setorInput.options[setorInput.selectedIndex].textContent,
+            tipoAcesso: tipoAcessoInput.value,
             status: 'Ativo',
         };
         
@@ -414,7 +414,22 @@ saveEmployeeBtn.addEventListener('click', async function() {
             if (id) {
                 // Edit existing employee
                 employeeId = await updateEmployee(id, employeeData);
-                showAlert('Funcionário atualizado com sucesso!');
+                if (criarUsuarioCheckbox.checked) {
+                    // Store employee data temporarily
+                    tempEmployeeData = {
+                        id: employeeId,
+                        matricula: employeeData.matricula,
+                        nome: employeeData.nome
+                    };
+                    
+                    // Reset user form
+                    userForm.reset();
+                    
+                    // Show user creation modal
+                    userModal.show();
+                } else {
+                    showAlert('Funcionário adicionado com sucesso!');
+                }
             } else {
                 // Add new employee
                 employeeId = await addEmployee(employeeData);
@@ -561,6 +576,7 @@ export function handleEditClick(e) {
 
     // Iniciar a edição, mostrando o checkbox depois remover caso já exista usuário
     criarUsuarioCheckbox.parentElement.classList.remove('d-none');
+    criarUsuarioCheckbox.checked = false;
     
     if (employee) {
         employeeIdInput.value = employee.id;
@@ -569,8 +585,10 @@ export function handleEditClick(e) {
         cargoInput.value = employee.cargo;
         responsavelInput.value = employee.responsavel;
         dataAdmissaoInput.value = employee.dataAdmissao;
+        tipoAcessoInput.value = employee.tipoAcesso;
 
         //criando option do setor do funcionario
+        setorInput.innerHTML="<option value=''>Selecione o Setor</option>";
         const option = document.createElement('option');
         option.value = employee.setorId || employee.setor; // Use setorId if available, otherwise fallback to setor
         option.textContent = employee.setor || employee.setorNome || 'Setor Desconhecido'; // Fallback to setorNome or a default text
@@ -617,7 +635,7 @@ export async function fetchEmployees() {
         
         // For demonstration, we'll use the sample data
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // await new Promise(resolve => setTimeout(resolve, 500));
 
         initializeDataTable(data);
     } catch (error) {
