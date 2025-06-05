@@ -7,11 +7,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const queryValue = urlParams.get('padrao');
     
+    console.log(queryValue)
+
     if (queryValue) {
         const optionToSelect = selectElement.querySelector(`option[value="${queryValue}"]`);
         if (optionToSelect) {
             optionToSelect.selected = true;
             getPadroes(queryValue);
+        } else {
+            loadFormDataRequest();
         }
     } else {
         loadFormDataRequest();
@@ -156,6 +160,26 @@ function updateAvailableOptions(equipamentos, funcionarios) {
             const option = document.createElement('option');
             option.value = funcionario.id;
             option.textContent = `${funcionario.matricula} - ${funcionario.nome}`;
+            select.appendChild(option);
+        });
+    });
+
+    const equipamentoSelects = document.querySelectorAll('.equipamento');
+    equipamentoSelects.forEach(select => {
+        // Limpar opções existentes
+        select.innerHTML = '';
+        
+        // Adicionar opção vazia
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = 'Selecione um equipamento';
+        select.appendChild(emptyOption);
+        
+        // Adicionar funcionários disponíveis
+        equipamentos.forEach(equipamento => {
+            const option = document.createElement('option');
+            option.value = equipamento.id;
+            option.textContent = `${equipamento.codigo} - ${equipamento.nome}`;
             select.appendChild(option);
         });
     });
