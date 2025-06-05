@@ -15,11 +15,20 @@
                     <label class="form-label text-modal">Nome do Padrão</label>
                     <input type="text" class="form-control text-modal" name="padrao_name" required>
                 </div>
+                {% if request.user.funcionario.tipo_acesso == 'master' %}
                 <div class="col-md-12">
                     <label class="form-label text-modal">Setor do Padrão Criado</label>
                     <select type="text" class="form-control text-modal" id="padrao_setor" name="padrao_setor" required>
                     </select>
                 </div>
+                {% else %}
+                <div class="col-md-12">
+                    <label class="form-label text-modal">Setor do Padrão Criado</label>
+                    <select type="text" class="form-control text-modal" id="padrao_setor" name="padrao_setor"
+                    data-setor-id="{{ request.user.funcionario.setor.id }}">
+                    </select>
+                </div>
+                {% endif %}
             </div>  
             <div id="clone-container-2">
                 <div class="card clone-form-2 p-2 mb-3">

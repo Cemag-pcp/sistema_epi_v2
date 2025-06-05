@@ -7,7 +7,15 @@ document.addEventListener('DOMContentLoaded', async () =>{
 
         const selectSetores = document.getElementById('padrao_setor');
 
-        const response = await fetch('/api_setores/', {
+        const setorId = selectSetores.dataset.setorId;
+        
+        // Monta a URL com ou sem o parâmetro setor_id
+        let url = '/api_setores/';
+        if (setorId) {
+            url += `?setor_id=${setorId}`;
+        }
+    
+        const response = await fetch(`/api_setores/?setor_id=${setorId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -24,16 +32,16 @@ document.addEventListener('DOMContentLoaded', async () =>{
             throw new Error(errorMsg);
         }
         if (setores && setores.length) {
-        let optionsHTML = `
-            <option value="" selected disabled hidden>Selecione um setor</option>
-        `;
+            let optionsHTML = `
+                <option value="" selected disabled hidden>Selecione um setor</option>
+            `;
 
-        setores.forEach(element => {
-            optionsHTML += `<option value="${element.id}">${element.nome}</option>`;
-        });
+            setores.forEach(element => {
+                optionsHTML += `<option value="${element.id}">${element.nome}</option>`;
+            });
 
-        selectSetores.innerHTML = optionsHTML; // Substitui todo o conteúdo
-    } else {
+            selectSetores.innerHTML = optionsHTML; // Substitui todo o conteúdo
+        } else {
             throw new Error(setores.message || 'Erro ao atualizar equipamento');
         }
     } catch (error){

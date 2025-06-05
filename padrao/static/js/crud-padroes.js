@@ -98,10 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     icon: 'success',
                     title: 'Padrão criado com sucesso!'
                 });
-                modal.hide();
                 table.ajax.reload();
                 if (event.submitter.classList.contains('criar-solicitar')) {
                     window.location = `/solicitacao/?padrao=${data.padrao_id}`
+                } else {
+                    modal.hide();
                 }
             } else {
                 throw new Error(data.message || 'Erro ao criar padrão');
@@ -272,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             
             if (data.success) {
-                modal.hide();
                 Toast.fire({
                     icon: 'success',
                     title: 'Padrão atualizado com sucesso!'
@@ -280,6 +280,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 table.ajax.reload();
                 if (event.submitter.classList.contains('editar-solicitar')) {
                     window.location = `/solicitacao/?padrao=${data.padrao_id}`
+                } else {
+                    modal.hide();
                 }
             } else {
                 Toast.fire({
