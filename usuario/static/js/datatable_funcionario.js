@@ -56,7 +56,8 @@ export function initializeDataTable(data) {
                 orderable: false,
                 searchable: false,
                 render: function(data, type, row) {
-                    return `
+                    if (row.status === 'Ativo'){
+                        return `
                         <div class="dropdown">
                             <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-three-dots-vertical"></i>
@@ -67,6 +68,19 @@ export function initializeDataTable(data) {
                             </ul>
                         </div>
                     `;
+                    }else{
+                        return `
+                        <div class="dropdown">
+                            <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item">Sem ações</a></li>
+                            </ul>
+                        </div>
+                    `;
+                    }
+                    
                 }
             }
         ],

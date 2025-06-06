@@ -36,6 +36,12 @@ class Setor(models.Model):
     def __str__(self):
         return f'{self.nome}'
     
+class Cargo(models.Model):
+    nome = models.CharField(max_length=150)
+
+    def __str__(self):
+        return f'{self.nome}'
+    
 class Funcionario(models.Model):
     TYPE_CHOICES = (
         ('master', 'Master'),
@@ -47,7 +53,7 @@ class Funcionario(models.Model):
     matricula = models.IntegerField(unique=True)
     setor = models.ForeignKey(Setor, on_delete=models.CASCADE, related_name='setor_funcionario')
     tipo_acesso = models.CharField(max_length=20, choices=TYPE_CHOICES, default='operador')
-    cargo = models.CharField(max_length=150)
+    cargo = models.ForeignKey(Cargo, on_delete=models.SET_NULL, related_name='cargo_funcionario', null=True, blank=True, default=None)
     data_admissao = models.DateField(null=True)
     ativo = models.BooleanField(default=True)
     tipo_acesso = models.CharField(max_length=20, choices=TYPE_CHOICES, default='operador')
@@ -71,6 +77,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f'{self.matricula} - {self.nome}'
+    
     
 
 

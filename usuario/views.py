@@ -3,11 +3,12 @@ from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from usuario.models import Funcionario,Setor,Usuario
+from usuario.models import Funcionario,Setor,Usuario,Cargo
 from usuario.decorators import somente_master, master_solicit
 from datetime import datetime
 
@@ -25,15 +26,17 @@ def login_view(request):
             login(request, user)
             if (user.is_superuser) or (user.is_authenticated and user.funcionario.tipo_acesso == 'master'):
                 print('Redirecionando para a página de administração')
+                next_url = request.POST.get('next') or 'core:home'
                 # Redirecionar para a página inicial de solicitações
             elif user.funcionario.tipo_acesso == 'solicitante':
                 print('Redirecionando para a página de funcionário')
+                next_url = request.POST.get('next') or 'solicitacao:solicitacao'
                 # Enquanto ainda não existe uma página de solicitação EPI, vamos redirecionar para a home
             else:
                 print('Redirecionando para a página padrão')
+                next_url = request.POST.get('next') or 'solicitacao:solicitacao'
                 #Enquanto ainda não existe uma página de (inventário??) vamos redirecionar para a home
             print(request.POST.get('next'))
-            next_url = request.POST.get('next') or 'core:home'  # 'home' pode ser o nome da URL
             return redirect(next_url)
             # return redirect('core:home')
             
@@ -316,7 +319,8 @@ def usuario(request):
                     is_staff=True,  # Definindo como True para permitir acesso ao admin
                     is_superuser=False  # Definindo como False por padrão
                 )
-                usuario.set_password(data.get('password', 'default_password'))  # Definindo uma senha padrão se não for fornecida
+                validate_password(data['senha'], user=usuario)
+                usuario.set_password(data['senha'])
                 usuario.full_clean()  # Valida os dados do usuário
                 usuario.save()
 
@@ -337,10 +341,11 @@ def usuario(request):
             }, status=201)
 
         except ValidationError as e:
+            print('Stack trace:', traceback.format_exc())
             return JsonResponse({
                 'success': False,
                 'message': 'Erro de validação',
-                'errors': e.message_dict
+                'errors': {'validação': e.messages}
             }, status=400)
 
         except Exception as e:
@@ -423,10 +428,14 @@ def editar_setor(request,id):
                             status=500
                         )
 
-                    
-                    novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
-                    setor.responsavel = novo_responsavel
-                    setor.save()
+                    with transaction.atomic():
+                        novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
+                        setor.responsavel = novo_responsavel
+
+                        novo_responsavel.setor = setor
+                        novo_responsavel.save()
+
+                        setor.save()
                 
                 return JsonResponse({
                     'success': True, 
@@ -452,3 +461,11 @@ def editar_setor(request,id):
             {'success': False, 'message': f'Erro interno no servidor: {str(e)}'},
             status=500
         )
+    
+@login_required
+@somente_master
+def api_cargos(request):
+    if request.method == 'GET':
+        cargos = list(Cargo.objects.values())
+
+        return JsonResponse(cargos, safe=False)

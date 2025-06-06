@@ -29,7 +29,7 @@ const deleteButtonText = document.getElementById('deleteButtonText');
 const deleteSpinner = document.getElementById('deleteSpinner');
 const criarUsuarioCheckbox = document.getElementById('criarUsuario');
 const closeUserModal = document.getElementById('closeUserModal');
-const erroMessage = document.getElementById('erro-modal');
+const erroMessages = document.querySelectorAll('.erro-modal');
 
 // Form fields
 const employeeIdInput = document.getElementById('employeeId');
@@ -85,9 +85,6 @@ async function addEmployee(employeeData) {
             errorValidacao(data, 'Falha ao adicionar funcionário');
         }
 
-        // For demonstration, we'll add to the sample data
-        // Simulate API delay
-        // await new Promise(resolve => setTimeout(resolve, 1000));
         
         const newId = employees.length > 0 ? Math.max(...employees.map(emp => emp.id)) + 1 : 1;
         //Trocando o valor do id do setor para o nome
@@ -194,7 +191,12 @@ async function createUser(userData) {
         
         // For demonstration, we'll simulate API delay
         // await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        const index = employees.findIndex(emp => emp.id == userData.funcionarioId);
+        if (index !== -1) {
+            employees[index].usuario = true;
+        }
+        dataTable.row(index).data(employees[index]).draw(false);
+
         userModal.hide();
         showAlert('Usuário criado com sucesso!');
         
@@ -229,7 +231,6 @@ async function deactivateEmployee(id) {
             },
             body: JSON.stringify({ status: 'Desativado' }),
         });
-        console.log('Response data:', response);
         const data = await response.json();
         
         if (!response.ok){
@@ -272,11 +273,24 @@ function validatePasswordMatch() {
     
     if (senha === confirmarSenha) {
         confirmarSenhaInput.classList.remove('is-invalid');
+
+        if (senha.length < 8){
+            confirmarSenhaInput.classList.add('is-invalid');
+            senhaFeedback.innerText = 'A senha possui menos de 8 caracteres';
+            return false;
+        }
+        if (isOnlyNumbers(senha)){
+            confirmarSenhaInput.classList.add('is-invalid');
+            senhaFeedback.innerText = 'A senha contém apenas números';
+            return false;
+        }
         return true;
     } else {
         confirmarSenhaInput.classList.add('is-invalid');
+        senhaFeedback.innerText = 'As senhas não correspondem';
         return false;
     }
+
 }
 
 // Add New Employee button click
@@ -292,20 +306,34 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
     // Limpa a mensagem de erro do modal
     esconderErroModal();
 
-    console.log(isEditMode);
 
     const setorSelect = setorInput; // setorInput já é o select
-    let setorPreSelecionado;
+    const cargoSelect = cargoInput;
+
+    let setorPreSelecionado = setorInput.value;
+    let cargoPreSelecionado = cargoInput.value;
+
 
     
     // Limpa o select antes de preencher
     if (isEditMode){
-        setorPreSelecionado = setorInput.value;
-        console.log('Setor pré-selecionado:', setorPreSelecionado);
-        setorSelect.innerHTML = `<option value="">Selecione o setor</option>
+        if (setorPreSelecionado){
+            setorSelect.innerHTML = `<option value="">Selecione o setor</option>
                                 <option value="${setorPreSelecionado}" selected>${setorInput.options[setorInput.selectedIndex].textContent}</option>`;
+        }else{
+            setorSelect.innerHTML = '<option value="">Selecione o setor</option>';
+        }
+
+        if (cargoPreSelecionado){
+            cargoSelect.innerHTML = `<option value="">Selecione o cargo</option>
+                                <option value="${cargoPreSelecionado}" selected>${cargoInput.options[cargoInput.selectedIndex].textContent}</option>`;
+        }else{
+            cargoSelect.innerHTML = '<option value="">Selecione o cargo</option>';
+        }
+        
     }else{
         setorSelect.innerHTML = '<option value="">Carregando setores...</option>';
+        cargoSelect.innerHTML = '<option value="">Carregando cargos...</option>';
     }
     
 
@@ -328,32 +356,35 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
                     setorSelect.appendChild(optionSetor);
                 }else{
                     responsavelInput.value = setor.responsavel__matricula + ' - ' + setor.responsavel__nome;
-                }
-
-                //Setando os responsáveis
-                
-                // const optionResponsavel = document.createElement('option');
-                // optionResponsavel.value = setor.responsavel_id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
-
-                // if (setor.responsavel_matricula && setor.responsavel_nome) {
-                //     optionResponsavel.textContent = setor.responsavel_matricula + ' - ' + setor.responsavel_nome;
-                // } else {
-                //     optionResponsavel.textContent = setor.responsavel_id;
-                // }
-
-                // responsavelSelect.appendChild(optionResponsavel);
-
-                
+                }                
             });
         })
         .catch(error => {
             console.error('Erro ao carregar setores:', error.response.status);
             showAlert('Erro ao carregar setores.', 'danger');
         });
+
+    fetch('/api_cargos/')
+        .then(response => {
+            if (!response.ok) throw new Error('Erro ao buscar cargos');
+            return response.json();
+        })
+        .then(data => {
+            if (!isEditMode){
+                cargoSelect.innerHTML = '<option value="">Selecione o cargo</option>';
+            }
+            data.forEach(cargo => {
+                const optionCargo = document.createElement('option');
+                optionCargo.value = cargo.id || cargo;
+                if (optionCargo.value !== cargoPreSelecionado) {
+                    optionCargo.textContent = cargo.nome || cargo;
+                    cargoSelect.appendChild(optionCargo);
+                }
+            })
+        })
 });
 
 setorInput.addEventListener('change', function(){
-    console.log('teste mudança de setor')
 
     const setorSelect = setorInput;
     const idSetor = setorSelect.value;
@@ -428,7 +459,7 @@ saveEmployeeBtn.addEventListener('click', async function() {
                     // Show user creation modal
                     userModal.show();
                 } else {
-                    showAlert('Funcionário adicionado com sucesso!');
+                    showAlert('Funcionário editado com sucesso!');
                 }
             } else {
                 // Add new employee
@@ -499,13 +530,25 @@ saveUserBtn.addEventListener('click', async function() {
 });
 
 function mostrarErroModal(mensagem) {
-    erroMessage.classList.remove('d-none'); // mostra a div
-    erroMessage.innerText = mensagem;       // insere o texto
+    erroMessages.forEach(em => {
+        em.classList.remove('d-none'); // mostra a div
+        em.innerText = mensagem;       // insere o texto
+
+        setTimeout(() => {
+            em.classList.add('d-none');
+            em.innerText = ''; 
+        }, 5000);
+    })
+
+    
+    
 }
 
 function esconderErroModal() {
-    erroMessage.classList.add('d-none'); // mostra a div
-    erroMessage.innerText = ''; 
+    erroMessages.forEach(em => {
+        em.classList.add('d-none');
+        em.innerText = ''; 
+    })
 }
 
 // Reset form
@@ -543,7 +586,9 @@ closeUserModal.addEventListener('click', function() {
     const confirmClose = confirm("Tem certeza que deseja cancelar a criação do usuário?");
     if (confirmClose) {
         userModal.hide();
-        showAlert('Funcionário adicionado com sucesso, mas o usuário não foi criado.', 'warning');
+        if (!isEditMode){
+            showAlert('Funcionário adicionado com sucesso, mas o usuário não foi criado.', 'warning');
+        }
         tempEmployeeData = null;
     }
 });
@@ -553,7 +598,9 @@ cancelUserBtn.addEventListener('click', function() {
     const confirmCancel = confirm("Tem certeza que deseja cancelar a criação do usuário?");
     if (confirmCancel) {
         userModal.hide();
-        showAlert('Funcionário adicionado com sucesso, mas o usuário não foi criado.', 'warning');
+        if (!isEditMode){
+            showAlert('Funcionário adicionado com sucesso, mas o usuário não foi criado.', 'warning');
+        }
         tempEmployeeData = null;
     }
 });
@@ -596,7 +643,6 @@ export function handleEditClick(e) {
 
         setorInput.value = employee.setorId;
         
-        console.log('Editing employee:', employee);
 
         // Hide the "Criar Usuário" checkbox in edit mode if usuario exists
         if (employee.usuario){
@@ -631,7 +677,6 @@ export async function fetchEmployees() {
         const data = await response.json();
         // Armazenar os dados localmente
         employees = data;
-        console.log(data);
         
         // For demonstration, we'll use the sample data
         // Simulate API delay
@@ -656,6 +701,10 @@ function errorValidacao(data, error) {
         } else{
             throw new Error(error);
         }
+}
+
+function isOnlyNumbers(password) {
+    return /^\d+$/.test(password);
 }
 
 

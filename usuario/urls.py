@@ -16,5 +16,6 @@ urlpatterns = [
     path('api_setores/<int:id>/', views.busca_setor, name='busca_setor'), # Buscar um setor específico com o id
     path('setores/',views.setores,name='setores'),# Página setores
     path('setores/<int:id>/',views.editar_setor, name='editar_setor'),
+    path('api_cargos/',views.api_cargos, name='api_cargos'), #api setores
     
 ]
