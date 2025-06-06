@@ -3,7 +3,11 @@ from padrao.models import Padrao, PadraoEquipamento
 from equipamento.models import Equipamento
 from usuario.models import Funcionario
 from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from usuario.decorators import somente_master, master_solicit
 
+@login_required
+@master_solicit
 def solicitacao_template(request):
     query_value = request.GET.get('query', '')
     
@@ -21,6 +25,8 @@ def solicitacao_template(request):
         'motivos': motivos
     })
 
+@login_required
+@master_solicit
 def solicitacao(request):
     
     if request.user.is_superuser == True:

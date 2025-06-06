@@ -191,8 +191,6 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
         }
         // Se for o erro específico que deve permitir confirmação:
         
-
-        
         
         // For demonstration, we'll update the sample data
         // Simulate API delay
@@ -204,20 +202,26 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
             setorDataLocal[index].responsavel_id = updatedSetor.responsavel.id;
             setorDataLocal[index].responsavel__matricula = updatedSetor.responsavel.matricula;
         }
-        if (updatedSetor.setorVazio){
-            const indexSetorVazio = setorDataLocal.findIndex(setor => setor.id == updatedSetor.setorVazio);
+
+        setorDataTable.row(index).data(setorDataLocal[index]).draw(false);
+        
+        let indexSetorVazio;
+
+        if (updatedSetor.responsavel.setorVazio){
+            indexSetorVazio = setorDataLocal.findIndex(setor => setor.id == updatedSetor.responsavel.setorVazio);
             if (indexSetorVazio !== -1){
-                setorDataLocal[indexSetorVazio].responsavel__nome = '';
+                setorDataLocal[indexSetorVazio].responsavel__nome = '--';
                 setorDataLocal[indexSetorVazio].responsavel_id = '';
                 setorDataLocal[indexSetorVazio].responsavel__matricula = '';
             }
+            setorDataTable.row(indexSetorVazio).data(setorDataLocal[indexSetorVazio]).draw(false);
         }
         
         
         // Altera a linha do setor editado
         // setorDataTable.clear().rows.add(setorDataLocal).draw();
-        setorDataTable.row(index).data(setorDataLocal[index]).draw(false);
-        setorDataTable.row(indexSetorVazio).data(setorDataLocal[indexSetorVazio]).draw(false);
+        
+        
         
         editSetorModal.hide();
         showAlert('Responsável do setor atualizado com sucesso!');

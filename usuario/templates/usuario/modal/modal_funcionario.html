@@ -26,7 +26,9 @@
                     </div>
                     <div class="mb-3">
                         <label for="cargo" class="form-label">Cargo</label>
-                        <input type="text" class="form-control" id="cargo" required>
+                        <select class="form-select" id="cargo" required>
+                            <option value="">Selecione o Cargo</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label for="responsavel" class="form-label">Responsável</label>
@@ -97,15 +99,17 @@
                     <div class="mb-3">
                         <label for="senha" class="form-label">Senha</label>
                         <input type="password" class="form-control" id="senha" required>
-                        <div class="form-text">A senha deve ter pelo menos 6 caracteres.</div>
+                        <div class="form-text">Sua senha precisa conter pelo menos 8 caracteres.<br>
+                                                Sua senha não pode ser inteiramente numérica.<br>
+                                                Sua senha não pode ser uma senha comumente utilizada.
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="confirmarSenha" class="form-label">Confirmar Senha</label>
                         <input type="password" class="form-control" id="confirmarSenha" required>
-                        <div id="senhaFeedback" class="invalid-feedback">
-                            As senhas não correspondem.
-                        </div>
+                        <div id="senhaFeedback" class="invalid-feedback"></div>
                     </div>
+                    <div id="erro-modal-user" class="alert alert-danger d-none erro-modal"></div>
                 </form>
             </div>
             <div class="modal-footer">
