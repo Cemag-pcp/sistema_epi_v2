@@ -90,6 +90,9 @@ async function addEmployee(employeeData) {
         //Trocando o valor do id do setor para o nome
         employeeData['setorId'] = parseInt(employeeData['setor']);
         employeeData['setor'] = employeeData['setorNome'];
+        //Trocando o valor do id do cargo para o nome
+        employeeData['cargoId'] = parseInt(employeeData['cargo']);
+        employeeData['cargo'] = employeeData['cargoNome'];
         const newEmployee = { id: newId, ...employeeData };
         employees.push(newEmployee);
         
@@ -143,6 +146,7 @@ async function updateEmployee(id, employeeData) {
         // await new Promise(resolve => setTimeout(resolve, 1000));
 
         employeeData['setor'] = employeeData['setorNome'];
+        employeeData['cargo'] = employeeData['cargoNome'];
         // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
         if (index !== -1) {
@@ -310,13 +314,16 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
     const setorSelect = setorInput; // setorInput já é o select
     const cargoSelect = cargoInput;
 
-    let setorPreSelecionado = setorInput.value;
-    let cargoPreSelecionado = cargoInput.value;
+    let setorPreSelecionado;
+    let cargoPreSelecionado;
 
 
     
     // Limpa o select antes de preencher
     if (isEditMode){
+        cargoPreSelecionado = cargoInput.value;
+        setorPreSelecionado = setorInput.value;
+
         if (setorPreSelecionado){
             setorSelect.innerHTML = `<option value="">Selecione o setor</option>
                                 <option value="${setorPreSelecionado}" selected>${setorInput.options[setorInput.selectedIndex].textContent}</option>`;
@@ -435,6 +442,7 @@ saveEmployeeBtn.addEventListener('click', async function() {
             responsavel: responsavelInput.value,
             dataAdmissao: dataAdmissaoInput.value,
             setorNome: setorInput.options[setorInput.selectedIndex].textContent,
+            cargoNome: cargoInput.options[cargoInput.selectedIndex].textContent,
             tipoAcesso: tipoAcessoInput.value,
             status: 'Ativo',
         };
@@ -594,15 +602,33 @@ closeUserModal.addEventListener('click', function() {
 });
 
 // Cancel User button click
-cancelUserBtn.addEventListener('click', function() {
-    const confirmCancel = confirm("Tem certeza que deseja cancelar a criação do usuário?");
-    if (confirmCancel) {
+cancelUserBtn.addEventListener('click', async function() {
+    const result = await Swal.fire({
+        icon: 'warning',
+        title: 'Confirmação necessária',
+        text: 'Tem certeza que deseja cancelar a criação do usuário?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, continuar',
+        cancelButtonText: 'Cancelar'
+    });
+    console.log(result);
+    if (result.isConfirmed) {
+        console.log(result.isConfirmed);
         userModal.hide();
         if (!isEditMode){
             showAlert('Funcionário adicionado com sucesso, mas o usuário não foi criado.', 'warning');
         }
         tempEmployeeData = null;
     }
+    
+    // const confirmCancel = confirm("Tem certeza que deseja cancelar a criação do usuário?");
+    // if (confirmCancel) {
+    //     userModal.hide();
+    //     if (!isEditMode){
+    //         showAlert('Funcionário adicionado com sucesso, mas o usuário não foi criado.', 'warning');
+    //     }
+    //     tempEmployeeData = null;
+    // }
 });
 
 // Custom search functionality for DataTable
@@ -629,7 +655,7 @@ export function handleEditClick(e) {
         employeeIdInput.value = employee.id;
         matriculaInput.value = employee.matricula;
         nomeInput.value = employee.nome;
-        cargoInput.value = employee.cargo;
+        // cargoInput.value = employee.cargo;
         responsavelInput.value = employee.responsavel;
         dataAdmissaoInput.value = employee.dataAdmissao;
         tipoAcessoInput.value = employee.tipoAcesso;
@@ -642,6 +668,15 @@ export function handleEditClick(e) {
         setorInput.appendChild(option);
 
         setorInput.value = employee.setorId;
+
+        cargoInput.innerHTML="<option value=''>Selecione o Cargo</option>";
+        const optionCargo = document.createElement('option');
+        optionCargo.value = employee.cargoId || employee.cargo; // Use setorId if available, otherwise fallback to setor
+        optionCargo.textContent = employee.cargo || 'Setor Desconhecido'; // Fallback to setorNome or a default text
+        cargoInput.appendChild(optionCargo);
+
+        cargoInput.value = employee.cargoId;
+        console.log(employee);
         
 
         // Hide the "Criar Usuário" checkbox in edit mode if usuario exists
@@ -677,7 +712,7 @@ export async function fetchEmployees() {
         const data = await response.json();
         // Armazenar os dados localmente
         employees = data;
-        
+        console.log(employees);
         // For demonstration, we'll use the sample data
         // Simulate API delay
         // await new Promise(resolve => setTimeout(resolve, 500));

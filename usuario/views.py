@@ -60,10 +60,10 @@ def api_funcionarios(request):
     if request.method == 'GET':
         # Aqui você pode adicionar a lógica para listar os funcionários
 
-        funcionarios = Funcionario.objects.select_related('setor','setor__responsavel').values(
+        funcionarios = Funcionario.objects.select_related('setor','setor__responsavel','cargo').values(
             'id', 'nome', 'matricula', 'setor__nome', 'setor__id',
-                'setor__responsavel__nome', 'setor__responsavel__matricula',
-                'cargo', 'data_admissao', 'ativo','funcionario','tipo_acesso',
+                'setor__responsavel__nome', 'setor__responsavel__matricula','cargo_id',
+                'cargo__nome', 'data_admissao', 'ativo','funcionario','tipo_acesso',
         ).order_by('id')
         
 
@@ -74,13 +74,14 @@ def api_funcionarios(request):
                 'nome': f['nome'],
                 'matricula': f['matricula'],
                 'setor': f['setor__nome'],
-                'cargo': f['cargo'],
+                'cargo': f['cargo__nome'],
                 'responsavel': f"{f['setor__responsavel__matricula']} - {f['setor__responsavel__nome']}" if f['setor__responsavel__matricula'] else '--',
                 'dataAdmissao': f['data_admissao'],
                 'status': 'Ativo' if f['ativo'] else 'Desativado',
                 'setorId': f['setor__id'],
                 'usuario': f['funcionario'] if f['funcionario'] else '',  # ajuste conforme sua modelagem
                 'tipoAcesso': f['tipo_acesso'],
+                'cargoId': f['cargo_id'],
             }
             for f in funcionarios
         ]
@@ -108,12 +109,13 @@ def funcionario(request):
                     'errors': {field: 'Este campo é obrigatório' for field in required_fields if field not in data}
                 }, status=400)
             
+            novo_cargo = Cargo.objects.filter(id=int(data['cargo'])).first()
             #Criar o funcionário
             funcionario = Funcionario(
                 nome=data['nome'],
                 matricula=data['matricula'],
                 setor_id=data['setor'],
-                cargo=data['cargo'],
+                cargo=novo_cargo,
                 data_admissao=data['dataAdmissao'],
                 tipo_acesso=data['tipoAcesso'],
                 ativo=True,
@@ -129,7 +131,7 @@ def funcionario(request):
                     'nome': funcionario.nome,
                     'matricula': funcionario.matricula,
                     'setor': funcionario.setor.nome,
-                    'cargo': funcionario.cargo,
+                    'cargo': funcionario.cargo.nome,
                     'data_admissao': funcionario.data_admissao,
                     'tipo_acesso': funcionario.tipo_acesso,
                     'status': 'Ativo' if funcionario.ativo else 'Desativado',
@@ -177,13 +179,16 @@ def editar_funcionario(request, id):
                         'message': 'Campos obrigatórios faltando',
                         'errors': {field: 'Este campo é obrigatório' for field in required_fields if field not in data}
                     }, status=400)
-
+                
+                
                 # Atualização dos campos
                 # Fazer algo depois para retornar não-modificado caso não mude nada nos atributos
                 funcionario.nome = data.get('nome', funcionario.nome)
                 funcionario.matricula = data.get('matricula', funcionario.matricula)
                 funcionario.setor_id = data.get('setor', funcionario.setor_id)
-                funcionario.cargo = data.get('cargo', funcionario.cargo)
+
+                novo_cargo = Cargo.objects.filter(id=int(data.get('cargo', funcionario.cargo))).first()
+                funcionario.cargo = novo_cargo
                 funcionario.data_admissao = data.get('dataAdmissao', funcionario.data_admissao)
                 funcionario.tipo_acesso = data.get('tipoAcesso', funcionario.tipo_acesso)
                 
@@ -199,7 +204,7 @@ def editar_funcionario(request, id):
                         'nome': funcionario.nome,
                         'matricula': funcionario.matricula,
                         'setor': funcionario.setor.nome,
-                        'cargo': funcionario.cargo,
+                        'cargo': funcionario.cargo.nome,
                         'data_admissao': funcionario.data_admissao,
                         'tipo_acesso': funcionario.tipo_acesso,
                         'status': 'Ativo' if funcionario.ativo else 'Desativado',
@@ -207,11 +212,13 @@ def editar_funcionario(request, id):
                     }, status=201)
 
             except json.JSONDecodeError as e:
+                print(e)
                 return JsonResponse(
                     {'success': False, 'message': 'Formato JSON inválido'},
                     status=400
                 )
             except ValidationError as e:
+                print(e)
                 return JsonResponse({
                     'success': False,
                     'message': 'Erro de validação',
@@ -219,6 +226,7 @@ def editar_funcionario(request, id):
                 }, status=400)
 
             except ValueError as e:
+                print(e)
                 return JsonResponse(
                     {'success': False, 'message': str(e)},
                     status=400
