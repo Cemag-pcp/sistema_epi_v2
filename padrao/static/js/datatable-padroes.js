@@ -154,7 +154,7 @@ export var table = $('#tabelaPadroes').DataTable({
     pageLength: 10,
     lengthMenu: [10, 25, 50, 100],
     language: {
-        url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json',
+        url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json',
         loadingRecords: "", // Remove o texto "Carregando..."
         processing: "",     // Remove o texto "Processando..."
     },
