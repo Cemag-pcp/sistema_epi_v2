@@ -50,7 +50,6 @@ class Funcionario(models.Model):
     cargo = models.CharField(max_length=150)
     data_admissao = models.DateField(null=True)
     ativo = models.BooleanField(default=True)
-    tipo_acesso = models.CharField(max_length=20, choices=TYPE_CHOICES, default='operador')
 
     def __str__(self):
         return f'{self.matricula} - {self.nome}'
