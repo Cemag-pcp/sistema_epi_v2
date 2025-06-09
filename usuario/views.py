@@ -3,11 +3,12 @@ from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from usuario.models import Funcionario,Setor,Usuario
+from usuario.models import Funcionario,Setor,Usuario,Cargo
 from usuario.decorators import somente_master, master_solicit
 from datetime import datetime
 
@@ -25,15 +26,17 @@ def login_view(request):
             login(request, user)
             if (user.is_superuser) or (user.is_authenticated and user.funcionario.tipo_acesso == 'master'):
                 print('Redirecionando para a página de administração')
+                next_url = request.POST.get('next') or 'core:home'
                 # Redirecionar para a página inicial de solicitações
             elif user.funcionario.tipo_acesso == 'solicitante':
                 print('Redirecionando para a página de funcionário')
+                next_url = request.POST.get('next') or 'solicitacao:solicitacao'
                 # Enquanto ainda não existe uma página de solicitação EPI, vamos redirecionar para a home
             else:
                 print('Redirecionando para a página padrão')
+                next_url = request.POST.get('next') or 'solicitacao:solicitacao'
                 #Enquanto ainda não existe uma página de (inventário??) vamos redirecionar para a home
             print(request.POST.get('next'))
-            next_url = request.POST.get('next') or 'core:home'  # 'home' pode ser o nome da URL
             return redirect(next_url)
             # return redirect('core:home')
             
@@ -57,10 +60,10 @@ def api_funcionarios(request):
     if request.method == 'GET':
         # Aqui você pode adicionar a lógica para listar os funcionários
 
-        funcionarios = Funcionario.objects.select_related('setor','setor__responsavel').values(
+        funcionarios = Funcionario.objects.select_related('setor','setor__responsavel','cargo').values(
             'id', 'nome', 'matricula', 'setor__nome', 'setor__id',
-                'setor__responsavel__nome', 'setor__responsavel__matricula',
-                'cargo', 'data_admissao', 'ativo','funcionario','tipo_acesso',
+                'setor__responsavel__nome', 'setor__responsavel__matricula','cargo_id',
+                'cargo__nome', 'data_admissao', 'ativo','funcionario','tipo_acesso',
         ).order_by('id')
         
 
@@ -71,13 +74,14 @@ def api_funcionarios(request):
                 'nome': f['nome'],
                 'matricula': f['matricula'],
                 'setor': f['setor__nome'],
-                'cargo': f['cargo'],
-                'responsavel': f"{f['setor__responsavel__matricula']} - {f['setor__responsavel__nome']}" if f['setor__responsavel__matricula'] else '',
+                'cargo': f['cargo__nome'],
+                'responsavel': f"{f['setor__responsavel__matricula']} - {f['setor__responsavel__nome']}" if f['setor__responsavel__matricula'] else '--',
                 'dataAdmissao': f['data_admissao'],
                 'status': 'Ativo' if f['ativo'] else 'Desativado',
                 'setorId': f['setor__id'],
                 'usuario': f['funcionario'] if f['funcionario'] else '',  # ajuste conforme sua modelagem
                 'tipoAcesso': f['tipo_acesso'],
+                'cargoId': f['cargo_id'],
             }
             for f in funcionarios
         ]
@@ -105,12 +109,13 @@ def funcionario(request):
                     'errors': {field: 'Este campo é obrigatório' for field in required_fields if field not in data}
                 }, status=400)
             
+            novo_cargo = Cargo.objects.filter(id=int(data['cargo'])).first()
             #Criar o funcionário
             funcionario = Funcionario(
                 nome=data['nome'],
                 matricula=data['matricula'],
                 setor_id=data['setor'],
-                cargo=data['cargo'],
+                cargo=novo_cargo,
                 data_admissao=data['dataAdmissao'],
                 tipo_acesso=data['tipoAcesso'],
                 ativo=True,
@@ -126,7 +131,7 @@ def funcionario(request):
                     'nome': funcionario.nome,
                     'matricula': funcionario.matricula,
                     'setor': funcionario.setor.nome,
-                    'cargo': funcionario.cargo,
+                    'cargo': funcionario.cargo.nome,
                     'data_admissao': funcionario.data_admissao,
                     'tipo_acesso': funcionario.tipo_acesso,
                     'status': 'Ativo' if funcionario.ativo else 'Desativado',
@@ -174,13 +179,16 @@ def editar_funcionario(request, id):
                         'message': 'Campos obrigatórios faltando',
                         'errors': {field: 'Este campo é obrigatório' for field in required_fields if field not in data}
                     }, status=400)
-
+                
+                
                 # Atualização dos campos
                 # Fazer algo depois para retornar não-modificado caso não mude nada nos atributos
                 funcionario.nome = data.get('nome', funcionario.nome)
                 funcionario.matricula = data.get('matricula', funcionario.matricula)
                 funcionario.setor_id = data.get('setor', funcionario.setor_id)
-                funcionario.cargo = data.get('cargo', funcionario.cargo)
+
+                novo_cargo = Cargo.objects.filter(id=int(data.get('cargo', funcionario.cargo))).first()
+                funcionario.cargo = novo_cargo
                 funcionario.data_admissao = data.get('dataAdmissao', funcionario.data_admissao)
                 funcionario.tipo_acesso = data.get('tipoAcesso', funcionario.tipo_acesso)
                 
@@ -196,7 +204,7 @@ def editar_funcionario(request, id):
                         'nome': funcionario.nome,
                         'matricula': funcionario.matricula,
                         'setor': funcionario.setor.nome,
-                        'cargo': funcionario.cargo,
+                        'cargo': funcionario.cargo.nome,
                         'data_admissao': funcionario.data_admissao,
                         'tipo_acesso': funcionario.tipo_acesso,
                         'status': 'Ativo' if funcionario.ativo else 'Desativado',
@@ -204,11 +212,13 @@ def editar_funcionario(request, id):
                     }, status=201)
 
             except json.JSONDecodeError as e:
+                print(e)
                 return JsonResponse(
                     {'success': False, 'message': 'Formato JSON inválido'},
                     status=400
                 )
             except ValidationError as e:
+                print(e)
                 return JsonResponse({
                     'success': False,
                     'message': 'Erro de validação',
@@ -216,6 +226,7 @@ def editar_funcionario(request, id):
                 }, status=400)
 
             except ValueError as e:
+                print(e)
                 return JsonResponse(
                     {'success': False, 'message': str(e)},
                     status=400
@@ -256,6 +267,7 @@ def editar_funcionario(request, id):
 @master_solicit
 def api_setores(request):
     if request.method == 'GET':
+
         setor_id = request.GET.get('setor_id')
         
         query = Setor.objects.select_related('responsavel')
@@ -269,11 +281,20 @@ def api_setores(request):
             'responsavel_id',
             'responsavel__nome',
             'responsavel__matricula'
-        ))
+        )
+
+        setores_list = [
+            {
+                **s,
+                'responsavel_id': s['responsavel_id'] if s['responsavel_id'] else '',
+                'responsavel__nome': s['responsavel__nome'] if s['responsavel_id'] else '--',
+                'responsavel__matricula': s['responsavel__matricula'] if s['responsavel_id'] else '',
+            }
+            for s in setores
+        ]
         
-        return JsonResponse(setores, safe=False)
-        
-    return JsonResponse({'status': 'error', 'message': 'Método não permitido'}, status=405)
+        return JsonResponse(setores_list, safe=False)
+    return JsonResponse({'status': 'success', 'message': 'Setores listados com sucesso!'})
 
 @login_required
 @somente_master
@@ -314,7 +335,8 @@ def usuario(request):
                     is_staff=True,  # Definindo como True para permitir acesso ao admin
                     is_superuser=False  # Definindo como False por padrão
                 )
-                usuario.set_password(data.get('password', 'default_password'))  # Definindo uma senha padrão se não for fornecida
+                validate_password(data['senha'], user=usuario)
+                usuario.set_password(data['senha'])
                 usuario.full_clean()  # Valida os dados do usuário
                 usuario.save()
 
@@ -335,10 +357,11 @@ def usuario(request):
             }, status=201)
 
         except ValidationError as e:
+            print('Stack trace:', traceback.format_exc())
             return JsonResponse({
                 'success': False,
                 'message': 'Erro de validação',
-                'errors': e.message_dict
+                'errors': {'validação': e.messages}
             }, status=400)
 
         except Exception as e:
@@ -398,7 +421,7 @@ def editar_setor(request,id):
                 print(data)
                 forcar = data['forcar'] == True
                 # print(forcar)
-
+                setor_antigo = None
                 if forcar:
                     print('entrou no forcar')
                     with transaction.atomic():
@@ -421,10 +444,14 @@ def editar_setor(request,id):
                             status=500
                         )
 
-                    
-                    novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
-                    setor.responsavel = novo_responsavel
-                    setor.save()
+                    with transaction.atomic():
+                        novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
+                        setor.responsavel = novo_responsavel
+
+                        novo_responsavel.setor = setor
+                        novo_responsavel.save()
+
+                        setor.save()
                 
                 return JsonResponse({
                     'success': True, 
@@ -450,3 +477,11 @@ def editar_setor(request,id):
             {'success': False, 'message': f'Erro interno no servidor: {str(e)}'},
             status=500
         )
+    
+@login_required
+@somente_master
+def api_cargos(request):
+    if request.method == 'GET':
+        cargos = list(Cargo.objects.values())
+
+        return JsonResponse(cargos, safe=False)
