@@ -201,7 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Event listeners para os botões de adicionar/remover
-    addBtn.addEventListener('click', addCloneForm);
+    addBtn.addEventListener('click', function() {
+        addCloneForm();
+    });
     document.addEventListener('click', function(event) {
         if (event.target.closest('.remove-specific')) {
             const button = event.target.closest('.remove-specific');

@@ -1,17 +1,29 @@
 // Função para adicionar novo formulário clonado
-export function addCloneForm() {
+export function addCloneForm(matricula='', nome='') {
     const cloneContainer = document.getElementById('clone-container-3');
     const originals = cloneContainer.querySelectorAll('.clone-form-3');
     const lastOriginal = originals[originals.length - 1];
     const clone = lastOriginal.cloneNode(true);
 
-    // Atualiza o número da solicitação
+    // Armazena os dados do funcionário no clone
+
+    clone.dataset.matricula = matricula;
+    clone.dataset.nome = nome;
     const requestText = clone.querySelector('.request');
-    if (requestText) {
-        const cloneNumber = originals.length + 1;
-        requestText.textContent = `${cloneNumber}ª Solicitação do Padrão`;
+    if (matricula !== '' & nome !== '') {
+        // Atualiza o número da solicitação
+        if (requestText) {
+            const cloneNumber = originals.length + 1;
+            requestText.textContent = `${cloneNumber}ª Solicitação do Padrão | ${matricula} - ${nome}`;
+        }
+    } else {
+        if (requestText) {
+            const cloneNumber = originals.length + 1;
+            requestText.textContent = `${cloneNumber}ª Solicitação do Padrão`;
+        }
     }
 
+    // Restante do código permanece o mesmo...
     // Limpa os valores dos inputs
     const inputs = clone.querySelectorAll('input, textarea, select');
     inputs.forEach(input => {
@@ -26,7 +38,7 @@ export function addCloneForm() {
     cloneContainer.appendChild(clone);
 
     // Atualiza TODOS os data-index após adicionar o novo clone
-    updateRemoveButtonsIndexes();
+    updateRemoveButtonsIndexes(); // Removemos os parâmetros
 
     toggleCollapseFunction()
 }
@@ -41,10 +53,20 @@ function updateRemoveButtonsIndexes() {
             removeBtn.setAttribute('data-index', index);
         }
         
+        // Obtém os dados do funcionário do próprio clone
+        const matricula = clone.dataset.matricula || '';
+        const nome = clone.dataset.nome || '';
+
         // Atualiza também o texto da solicitação para garantir consistência
         const requestText = clone.querySelector('.request');
-        if (requestText) {
-            requestText.textContent = `${index + 1}ª Solicitação do Padrão`;
+        if (matricula !== '' & nome !== '') {
+            if (requestText) {
+                requestText.textContent = `${index + 1}ª Solicitação do Padrão | ${matricula} - ${nome}`;
+            }
+        } else {
+            if (requestText) {
+                requestText.textContent = `${index + 1}ª Solicitação do Padrão`;
+            }
         }
 
         const formFields = clone.querySelector('.collapse');
@@ -60,7 +82,7 @@ function updateRemoveButtonsIndexes() {
 }
 
 function toggleCollapseFunction(){
-        document.querySelectorAll('.toggle-collapse').forEach(button => {
+    document.querySelectorAll('.toggle-collapse').forEach(button => {
         button.addEventListener('click', function() {
             const icon = this.querySelector('i');
             if (this.getAttribute('aria-expanded') === 'true') {
@@ -127,6 +149,18 @@ export async function preencherModalEdicao(data) {
     const firstForm = cloneContainer.querySelector('.clone-form-3');
     
     if (firstForm) {
+        if (data.padrao.funcionarios.length > 0) {
+            const primeiroFunc = data.padrao.funcionarios[0];
+            firstForm.dataset.matricula = primeiroFunc.matricula;
+            firstForm.dataset.nome = primeiroFunc.nome;
+            
+            // Atualizar o texto do request
+            const requestText = firstForm.querySelector('.request');
+            if (requestText) {
+                requestText.textContent = `1ª Solicitação do Padrão | ${primeiroFunc.matricula} - ${primeiroFunc.nome}`;
+            }
+        }
+
         // Preencher selects básicos
         const itemSelect = firstForm.querySelector('select[name="item"]');
         const funcionarioSelect = firstForm.querySelector('select[name="operator"]');
@@ -159,8 +193,9 @@ export async function preencherModalEdicao(data) {
             // Para cada equipamento do funcionário
             func.equipamentos.forEach((equip, equipIndex) => {
                 // Se não for o primeiro formulário (já existe), adicionar clone
+                console.log(func.matricula, func.nome)
                 if (formIndex > 0) {
-                    addCloneForm();
+                    addCloneForm(func.matricula, func.nome);
                 }
                 
                 // Pegar o formulário atual
@@ -214,6 +249,29 @@ export async function preencherModalEdicao(data) {
                     const formFields = currentForm.querySelector('.collapse');
                     if (formFields) {
                         formFields.setAttribute('id', `formFields-${formIndex}`);
+                        
+                        // Verificar se algum campo obrigatório está vazio
+                        const hasEmptyField = 
+                            (funcSelect && funcSelect.value === "") || 
+                            (equipSelect && equipSelect.value === "") || 
+                            (qtyInput && qtyInput.value === "") || 
+                            (reasonSelect && reasonSelect.value === "");
+                        
+                        // Se algum campo estiver vazio, manter o collapse aberto
+                        if (hasEmptyField) {
+                            formFields.classList.add('show');
+                            
+                            // Atualizar ícone para "up" quando estiver aberto
+                            const toggleCollapse = currentForm.querySelector('.toggle-collapse');
+                            if (toggleCollapse) {
+                                toggleCollapse.setAttribute('aria-expanded', 'true');
+                                const icon = toggleCollapse.querySelector('i');
+                                if (icon) {
+                                    icon.classList.remove('bi-chevron-down');
+                                    icon.classList.add('bi-chevron-up');
+                                }
+                            }
+                        }
                     }
 
                     const toggleCollapse = currentForm.querySelector('.toggle-collapse');
