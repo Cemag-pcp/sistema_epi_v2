@@ -12,6 +12,7 @@ export function initializeDataTable(data) {
     dataTable = $('#employeeTable').DataTable({
         data: data,
         columns: [
+            { data: 'id' },
             { data: 'matricula' },
             { 
                 data: 'nome',
@@ -27,7 +28,11 @@ export function initializeDataTable(data) {
                 }
             },
             { data: 'setor' },
-            { data: 'cargo' },
+            { data: 'cargo' ,
+                createdCell: function(td, cellData, rowData, row, col) {
+                        td.className = 'd-none';
+                    },
+            },
             { data: 'responsavel',
               createdCell: function(td, cellData, rowData, row, col) {
                         td.className = 'text-center';
@@ -35,6 +40,9 @@ export function initializeDataTable(data) {
              },
             { 
                 data: 'dataAdmissao',
+                createdCell: function(td, cellData, rowData, row, col) {
+                        td.className = 'd-none';
+                    },
                 render: function(data, type, row) {
                     if (type === 'display' || type === 'filter') {
                         return formatDateForDisplay(data);
@@ -85,7 +93,7 @@ export function initializeDataTable(data) {
             }
         ],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json',
+            url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json',
         },
         responsive: true,
         lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Todos"]],
