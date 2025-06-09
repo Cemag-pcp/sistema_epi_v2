@@ -1,15 +1,31 @@
 export function loadFormDataRequest() {
-
     const form = document.getElementById("form-card-solict");
     const spinner = document.getElementById("spinner");
+    const funcionarioSelect = document.querySelector('.funcionario');
+    const equipamentoSelect = document.querySelector('.equipamento');
+
     form.style.display = 'none';
     spinner.style.display = 'block';
+
+    // Limpa os selects e adiciona a opção padrão
+    funcionarioSelect.innerHTML = '';
+    equipamentoSelect.innerHTML = '';
+    
+    // Adiciona a opção padrão "Selecione..."
+    const defaultFuncionarioOption = document.createElement('option');
+    defaultFuncionarioOption.value = "";
+    defaultFuncionarioOption.textContent = "Selecione um funcionário";
+    funcionarioSelect.appendChild(defaultFuncionarioOption);
+
+    const defaultEquipamentoOption = document.createElement('option');
+    defaultEquipamentoOption.value = "";
+    defaultEquipamentoOption.textContent = "Selecione um equipamento";
+    equipamentoSelect.appendChild(defaultEquipamentoOption);
 
     fetch('/solicitacao/api')
         .then(response => response.json())
         .then(data => {
             // Preencher equipamentos
-            const equipamentoSelect = document.querySelector('.equipamento');
             data.equipamentos.forEach(equipamento => {
                 const option = document.createElement('option');
                 option.value = equipamento.id;
@@ -18,21 +34,11 @@ export function loadFormDataRequest() {
             });
 
             // Preencher funcionários
-            const funcionarioSelect = document.querySelector('.funcionario');
             data.funcionarios.forEach(funcionario => {
                 const option = document.createElement('option');
                 option.value = funcionario.id;
                 option.textContent = `${funcionario.matricula} - ${funcionario.nome}`;
                 funcionarioSelect.appendChild(option);
-            });
-
-            // Preencher motivos
-            const motivoSelect = document.querySelector('.motivo');
-            data.motivo.forEach(motivo => {
-                const option = document.createElement('option');
-                option.value = motivo.id;
-                option.textContent = motivo.nome;
-                motivoSelect.appendChild(option);
             });
         })
         .catch(error => {

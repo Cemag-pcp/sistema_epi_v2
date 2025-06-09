@@ -132,7 +132,7 @@ export var table = $('#tabelaPadroes').DataTable({
                                     '<a data-id="' + data + '"' +
                                         'data-nome="' + row.nome + '"' +
                                         'class="dropdown-item g-4 abrirModalEditarPadrao" style="cursor: pointer;">' +
-                                        '<i class="bi bi-pencil-square" style="margin-right: 8px;"></i>' +
+                                        '<i class="bi bi-pencil-square" style="margin-right: 8px; pointer-events: none;"></i>' +
                                         'Editar' +
                                     '</a>' +
                                 '</li>' +
@@ -140,7 +140,7 @@ export var table = $('#tabelaPadroes').DataTable({
                                     '<a class="dropdown-item g-4 abrirModalDesativarPadrao" ' +
                                         'data-nome="' + row.nome + '" data-id="' + data + '" ' +
                                         'style="color: #dc2626; cursor: pointer;">' +
-                                        '<i class="bi bi-trash" style="margin-right: 8px;"></i>' +
+                                        '<i class="bi bi-trash" style="margin-right: 8px; pointer-events: none;"></i>' +
                                         (row.ativo ? 'Desativar' : 'Reativar') +
                                     '</a>' +
                                 '</li>' +

@@ -264,10 +264,18 @@ def editar_funcionario(request, id):
         )
 
 @login_required
-@somente_master
+@master_solicit
 def api_setores(request):
     if request.method == 'GET':
-        setores = Setor.objects.select_related('responsavel').values(
+
+        setor_id = request.GET.get('setor_id')
+        
+        query = Setor.objects.select_related('responsavel')
+        
+        if setor_id:
+            query = query.filter(id=setor_id)
+        
+        setores = list(query.values(
             'id',
             'nome',
             'responsavel_id',
