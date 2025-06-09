@@ -1,4 +1,5 @@
 from .base import *
+import sys
 
 # Configurações específicas de desenvolvimento
 DEBUG = env.bool('DEBUG', default=True)
@@ -20,6 +21,15 @@ DATABASES = {
         },
     }
 }
+
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+        'TEST': {
+            'NAME': ':memory:',
+        }
+    }
 
 # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Configurações adicionais para desenvolvimento (opcional)
