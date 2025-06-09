@@ -281,7 +281,7 @@ def api_setores(request):
             'responsavel_id',
             'responsavel__nome',
             'responsavel__matricula'
-        )
+        ))
 
         setores_list = [
             {
