@@ -73,15 +73,15 @@ def api_funcionarios(request):
                 'id': f['id'],
                 'nome': f['nome'],
                 'matricula': f['matricula'],
-                'setor': f['setor__nome'],
-                'cargo': f['cargo__nome'],
+                'setor': f['setor__nome'] if f['setor__nome'] else '',
+                'cargo': f['cargo__nome'] if f['cargo__nome'] else '',
                 'responsavel': f"{f['setor__responsavel__matricula']} - {f['setor__responsavel__nome']}" if f['setor__responsavel__matricula'] else '--',
                 'dataAdmissao': f['data_admissao'],
                 'status': 'Ativo' if f['ativo'] else 'Desativado',
-                'setorId': f['setor__id'],
-                'usuario': f['funcionario'] if f['funcionario'] else '',  # ajuste conforme sua modelagem
+                'setorId': f['setor__id'] if f['setor__id'] else '',
+                'usuario': f['funcionario'] if f['funcionario'] else '', 
                 'tipoAcesso': f['tipo_acesso'],
-                'cargoId': f['cargo_id'],
+                'cargoId': f['cargo_id'] if f['cargo_id'] else '',
             }
             for f in funcionarios
         ]

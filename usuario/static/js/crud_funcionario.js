@@ -663,16 +663,16 @@ export function handleEditClick(e) {
         //criando option do setor do funcionario
         setorInput.innerHTML="<option value=''>Selecione o Setor</option>";
         const option = document.createElement('option');
-        option.value = employee.setorId || employee.setor; // Use setorId if available, otherwise fallback to setor
-        option.textContent = employee.setor || employee.setorNome || 'Setor Desconhecido'; // Fallback to setorNome or a default text
+        option.value = employee.setorId; // Use setorId if available, otherwise fallback to setor
+        option.textContent = employee.setor; // Fallback to setorNome or a default text
         setorInput.appendChild(option);
 
         setorInput.value = employee.setorId;
 
         cargoInput.innerHTML="<option value=''>Selecione o Cargo</option>";
         const optionCargo = document.createElement('option');
-        optionCargo.value = employee.cargoId || employee.cargo; // Use setorId if available, otherwise fallback to setor
-        optionCargo.textContent = employee.cargo || 'Setor Desconhecido'; // Fallback to setorNome or a default text
+        optionCargo.value = employee.cargoId;// Use setorId if available, otherwise fallback to setor
+        optionCargo.textContent = employee.cargo; // Fallback to setorNome or a default text
         cargoInput.appendChild(optionCargo);
 
         cargoInput.value = employee.cargoId;
