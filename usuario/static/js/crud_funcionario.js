@@ -262,16 +262,6 @@ function validatePasswordMatch() {
     if (senha === confirmarSenha) {
         confirmarSenhaInput.classList.remove('is-invalid');
 
-        if (senha.length < 8){
-            confirmarSenhaInput.classList.add('is-invalid');
-            senhaFeedback.innerText = 'A senha possui menos de 8 caracteres';
-            return false;
-        }
-        if (isOnlyNumbers(senha)){
-            confirmarSenhaInput.classList.add('is-invalid');
-            senhaFeedback.innerText = 'A senha contém apenas números';
-            return false;
-        }
         return true;
     } else {
         confirmarSenhaInput.classList.add('is-invalid');
@@ -716,11 +706,6 @@ function errorValidacao(data, error) {
         } else{
             throw new Error(error);
         }
-}
-
-// Function to check if password contains only numbers
-function isOnlyNumbers(password) {
-    return /^\d+$/.test(password);
 }
 
 
