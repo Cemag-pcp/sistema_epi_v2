@@ -87,7 +87,7 @@ function initializeSetorDataTable(data) {
                                 <div class="profile-img me-2">
                                     <i class="bi bi-person-badge"></i>
                                 </div>
-                                <span>${data}</span>
+                                <span>${row.responsavel__matricula} - ${data}</span>
                             </div>
                         `;
                     }
@@ -138,9 +138,6 @@ async function fetchSetores() {
         if (!response.ok) throw new Error('Failed to fetch setores');
         const data = await response.json();
         setorDataLocal = data;
-        // For demonstration, we'll use the sample data
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
         
         initializeSetorDataTable(data);
     } catch (error) {
@@ -189,12 +186,6 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
             }
         }
         }
-        // Se for o erro específico que deve permitir confirmação:
-        
-        
-        // For demonstration, we'll update the sample data
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
         
         const index = setorDataLocal.findIndex(setor => setor.id == id);
         if (index !== -1) {
@@ -220,7 +211,6 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
         
         // Altera a linha do setor editado
         // setorDataTable.clear().rows.add(setorDataLocal).draw();
-        
         
         
         editSetorModal.hide();
@@ -261,7 +251,7 @@ function handleEditClick(e) {
         const optionResponsavel = document.createElement('option');
 
         //criando option do setor do funcionario
-        optionResponsavel.value = usuario.funcionario__id || ""; // Use setorId if available, otherwise fallback to setor
+        optionResponsavel.value = usuario.funcionario__id; // Use setorId if available, otherwise fallback to setor
         optionResponsavel.textContent = (usuario.funcionario__matricula && usuario.funcionario__nome)
                                         ? usuario.funcionario__matricula + ' - ' + usuario.funcionario__nome
                                         : 'Responsável Desconhecido'; // Fallback to setorNome or a default text
@@ -324,8 +314,6 @@ async function fetchUsuarios() {
         if (!response.ok) throw new Error('Failed to fetch usuarios');
         const data =  await response.json();
         usuariosData = data;
-        // For demonstration, we'll use the sample data
-        // Simulate API delay
         
         // initializeSetorDataTable(data);
     } catch (error) {
