@@ -183,18 +183,28 @@ def editar_funcionario(request, id):
                 
                 # Atualização dos campos
                 # Fazer algo depois para retornar não-modificado caso não mude nada nos atributos
+                
                 # funcionario.nome = data.get('nome', funcionario.nome)
                 # funcionario.matricula = data.get('matricula', funcionario.matricula)
-                funcionario.setor_id = int(data.get('setorId', funcionario.setor_id))
 
-                novo_cargo = Cargo.objects.filter(id=int(data.get('cargoId', funcionario.cargo))).first()
-                funcionario.cargo = novo_cargo
-                # funcionario.data_admissao = data.get('dataAdmissao', funcionario.data_admissao)
-                funcionario.tipo_acesso = data.get('tipoAcesso', funcionario.tipo_acesso)
-                
-                
-                funcionario.full_clean()  # Valida o modelo antes de salvar
-                funcionario.save()
+                # verifica o setor antigo para verificar se o responsável do setor antigo é o funcionário
+                with transaction.atomic():
+                    setor_antigo = funcionario.setor  
+
+                    # Se o funcionario for responsável de um setor, trocará o responsável do setor antigo para None
+                    if funcionario.setor.responsavel and funcionario.setor.responsavel.id == funcionario.id:
+                        setor_antigo.responsavel = None
+                        setor_antigo.save()
+                    
+                    funcionario.setor_id = int(data.get('setorId', funcionario.setor_id))
+                    novo_cargo = Cargo.objects.filter(id=int(data.get('cargoId', funcionario.cargo))).first()
+                    funcionario.cargo = novo_cargo
+                    # funcionario.data_admissao = data.get('dataAdmissao', funcionario.data_admissao)
+                    funcionario.tipo_acesso = data.get('tipoAcesso', funcionario.tipo_acesso)
+                    
+                    
+                    funcionario.full_clean()  # Valida o modelo antes de salvar
+                    funcionario.save()
                 
                 return JsonResponse({
                     'success': True,
