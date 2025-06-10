@@ -88,11 +88,9 @@ async function addEmployee(employeeData) {
         
         const newId = employees.length > 0 ? Math.max(...employees.map(emp => emp.id)) + 1 : 1;
         //Trocando o valor do id do setor para o nome
-        employeeData['setorId'] = parseInt(employeeData['setor']);
-        employeeData['setor'] = employeeData['setorNome'];
+        // employeeData['setorId'] = parseInt(employeeData['setor']);
         //Trocando o valor do id do cargo para o nome
-        employeeData['cargoId'] = parseInt(employeeData['cargo']);
-        employeeData['cargo'] = employeeData['cargoNome'];
+        // employeeData['cargoId'] = parseInt(employeeData['cargo']);
         const newEmployee = { id: newId, ...employeeData };
         employees.push(newEmployee);
         
@@ -145,9 +143,9 @@ async function updateEmployee(id, employeeData) {
         // For demonstration, we'll update the sample data
         // Simulate API delay
         // await new Promise(resolve => setTimeout(resolve, 1000));
-
-        employeeData['setor'] = employeeData['setorNome'];
-        employeeData['cargo'] = employeeData['cargoNome'];
+        
+        // employeeData['setor'] = employeeData['setorNome'];
+        // employeeData['cargo'] = employeeData['cargoNome'];
         // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
         if (index !== -1) {
@@ -319,12 +317,20 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
     let setorPreSelecionado;
     let cargoPreSelecionado;
 
+    matriculaInput.disabled = false;
+    nomeInput.disabled = false;
+    dataAdmissaoInput.disabled = false;
 
     
     // Limpa o select antes de preencher
     if (isEditMode){
         cargoPreSelecionado = cargoInput.value;
         setorPreSelecionado = setorInput.value;
+
+        // Desabilita os campos que não podem ser editados
+        matriculaInput.disabled = true;
+        nomeInput.disabled = true;
+        dataAdmissaoInput.disabled = true;
 
         if (setorPreSelecionado){
             setorSelect.innerHTML = `<option value="">Selecione o setor</option>
@@ -444,8 +450,8 @@ saveEmployeeBtn.addEventListener('click', async function() {
             setorId: setorInput.value,
             responsavel: responsavelInput.value,
             dataAdmissao: dataAdmissaoInput.value,
-            setorNome: setorInput.options[setorInput.selectedIndex].textContent,
-            cargoNome: cargoInput.options[cargoInput.selectedIndex].textContent,
+            setor: setorInput.options[setorInput.selectedIndex].textContent,
+            cargo: cargoInput.options[cargoInput.selectedIndex].textContent,
             tipoAcesso: tipoAcessoInput.value,
             status: 'Ativo',
         };
@@ -674,8 +680,8 @@ export function handleEditClick(e) {
 
         cargoInput.innerHTML="<option value=''>Selecione o Cargo</option>";
         const optionCargo = document.createElement('option');
-        optionCargo.value = employee.cargoId || employee.cargo; // Use setorId if available, otherwise fallback to setor
-        optionCargo.textContent = employee.cargo || 'Setor Desconhecido'; // Fallback to setorNome or a default text
+        optionCargo.value = employee.cargoId;
+        optionCargo.textContent = employee.cargo;
         cargoInput.appendChild(optionCargo);
 
         cargoInput.value = employee.cargoId;
