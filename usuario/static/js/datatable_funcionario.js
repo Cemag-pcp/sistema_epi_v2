@@ -12,6 +12,13 @@ export function initializeDataTable(data) {
     dataTable = $('#employeeTable').DataTable({
         data: data,
         columns: [
+            { data: 'id',
+                render: function(data, type, row) {
+                    return `<div class="d-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle mx-auto" style="width: 40px; height: 40px; font-weight: bold;">
+                                ${data}
+                            </div>`;
+                }
+            },
             { data: 'matricula' },
             { 
                 data: 'nome',
@@ -27,7 +34,11 @@ export function initializeDataTable(data) {
                 }
             },
             { data: 'setor' },
-            { data: 'cargo' },
+            { data: 'cargo' ,
+                createdCell: function(td, cellData, rowData, row, col) {
+                        td.className = 'd-none';
+                    },
+            },
             { data: 'responsavel',
               createdCell: function(td, cellData, rowData, row, col) {
                         td.className = 'text-center';
@@ -35,6 +46,9 @@ export function initializeDataTable(data) {
              },
             { 
                 data: 'dataAdmissao',
+                createdCell: function(td, cellData, rowData, row, col) {
+                        td.className = 'd-none';
+                    },
                 render: function(data, type, row) {
                     if (type === 'display' || type === 'filter') {
                         return formatDateForDisplay(data);
@@ -85,7 +99,7 @@ export function initializeDataTable(data) {
             }
         ],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json',
+            url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/pt-BR.json',
         },
         responsive: true,
         lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Todos"]],
@@ -111,9 +125,9 @@ export function formatDateForDisplay(dateString) {
 function getStatusBadgeClass(status) {
     switch(status) {
         case "Ativo":
-            return "bg-success text-white";
+            return "badge badge-success rounded-pill d-inline status-approved";
         case "Desativado":
-            return "bg-danger text-white";
+            return "badge badge-success rounded-pill d-inline status-declined";
         default:
             return "bg-secondary text-white";
     }

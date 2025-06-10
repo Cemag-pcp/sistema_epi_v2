@@ -73,15 +73,15 @@ def api_funcionarios(request):
                 'id': f['id'],
                 'nome': f['nome'],
                 'matricula': f['matricula'],
-                'setor': f['setor__nome'],
-                'cargo': f['cargo__nome'],
+                'setor': f['setor__nome'] if f['setor__nome'] else '',
+                'cargo': f['cargo__nome'] if f['cargo__nome'] else '',
                 'responsavel': f"{f['setor__responsavel__matricula']} - {f['setor__responsavel__nome']}" if f['setor__responsavel__matricula'] else '--',
                 'dataAdmissao': f['data_admissao'],
                 'status': 'Ativo' if f['ativo'] else 'Desativado',
-                'setorId': f['setor__id'],
-                'usuario': f['funcionario'] if f['funcionario'] else '',  # ajuste conforme sua modelagem
+                'setorId': f['setor__id'] if f['setor__id'] else '',
+                'usuario': f['funcionario'] if f['funcionario'] else '', 
                 'tipoAcesso': f['tipo_acesso'],
-                'cargoId': f['cargo_id'],
+                'cargoId': f['cargo_id'] if f['cargo_id'] else '',
             }
             for f in funcionarios
         ]
@@ -109,12 +109,12 @@ def funcionario(request):
                     'errors': {field: 'Este campo é obrigatório' for field in required_fields if field not in data}
                 }, status=400)
             
-            novo_cargo = Cargo.objects.filter(id=int(data['cargo'])).first()
+            novo_cargo = Cargo.objects.filter(id=int(data['cargoId'])).first()
             #Criar o funcionário
             funcionario = Funcionario(
                 nome=data['nome'],
                 matricula=data['matricula'],
-                setor_id=data['setor'],
+                setor_id=int(data['setorId']),
                 cargo=novo_cargo,
                 data_admissao=data['dataAdmissao'],
                 tipo_acesso=data['tipoAcesso'],
@@ -172,7 +172,7 @@ def editar_funcionario(request, id):
                 data = json.loads(request.body) if request.body else {}
                 print(data)
                 # Validação do json
-                required_fields = ['nome', 'matricula', 'setor', 'cargo','tipoAcesso']
+                required_fields = ['setor', 'cargo','tipoAcesso']
                 if not all(field in data for field in required_fields):
                     return JsonResponse({
                         'success': False,
@@ -183,13 +183,13 @@ def editar_funcionario(request, id):
                 
                 # Atualização dos campos
                 # Fazer algo depois para retornar não-modificado caso não mude nada nos atributos
-                funcionario.nome = data.get('nome', funcionario.nome)
-                funcionario.matricula = data.get('matricula', funcionario.matricula)
-                funcionario.setor_id = data.get('setor', funcionario.setor_id)
+                # funcionario.nome = data.get('nome', funcionario.nome)
+                # funcionario.matricula = data.get('matricula', funcionario.matricula)
+                funcionario.setor_id = int(data.get('setorId', funcionario.setor_id))
 
-                novo_cargo = Cargo.objects.filter(id=int(data.get('cargo', funcionario.cargo))).first()
+                novo_cargo = Cargo.objects.filter(id=int(data.get('cargoId', funcionario.cargo))).first()
                 funcionario.cargo = novo_cargo
-                funcionario.data_admissao = data.get('dataAdmissao', funcionario.data_admissao)
+                # funcionario.data_admissao = data.get('dataAdmissao', funcionario.data_admissao)
                 funcionario.tipo_acesso = data.get('tipoAcesso', funcionario.tipo_acesso)
                 
                 
@@ -313,7 +313,7 @@ def usuario(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            print(data)
+            # print(data)
 
 
             # Validação do json
@@ -330,7 +330,7 @@ def usuario(request):
                 usuario = Usuario(
                     nome=data['nome'],
                     matricula=data['matricula'],
-                    funcionario_id=data['funcionarioId'],
+                    funcionario_id=int(data['funcionarioId']),
                     is_staff=True,  # Definindo como True para permitir acesso ao admin
                     is_superuser=False  # Definindo como False por padrão
                 )

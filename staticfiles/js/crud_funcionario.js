@@ -123,6 +123,7 @@ async function updateEmployee(id, employeeData) {
         saveButtonText.classList.add('d-none');
         saveSpinner.classList.remove('d-none');
         saveEmployeeBtn.disabled = true;
+        console.log(employeeData);
         
         // In a real application, you would put to the API
         const response = await fetch(`${URL_EDITAR_FUNCIONARIO}${id}/`, {
@@ -152,6 +153,7 @@ async function updateEmployee(id, employeeData) {
         if (index !== -1) {
             employees[index] = { ...employees[index], ...employeeData };
         }
+        console.log(employees[index]);
         // Refresh the DataTable
         dataTable.row(index).data(employees[index]).draw(false);
         employeeModal.hide();
@@ -434,11 +436,12 @@ saveEmployeeBtn.addEventListener('click', async function() {
     if (employeeForm.checkValidity()) {
         const id = employeeIdInput.value;
         
+        console.log(cargoInput.value);
         const employeeData = {
             matricula: matriculaInput.value,
             nome: nomeInput.value,
-            cargo: cargoInput.value,
-            setor: setorInput.value,
+            cargoId: cargoInput.value,
+            setorId: setorInput.value,
             responsavel: responsavelInput.value,
             dataAdmissao: dataAdmissaoInput.value,
             setorNome: setorInput.options[setorInput.selectedIndex].textContent,
@@ -663,8 +666,8 @@ export function handleEditClick(e) {
         //criando option do setor do funcionario
         setorInput.innerHTML="<option value=''>Selecione o Setor</option>";
         const option = document.createElement('option');
-        option.value = employee.setorId || employee.setor; // Use setorId if available, otherwise fallback to setor
-        option.textContent = employee.setor || employee.setorNome || 'Setor Desconhecido'; // Fallback to setorNome or a default text
+        option.value = employee.setorId; // Use setorId if available, otherwise fallback to setor
+        option.textContent = employee.setor; // Fallback to setorNome or a default text
         setorInput.appendChild(option);
 
         setorInput.value = employee.setorId;
