@@ -1,20 +1,21 @@
 // Função para adicionar novo formulário clonado
-export function addCloneForm(matricula='', nome='') {
+export function addCloneForm(equipamento= '', matricula='', nome='') {
     const cloneContainer = document.getElementById('clone-container-3');
     const originals = cloneContainer.querySelectorAll('.clone-form-3');
     const lastOriginal = originals[originals.length - 1];
     const clone = lastOriginal.cloneNode(true);
 
+    console.log(equipamento)
     // Armazena os dados do funcionário no clone
-
+    clone.dataset.equipamento = equipamento;
     clone.dataset.matricula = matricula;
     clone.dataset.nome = nome;
     const requestText = clone.querySelector('.request');
-    if (matricula !== '' & nome !== '') {
+    if (equipamento !== '' & matricula !== '' & nome !== '') {
         // Atualiza o número da solicitação
         if (requestText) {
             const cloneNumber = originals.length + 1;
-            requestText.textContent = `${cloneNumber}ª Solicitação do Padrão | ${matricula} - ${nome}`;
+            requestText.textContent = `${cloneNumber}ª - ${equipamento} | ${matricula} - ${nome}`;
         }
     } else {
         if (requestText) {
@@ -56,12 +57,14 @@ function updateRemoveButtonsIndexes() {
         // Obtém os dados do funcionário do próprio clone
         const matricula = clone.dataset.matricula || '';
         const nome = clone.dataset.nome || '';
+        const equipamento = clone.dataset.equipamento || '';
 
         // Atualiza também o texto da solicitação para garantir consistência
         const requestText = clone.querySelector('.request');
-        if (matricula !== '' & nome !== '') {
+        console.log(equipamento)
+        if (equipamento !== '' & matricula !== '' & nome !== '') {
             if (requestText) {
-                requestText.textContent = `${index + 1}ª Solicitação do Padrão | ${matricula} - ${nome}`;
+                requestText.textContent = `${index + 1}ª - ${equipamento} | ${matricula} - ${nome}`;
             }
         } else {
             if (requestText) {
@@ -151,13 +154,17 @@ export async function preencherModalEdicao(data) {
     if (firstForm) {
         if (data.padrao.funcionarios.length > 0) {
             const primeiroFunc = data.padrao.funcionarios[0];
+
+            console.log(data.padrao.funcionarios)
+
+            firstForm.dataset.equipamento = primeiroFunc.equipamentos[0].nome;
             firstForm.dataset.matricula = primeiroFunc.matricula;
             firstForm.dataset.nome = primeiroFunc.nome;
             
             // Atualizar o texto do request
             const requestText = firstForm.querySelector('.request');
             if (requestText) {
-                requestText.textContent = `1ª Solicitação do Padrão | ${primeiroFunc.matricula} - ${primeiroFunc.nome}`;
+                requestText.textContent = `1ª - ${primeiroFunc.equipamentos[0].nome} | ${primeiroFunc.matricula} - ${primeiroFunc.nome}`;
             }
         }
 
@@ -191,11 +198,11 @@ export async function preencherModalEdicao(data) {
         // Para cada funcionário
         data.padrao.funcionarios.forEach((func, funcIndex) => {
             // Para cada equipamento do funcionário
+            console.log(func.equipamentos)
             func.equipamentos.forEach((equip, equipIndex) => {
                 // Se não for o primeiro formulário (já existe), adicionar clone
-                console.log(func.matricula, func.nome)
                 if (formIndex > 0) {
-                    addCloneForm(func.matricula, func.nome);
+                    addCloneForm(equip.nome, func.matricula, func.nome);
                 }
                 
                 // Pegar o formulário atual
