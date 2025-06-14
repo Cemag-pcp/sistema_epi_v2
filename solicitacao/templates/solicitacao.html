@@ -14,7 +14,7 @@
         <div class="d-flex justify-content-between align-items-center card-header bg-white">
             <div>
                 <h3 class="modal-title">Solicitação</h3>
-                <span class="desc-modal-title">Fill out this form to request personal protective equipment</span>
+                <span class="desc-modal-title">Preencha este formulário para solicitar equipamentos de proteção individual</span>
             </div>
             <div>
                 <label for="" class="text-modal">Padrões</label>
@@ -35,7 +35,12 @@
             <form id="form-card-solict" style="display: none;">
                 <div id="clone-container-1">
                     <div class="card clone-form-1 p-2 mb-3">
-                        <p class="request text-modal text-end">1ª Solicitação</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <p class="request text-modal text-end">1ª Solicitação</p>
+                            <button type="button" class="btn btn-outline-danger mb-3 remove-specific-request">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label text-modal">Nome do Solicitante</label>
                             <input type="text" class="form-control text-modal requestName" data-id="{{request.user.id}}" value="{{request.user.nome}}" name="requesterName" disabled>
@@ -84,20 +89,17 @@
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between">
-                    <button type="button" id="remove-last-1" class="btn btn-outline-danger mb-3">
-                        <i class="bi bi-dash-lg"></i>
-                    </button>
+                <div class="d-flex justify-content-end">
                     <button type="button" id="add-clone-1" class="btn btn-outline-success mb-3">
                         <i class="bi bi-plus-lg"></i>
                     </button>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Submit Request</button>
+                <button type="submit" class="btn btn-primary w-100">Criar Solicitação</button>
             </form>
         </div>
         
         <div class="card-footer text-muted">
-            All fields are required unless marked as optional
+            Todos os campos são obrigatórios exceto "Observação"
         </div>
     </div>
 </main>
@@ -107,5 +109,5 @@
 {% block scripts %}
     <script type="module" src="{% static 'js/get_solicitacoes.js' %}"></script>
     <script type="module" src="{% static 'js/get_padroes_solicitacao.js' %}"></script>
-    <script src="{% static 'js/clone.js' %}"></script>
+    <script type="module" src="{% static 'js/clone.js' %}"></script>
 {% endblock %}

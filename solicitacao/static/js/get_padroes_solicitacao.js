@@ -1,4 +1,5 @@
 import { loadFormDataRequest } from "./get_solicitacoes.js";
+import { updateRequestNumbers } from "../../../static/js/clone.js";
 
 document.addEventListener('DOMContentLoaded', function() {
     const selectElement = document.getElementById('padrao-select');
@@ -77,8 +78,27 @@ function fillPadraoData(padraoData) {
     const originalForm = cloneContainer.querySelector('.clone-form-1');
     
     // Limpar todos os formulários clonados, mantendo apenas o original
-    cloneContainer.innerHTML = '';
-    cloneContainer.appendChild(originalForm);
+    while (cloneContainer.children.length > 1) {
+        cloneContainer.removeChild(cloneContainer.lastChild);
+    }
+    
+    // Resetar o formulário original
+    const inputs = originalForm.querySelectorAll("input, textarea, select");
+    inputs.forEach(input => {
+        if (input.tagName === "SELECT") {
+            input.selectedIndex = 0;
+        } else if (input.type !== "submit") {
+            if(!input.classList.contains('requestName')){
+                input.value = "";
+            }
+        }
+    });
+    
+    // Atualizar o número da solicitação no original
+    const requestText = originalForm.querySelector(".request");
+    if (requestText) {
+        requestText.textContent = "1ª Solicitação";
+    }
     
     // Se não houver funcionários, manter apenas o formulário original vazio
     if (padraoData.funcionarios.length === 0) return;
@@ -100,6 +120,26 @@ function fillPadraoData(padraoData) {
                 form = originalForm;
             } else {
                 form = originalForm.cloneNode(true);
+                
+                // Adiciona o botão de remoção ao novo clone
+                const removeBtn = form.querySelector(".btn-outline-danger");
+                if (removeBtn) {
+                    removeBtn.addEventListener("click", function() {
+                        if (cloneContainer.querySelectorAll('.clone-form-1').length > 1) {
+                            form.remove();
+                            updateRequestNumbers(cloneContainer, 'clone-form-1');
+                        } else {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Você não pode remover a última solicitação!',
+                                toast: true,
+                                position: "bottom-end",
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        }
+                    });
+                }
                 
                 cloneContainer.appendChild(form);
             }
