@@ -32,6 +32,7 @@ class PadraoEquipamento(models.Model):
         ('primeira entrega', 'Primeira Entrega'),
         ('substituicao', 'Substituição'),
         ('devolucao', 'Devolução'),
+        ('perda', 'Perda'),
     ]
 
     padrao_funcionario = models.ForeignKey(PadraoFuncionario, on_delete=models.CASCADE, related_name='equipamentos')
