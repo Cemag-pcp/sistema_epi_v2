@@ -1,17 +1,55 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+
+{% load static %}
 
 {% block content %}
 
-    <h2>Página Inicial</h2>
+<div class="d-flex justify-content-between align-items-baseline">
+  <h3 class="mb-4 fw-bold">Sistema de Controle de EPI - Panorama Geral</h3>
+  <a href="/solicitacao">
+    <button class="btn btn-white" id="abrirModalPadroes">
+        <i class="bi bi-box-arrow-up-left"></i>
+        Solicitar Padrão
+    </button>
+  </a>
+</div>
 
-    <p>Bem-vindo, {{request.user.nome}} à página inicial do sistema -- 
-        {% if request.user.funcionario.tipo_acesso %}
-            {{request.user.funcionario.tipo_acesso}}!
-        {% else %}
-            Usuário Master
-        {% endif %}
+<div class="row justify-content-between mb-3">
+  <div class="col-md-4 mb-2">
+    <label class="text-modal">Solicitações</label>
+    <div class="input-group mb-3">
+      <input type="text" class="form-control text-modal" id="filterPadroes" placeholder="Filtrar por Nome ou Código">
+      <button class="btn btn-white" type="button" id="button-filtrar-padrao">
+        <i id="search-icon-glass" class="fa-solid fa-magnifying-glass"></i>
+      </button>
+    </div>    
+  </div>
+  <div class="col-md-2">
+    <label class="text-modal">Status</label>
+    <select class="form-control text-modal" id="filterAtivo">
+      <option value="">Todos</option>
+      <option value="Ativo">Ativo</option>
+      <option value="Desativado">Desativado</option>
+    </select>
+  </div>
+</div>
+
+<table id="tabelaPadroes" class="table table-hover w-100">
+    <thead class="table-light">
+        <tr>
+            <th class="text-center">#</th>
+            <th style="max-width: 300px;">Nome do Padrão</th>
+            <th>Setor</th>
+            <th>Funcionário</th>
+            <th>Itens</th>
+            <th>Ativo?</th>
+            <th>Data Criação</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
     
-    </p>
-
 
 {% endblock %}

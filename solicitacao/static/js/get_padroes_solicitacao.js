@@ -56,7 +56,6 @@ function getPadroes(value) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            console.log(data);
             updateAvailableOptions(data.equipamentos, data.funcionarios_disponiveis);
             fillPadraoData(data.padrao);
         } else {

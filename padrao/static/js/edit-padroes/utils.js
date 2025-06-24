@@ -259,25 +259,20 @@ export async function preencherModalEdicao(data) {
                         
                         // Verificar se algum campo obrigatório está vazio
                         const hasEmptyField = 
-                            (funcSelect && funcSelect.value === "") || 
-                            (equipSelect && equipSelect.value === "") || 
-                            (qtyInput && qtyInput.value === "") || 
-                            (reasonSelect && reasonSelect.value === "");
+                            (!funcSelect?.value) || 
+                            (!equipSelect?.value) || 
+                            (!qtyInput?.value) || 
+                            (!reasonSelect?.value);
                         
-                        // Se algum campo estiver vazio, manter o collapse aberto
+                        // Se algum campo estiver vazio, aplicar estilo
                         if (hasEmptyField) {
-                            formFields.classList.add('show');
-                            
-                            // Atualizar ícone para "up" quando estiver aberto
-                            const toggleCollapse = currentForm.querySelector('.toggle-collapse');
-                            if (toggleCollapse) {
-                                toggleCollapse.setAttribute('aria-expanded', 'true');
-                                const icon = toggleCollapse.querySelector('i');
-                                if (icon) {
-                                    icon.classList.remove('bi-chevron-down');
-                                    icon.classList.add('bi-chevron-up');
-                                }
-                            }
+                            currentForm.classList.add('bg-danger');
+                            currentForm.classList.add('bg-opacity-10');
+                            currentForm.classList.add('text-dark');                            
+                        } else {
+                            currentForm.classList.remove('bg-danger');
+                            currentForm.classList.remove('bg-opacity-10');
+                            currentForm.classList.remove('text-dark');
                         }
                     }
 
