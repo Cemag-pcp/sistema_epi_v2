@@ -9,7 +9,7 @@ export async function carregarFuncionariosPorSetor(setorId) {
             select.innerHTML = '<option value="" selected disabled hidden>Carregando...</option>';
         });
 
-        const response = await fetch(`/padroes/funcionarios/${setorId}`, {
+        const response = await fetch(`/setor/${setorId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
