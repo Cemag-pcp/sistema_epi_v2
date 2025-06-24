@@ -1,6 +1,8 @@
 from django.shortcuts import render
-from padrao.models import Padrao, PadraoEquipamento
-from equipamento.models import Equipamento
+from django.db import transaction
+from .models import Solicitacao
+from padrao.models import Padrao
+from equipamento.models import Equipamento, DadosSolicitacao
 from usuario.models import Funcionario
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -19,7 +21,7 @@ def solicitacao_template(request):
             padroes = Padrao.objects.filter(setor=request.user.funcionario.setor, 
                                             ativo=True).values('id', 'nome')
             
-        motivos = [{'id': reason[0], 'nome': reason[1]} for reason in PadraoEquipamento.REASON_CHOICES if reason[1] != 'Devolução']
+        motivos = [{'id': reason[0], 'nome': reason[1]} for reason in DadosSolicitacao.REASON_CHOICES]
         
         return render(request, 'solicitacao.html', {
             'padroes': padroes,
@@ -27,14 +29,55 @@ def solicitacao_template(request):
             'motivos': motivos
         })
     
-    elif request.method == 'POST':
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
 
-        data = json.loads(request.body)
-        print(data)
+            with transaction.atomic():
+                usuario = request.user 
+                padrao = data.get('padrao', None)
+                print(padrao)
 
-        return JsonResponse({
-            'Success': 'Success',
-        }, status=201)
+                if padrao:
+                    desc = f"Solicitação com {len(data['itens'])} itens. Utilizando o padrão de id {padrao}"
+                else:
+                    desc = f"Solicitação com {len(data['itens'])} itens"
+
+                solicitacao = Solicitacao.objects.create(
+                    solicitante=usuario,
+                    responsavel_entrega=None,  # Será definido no momento da assinatura
+                    status='Pendente',
+                    observacoes=desc,
+                )
+
+                # Processa cada item do JSON
+                for item in data.get('itens', []):  # Assumindo que os itens estão em 'itens'
+                    equipamento = Equipamento.objects.get(id=item['equipamento_id'])
+                    funcionario = Funcionario.objects.get(id=item['funcionario_id'])
+
+                    # Cria o relacionamento DadosSolicitacao
+                    DadosSolicitacao.objects.create(
+                        solicitacao=solicitacao,
+                        equipamento=equipamento,
+                        funcionario=funcionario,
+                        quantidade=item['quantidades'],
+                        observacoes=item['observacoes'],
+                        motivo=item['motivos']
+                    )
+
+                return JsonResponse({
+                    'success': True,
+                    'solicitacao_id': solicitacao.id,
+                    'message': 'Solicitação criada com sucesso!'
+                }, status=201)
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e),
+            }, status=400)
+
+    return JsonResponse({'error': 'Método não permitido'}, status=405)
 
 @login_required
 @master_solicit

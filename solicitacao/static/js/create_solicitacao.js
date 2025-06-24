@@ -8,6 +8,7 @@ document.getElementById('form-card-solict').addEventListener("submit", (event) =
     const funcionarios = document.querySelectorAll('.funcionario');
     const observacoes = document.querySelectorAll('.observacoes');
     const motivos = document.querySelectorAll('.motivo');
+    const padraoSelecionado = document.getElementById('padrao-select').value; 
     
     const listaSolicitacoes = [];
 
@@ -16,9 +17,9 @@ document.getElementById('form-card-solict').addEventListener("submit", (event) =
     // Itera sobre os elementos (assumindo que todos têm o mesmo número de itens)
     for (let i = 0; i < equipamentos.length; i++) {
         const solicitacao = {
-            'equipamento': equipamentos[i]?.value || '', // Usa optional chaining e fallback
+            'equipamento_id': equipamentos[i]?.value || '', // Usa optional chaining e fallback
             'quantidades': parseInt(quantidades[i]?.value) || 1, // Converte para número, padrão 1
-            'funcionarios': funcionarios[i]?.value || '',
+            'funcionario_id': funcionarios[i]?.value || '',
             'observacoes': observacoes[i]?.value || '',
             'motivos': motivos[i]?.value || ''
         };
@@ -32,7 +33,7 @@ document.getElementById('form-card-solict').addEventListener("submit", (event) =
             'X-CSRFToken': getCookie('csrftoken'),
             'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify(listaSolicitacoes)
+        body: JSON.stringify({'itens': listaSolicitacoes, 'padrao': padraoSelecionado})
     })
     .then(response => response.json())
     .then(data => {

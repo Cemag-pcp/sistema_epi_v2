@@ -385,13 +385,3 @@ def equipaments_padrao(request):
 
         return JsonResponse({'equipamentos':equipamentos, 'motivos':motivos}, status=200)
     
-@login_required
-@master_solicit
-@require_http_methods(["GET"])
-def funcionarios_padrao(request, id):
-
-    if request.method == 'GET':
-
-        funcionarios = list(Funcionario.objects.filter(setor__id=id).values('id','nome','matricula'))
-
-        return JsonResponse({'funcionarios':funcionarios}, status=200)

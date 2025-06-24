@@ -31,8 +31,8 @@ class PadraoEquipamento(models.Model):
     REASON_CHOICES = [
         ('primeira entrega', 'Primeira Entrega'),
         ('substituicao', 'Substituição'),
-        ('devolucao', 'Devolução'),
         ('perda', 'Perda'),
+        ('dano', 'Dano'),
     ]
 
     padrao_funcionario = models.ForeignKey(PadraoFuncionario, on_delete=models.CASCADE, related_name='equipamentos')

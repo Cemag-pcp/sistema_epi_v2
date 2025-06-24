@@ -9,6 +9,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout_view'),
     path('', views.redirecionar, name='redirecionar'),  # Redireciona para a página de login
     path('funcionario/', views.funcionario, name='funcionario'),  # Página do funcionário (Listar e Cadastrar)
+    path('setor/<int:id>/', views.get_funcionarios_pelo_setor, name='get-funcionarios-pelo-setor'), # PUT, PATCH
     path('editar_funcionario/<int:id>/', views.editar_funcionario, name='editar_funcionario'),  # Editar funcionário
     path('api/funcionarios/', views.api_funcionarios, name='api_funcionarios'),  # API para listar funcionários
     path('api_setores/', views.api_setores, name='api_setores'),  # Api setores
