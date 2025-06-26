@@ -26,3 +26,6 @@ class DadosSolicitacao(models.Model):
     quantidade = models.PositiveIntegerField(default=1)
     motivo = models.CharField(max_length=20, choices=REASON_CHOICES, default='substituicao')
     observacoes = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        unique_together = ('equipamento', 'funcionario', 'solicitacao')

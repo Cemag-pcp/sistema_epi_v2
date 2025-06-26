@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.db import transaction
+from django.db.utils import IntegrityError
 from .models import Solicitacao
 from padrao.models import Padrao
 from equipamento.models import Equipamento, DadosSolicitacao
@@ -67,9 +68,14 @@ def solicitacao_template(request):
 
                 return JsonResponse({
                     'success': True,
-                    'solicitacao_id': solicitacao.id,
                     'message': 'Solicitação criada com sucesso!'
                 }, status=201)
+            
+        except IntegrityError:
+            return JsonResponse({
+                'success': False,
+                'error': "Não é permitido repetir o mesmo funcionário e equipamento em uma mesma solicitação"
+            })
 
         except Exception as e:
             return JsonResponse({

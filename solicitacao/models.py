@@ -18,3 +18,6 @@ class Solicitacao(models.Model):
 
     def __str__(self):
         return f"Solicitação #{self.id} - {self.status}"
+
+class Assinatura(models.Model):
+    imagem_assinatura = models.ImageField(upload_to='assinatura/')

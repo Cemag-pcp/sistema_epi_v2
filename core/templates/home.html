@@ -34,22 +34,31 @@
   </div>
 </div>
 
-<table id="tabelaPadroes" class="table table-hover w-100">
+<table id="tabela-solicitacoes"  class="table table-hover w-100">
     <thead class="table-light">
         <tr>
             <th class="text-center">#</th>
-            <th style="max-width: 300px;">Nome do Padrão</th>
-            <th>Setor</th>
+            <th style="max-width: 300px;">Data da Solicitação</th>
             <th>Funcionário</th>
             <th>Itens</th>
-            <th>Ativo?</th>
-            <th>Data Criação</th>
+            <th>Assinatura</th>
             <th>Ações</th>
         </tr>
     </thead>
     <tbody>
+        <!-- Os dados serão carregados dinamicamente -->
     </tbody>
 </table>
-    
+
+{% include 'modal/modal_assinatura.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+<script type="module" src="{% static 'js/get_solicitacoes_home.js' %}"></script>
+<script type="module" src="{% static 'js/assinatura/assinatura.js' %}" ></script>
+<script type="module" src="{% static 'js/assinatura/resize-canva.js' %}" ></script>
 
 {% endblock %}
