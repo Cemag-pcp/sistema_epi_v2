@@ -1,11 +1,13 @@
 from django.shortcuts import render
+from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from usuario.decorators import somente_master
+from usuario.models import Funcionario
 from solicitacao.models import Solicitacao
-from equipamento.models import DadosSolicitacao
+from equipamento.models import DadosSolicitacao, Equipamento
 
 # Create your views here.
 
@@ -87,3 +89,59 @@ def home_solicitacoes(request):
         'page': page,
         'per_page': per_page
     })
+
+@login_required
+@somente_master
+@require_http_methods(["GET", "PUT", "PATCH"])
+def alter_solicitacao(request, id):
+    
+    solicitacao = Solicitacao.objects.filter(id=id).first()
+    
+    if not solicitacao:
+        return JsonResponse(
+            {'success': False, 'message': 'Solicitação não encontrada'}, 
+            status=404
+        )
+    
+    if request.method == 'GET':
+        try:
+            solicitacao = Solicitacao.objects.get(id=id)
+            
+            # Obter todos os equipamentos disponíveis
+            equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo').order_by("id")
+        
+            funcionarios = Funcionario.objects.filter(ativo=True).values('id', 'matricula', 'nome')
+            
+            # Obter dados da solicitação específica
+            dados_solicitacao = []
+            for dado in solicitacao.dados_solicitacao.all():
+                dados_solicitacao.append({
+                    'id': dado.id,
+                    'equipamento_id': dado.equipamento.id,
+                    'equipamento_nome': dado.equipamento.nome,
+                    'funcionario_id': dado.funcionario.id,
+                    'funcionario_nome': dado.funcionario.nome,
+                    'quantidade': dado.quantidade,
+                    'motivo': dado.motivo,
+                    'observacoes': dado.observacoes,
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'solicitacao': {
+                    'id': solicitacao.id,
+                    'status': solicitacao.status,
+                    'solicitante_id': solicitacao.solicitante.id if solicitacao.solicitante else None,
+                    'solicitante_nome': solicitacao.solicitante.nome if solicitacao.solicitante else None,
+                    'data_solicitacao': solicitacao.data_solicitacao.strftime("%Y-%m-%d %H:%M:%S"),
+                    'dados_solicitacao': dados_solicitacao
+                },
+                'equipamentos': list(equipamentos),
+                'funcionarios_disponiveis': list(funcionarios),
+                'motivos': dict(DadosSolicitacao.REASON_CHOICES)
+            }, status=200)
+            
+        except Solicitacao.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)

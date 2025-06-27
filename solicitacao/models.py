@@ -21,3 +21,4 @@ class Solicitacao(models.Model):
 
 class Assinatura(models.Model):
     imagem_assinatura = models.ImageField(upload_to='assinatura/')
+    data_criacao = models.DateTimeField(auto_now_add=True)

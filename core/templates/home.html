@@ -51,6 +51,8 @@
 </table>
 
 {% include 'modal/modal_assinatura.html' %}
+{% include 'modal/modal_editar_solicitacao.html' %}
+{% include 'modal/modal_excluir_assinatura.html' %}
 
 {% endblock %}
 
@@ -60,5 +62,8 @@
 <script type="module" src="{% static 'js/get_solicitacoes_home.js' %}"></script>
 <script type="module" src="{% static 'js/assinatura/assinatura.js' %}" ></script>
 <script type="module" src="{% static 'js/assinatura/resize-canva.js' %}" ></script>
+<script type="module" src="{% static 'js/solicitacao/event_solicitacoes.js' %}" ></script>
+<script type="module" src="{% static 'js/solicitacao/modal_editar_solicitacao.js' %}" ></script>
+<script type="module" src="{% static 'js/assinatura/excluir_assinatura.js' %}" ></script>
 
 {% endblock %}

@@ -23,7 +23,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
     },
     columns: [
         { 
-            data: 'solicitacao_id',
+            data: 'id',
             name: 'solicitacao__id',
             className: 'text-center',
             render: function(data) {
@@ -52,16 +52,16 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
             render: function(data, type, row) {
                 var html = '<div class="d-flex flex-column">' +
                             '<button class="btn btn-sm btn-outline-dark btn-collapse fw-bold" ' +
-                                    'data-id="' + row.solicitacao_id + '" ' +
+                                    'data-id="' + row.id + '" ' +
                                     'data-shown="false">' +
                                 '<span class="item-count fw-bold">' + data.length + ' item(s)</span>' +
                                 '<i class="bi bi-chevron-down"></i>' +
                             '</button>' +
-                            '<div class="itens-list mt-2" id="itens-' + row.solicitacao_id + '" style="display: none;">' +
+                            '<div class="itens-list mt-2" id="itens-' + row.id + '" style="display: none;">' +
                                 '<div class="d-flex flex-column gap-2">';
                 
                 data.forEach(function(item) {
-                    html += '<div class="equipment-detail">' +
+                    html += '<div class="equipment-detail" style="font-size: 14px">' +
                                 '<strong>Equipamento:</strong> ' + item.equipamento_nome + '<br>' +
                                 '<strong>Quantidade:</strong> ' + item.quantidade + '<br>' +
                                 '<strong>Motivo:</strong> ' + (item.motivo || 'Não informado') +
@@ -97,17 +97,17 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                                 '<li>' +
                                     '<a data-id="' + data + '"' +
                                         'data-nome="' + row.funcionario_nome + '"' +
-                                        'class="dropdown-item g-4 abrirModalEditarPadrao" style="cursor: pointer;">' +
+                                        'class="dropdown-item g-4 abrirModalEditarSolicitacao" style="cursor: pointer;">' +
                                         '<i class="bi bi-pencil-square" style="margin-right: 8px; pointer-events: none;"></i>' +
                                         'Editar' +
                                     '</a>' +
                                 '</li>' +
                                 '<li>' +
-                                    '<a class="dropdown-item g-4 abrirModalDesativarPadrao" ' +
+                                    '<a class="dropdown-item g-4 abrirModalExcluirAssinatura" ' +
                                         'data-nome="' + row.funcionario_nome + '" data-id="' + data + '" ' +
                                         'style="color: #dc2626; cursor: pointer;">' +
                                         '<i class="bi bi-trash" style="margin-right: 8px; pointer-events: none;"></i>' +
-                                        'Excluir' +
+                                        'Excluir Assinatura' +
                                     '</a>' +
                                 '</li>' +
                             '</ul>' +
