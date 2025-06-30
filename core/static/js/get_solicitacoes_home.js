@@ -3,7 +3,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
     serverSide: true,
     processing: true,
     ajax: {
-        url: '/core/solicitacoes',  // Atualize com sua URL correta
+        url: '/core/solicitacoes/',  // Atualize com sua URL correta
         type: 'GET',
         data: function(d) {
             return {
@@ -11,7 +11,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                 per_page: d.length,
                 search: d.search.value,
                 // Adicione outros filtros se necessário
-                sort: d.columns[d.order[0].column].name || 'solicitacao__data_solicitacao',
+                sort: d.columns[d.order[0].column].name || 'data_solicitacao',
                 order: d.order[0].dir || 'desc'
             };
         },
@@ -34,10 +34,10 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
         },
         { 
             data: 'data_solicitacao',
-            name: 'solicitacao__data_solicitacao',
+            name: 'data_solicitacao',
             render: function(data) {
                 const date = new Date(data);
-                return date.toLocaleDateString('pt-BR');
+                return `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR')}`;
             }
         },
         { 
@@ -64,6 +64,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                     html += '<div class="equipment-detail" style="font-size: 14px">' +
                                 '<strong>Equipamento:</strong> ' + item.equipamento_nome + '<br>' +
                                 '<strong>Quantidade:</strong> ' + item.quantidade + '<br>' +
+                                '<strong>Observação:</strong> ' + item.observacoes + '<br>' +
                                 '<strong>Motivo:</strong> ' + (item.motivo || 'Não informado') +
                             '</div>' +
                             '<hr>';
@@ -95,7 +96,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                             '</button>' +
                             '<ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">' +
                                 '<li>' +
-                                    '<a data-id="' + data + '"' +
+                                    '<a data-solicitacao="' + data + '"' +
                                         'data-nome="' + row.funcionario_nome + '"' +
                                         'class="dropdown-item g-4 abrirModalEditarSolicitacao" style="cursor: pointer;">' +
                                         '<i class="bi bi-pencil-square" style="margin-right: 8px; pointer-events: none;"></i>' +

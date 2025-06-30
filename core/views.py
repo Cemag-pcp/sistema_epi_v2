@@ -23,23 +23,36 @@ def home_solicitacoes(request):
     page = int(request.GET.get('page', 1))
     per_page = int(request.GET.get('per_page', 10))
     search = request.GET.get('search', '')
-    sort_field = request.GET.get('sort', 'solicitacao__data_solicitacao')
+    sort_field = request.GET.get('sort', 'data_solicitacao')  # Campo padrão alterado
     order = request.GET.get('order', 'desc')
 
-    # Consulta base
-    query = DadosSolicitacao.objects.select_related(
-        'solicitacao', 'equipamento', 'funcionario'
+    # Consulta base - agora partindo de Solicitacao
+    query = Solicitacao.objects.select_related(
+        'funcionario', 'solicitante'
+    ).prefetch_related(
+        'dados_solicitacao__equipamento'
     )
 
     # Aplica filtro de busca se existir
     if search:
         query = query.filter(
-            Q(solicitacao__id__icontains=search) |
+            Q(id__icontains=search) |
             Q(funcionario__nome__icontains=search) |
             Q(funcionario__matricula__icontains=search) |
-            Q(equipamento__nome__icontains=search)
-        )
+            Q(dados_solicitacao__equipamento__nome__icontains=search)
+        ).distinct()
 
+    # Mapeamento de campos de ordenação
+    field_mapping = {
+        'data_solicitacao': 'data_solicitacao',
+        'funcionario': 'funcionario__nome',
+        'matricula': 'funcionario__matricula',
+        'status': 'status',
+    }
+    
+    # Verifica se o campo de ordenação existe no mapeamento
+    sort_field = field_mapping.get(sort_field, sort_field)
+    
     # Ordenação
     if order == 'desc':
         sort_field = f'-{sort_field}'
@@ -51,40 +64,42 @@ def home_solicitacoes(request):
     # Paginação
     paginator = Paginator(query, per_page)
     try:
-        items = paginator.page(page)
+        solicitacoes = paginator.page(page)
     except PageNotAnInteger:
-        items = paginator.page(1)
+        solicitacoes = paginator.page(1)
     except EmptyPage:
-        items = paginator.page(paginator.num_pages)
+        solicitacoes = paginator.page(paginator.num_pages)
 
-    # Agrupa os resultados por solicitação
-    agrupados = {}
-    for item in items:
-        chave = (item.solicitacao.id, item.funcionario.matricula)
-        
-        if chave not in agrupados:
-            agrupados[chave] = {
-                'id': item.id,
-                'solicitacao_id': item.solicitacao.id,
-                'data_solicitacao': item.solicitacao.data_solicitacao.isoformat(),
-                'responsavel_entrega_matricula': item.solicitacao.responsavel_entrega.matricula if item.solicitacao.responsavel_entrega else '',
-                'responsavel_entrega_nome': item.solicitacao.responsavel_entrega.nome if item.solicitacao.responsavel_entrega else '',
-                'funcionario_matricula': item.funcionario.matricula,
-                'funcionario_nome': item.funcionario.nome,
-                'status_assinatura': item.solicitacao.status,
-                'itens': []
-            }
-        
-        agrupados[chave]['itens'].append({
-            'quantidade': item.quantidade,
-            'motivo': item.motivo,
-            'observacoes': item.observacoes,
-            'equipamento_codigo': item.equipamento.codigo,
-            'equipamento_nome': item.equipamento.nome,
+    # Estrutura de resposta
+    dados_formatados = []
+    for solicitacao in solicitacoes:
+        # Obtém todos os itens da solicitação
+        itens = []
+        for dado in solicitacao.dados_solicitacao.all():
+            itens.append({
+                'quantidade': dado.quantidade,
+                'motivo': dado.motivo,
+                'observacoes': dado.observacoes,
+                'equipamento_codigo': dado.equipamento.codigo,
+                'equipamento_nome': dado.equipamento.nome,
+            })
+
+        dados_formatados.append({
+            'id': solicitacao.id,
+            'solicitacao_id': solicitacao.id,
+            'data_solicitacao': solicitacao.data_solicitacao.isoformat(),
+            'funcionario_id': solicitacao.funcionario.id,
+            'funcionario_matricula': solicitacao.funcionario.matricula,
+            'funcionario_nome': solicitacao.funcionario.nome,
+            'status_assinatura': solicitacao.status,
+            'solicitante_matricula': solicitacao.solicitante.matricula,
+            'solicitante_nome': solicitacao.solicitante.nome,
+            'itens': itens,
+            'observacoes_gerais': solicitacao.observacoes,
         })
 
     return JsonResponse({
-        'dados_solicitados': list(agrupados.values()),
+        'dados_solicitados': dados_formatados,
         'total_itens': total_count,
         'page': page,
         'per_page': per_page
@@ -94,54 +109,49 @@ def home_solicitacoes(request):
 @somente_master
 @require_http_methods(["GET", "PUT", "PATCH"])
 def alter_solicitacao(request, id):
-    
-    solicitacao = Solicitacao.objects.filter(id=id).first()
-    
-    if not solicitacao:
-        return JsonResponse(
-            {'success': False, 'message': 'Solicitação não encontrada'}, 
-            status=404
-        )
-    
-    if request.method == 'GET':
-        try:
-            solicitacao = Solicitacao.objects.get(id=id)
-            
-            # Obter todos os equipamentos disponíveis
-            equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo').order_by("id")
+    # Removido o parâmetro func_id pois agora o funcionário está na solicitação
+    try:
+        solicitacao = Solicitacao.objects.select_related(
+            'funcionario', 'solicitante'
+        ).prefetch_related(
+            'dados_solicitacao__equipamento'
+        ).get(id=id)
         
-            funcionarios = Funcionario.objects.filter(ativo=True).values('id', 'matricula', 'nome')
-            
-            # Obter dados da solicitação específica
-            dados_solicitacao = []
-            for dado in solicitacao.dados_solicitacao.all():
-                dados_solicitacao.append({
-                    'id': dado.id,
-                    'equipamento_id': dado.equipamento.id,
-                    'equipamento_nome': dado.equipamento.nome,
-                    'funcionario_id': dado.funcionario.id,
-                    'funcionario_nome': dado.funcionario.nome,
-                    'quantidade': dado.quantidade,
-                    'motivo': dado.motivo,
-                    'observacoes': dado.observacoes,
-                })
-            
-            return JsonResponse({
-                'success': True,
-                'solicitacao': {
-                    'id': solicitacao.id,
-                    'status': solicitacao.status,
-                    'solicitante_id': solicitacao.solicitante.id if solicitacao.solicitante else None,
-                    'solicitante_nome': solicitacao.solicitante.nome if solicitacao.solicitante else None,
-                    'data_solicitacao': solicitacao.data_solicitacao.strftime("%Y-%m-%d %H:%M:%S"),
-                    'dados_solicitacao': dados_solicitacao
-                },
-                'equipamentos': list(equipamentos),
-                'funcionarios_disponiveis': list(funcionarios),
-                'motivos': dict(DadosSolicitacao.REASON_CHOICES)
-            }, status=200)
-            
-        except Solicitacao.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+        # Obter todos os equipamentos disponíveis
+        equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo').order_by("id")
+    
+        # Obter dados da solicitação específica (não precisa mais filtrar por funcionário)
+        dados_solicitacao = []
+        for dado in solicitacao.dados_solicitacao.all():
+            dados_solicitacao.append({
+                'id': dado.id,
+                'equipamento_id': dado.equipamento.id,
+                'equipamento_nome': dado.equipamento.nome,
+                'quantidade': dado.quantidade,
+                'motivo': dado.motivo,
+                'observacoes': dado.observacoes,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'solicitacao': {
+                'id': solicitacao.id,
+                'status': solicitacao.status,
+                'solicitante_id': solicitacao.solicitante.id if solicitacao.solicitante else None,
+                'solicitante_nome': solicitacao.solicitante.nome if solicitacao.solicitante else None,
+                'funcionario_id': solicitacao.funcionario.id if solicitacao.funcionario else None,
+                'funcionario_nome': solicitacao.funcionario.nome if solicitacao.funcionario else None,
+                'funcionario_matricula': solicitacao.funcionario.matricula if solicitacao.funcionario else None,
+                'data_solicitacao': solicitacao.data_solicitacao.strftime("%Y-%m-%d %H:%M:%S"),
+                'observacoes_gerais': solicitacao.observacoes,
+                'dados_solicitacao': dados_solicitacao
+            },
+            'equipamentos': list(equipamentos),
+            'funcionarios_disponiveis': list(Funcionario.objects.filter(ativo=True).values('id', 'matricula', 'nome')),
+            'motivos': list(DadosSolicitacao.REASON_CHOICES)
+        }, status=200)
+        
+    except Solicitacao.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)

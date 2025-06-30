@@ -37,44 +37,53 @@ def solicitacao_template(request):
             with transaction.atomic():
                 usuario = request.user 
                 padrao = data.get('padrao', None)
-                print(padrao)
+                
+                # Agrupando itens por funcionário
+                itens_por_funcionario = {}
+                for item in data.get('itens', []):
+                    funcionario_id = item['funcionario_id']
+                    if funcionario_id not in itens_por_funcionario:
+                        itens_por_funcionario[funcionario_id] = []
+                    itens_por_funcionario[funcionario_id].append(item)
 
-                if padrao:
-                    desc = f"Solicitação com {len(data['itens'])} itens. Utilizando o padrão de id {padrao}"
-                else:
-                    desc = f"Solicitação com {len(data['itens'])} itens"
+                # Criando uma solicitação para cada funcionário
+                for funcionario_id, itens in itens_por_funcionario.items():
+                    funcionario = Funcionario.objects.get(id=funcionario_id)
+                    
+                    if padrao:
+                        desc = f"Solicitação com {len(itens)} itens para {funcionario.nome}. Padrão: {padrao}"
+                    else:
+                        desc = f"Solicitação com {len(itens)} itens para {funcionario.nome}"
 
-                solicitacao = Solicitacao.objects.create(
-                    solicitante=usuario,
-                    responsavel_entrega=None,  # Será definido no momento da assinatura
-                    status='Pendente',
-                    observacoes=desc,
-                )
-
-                # Processa cada item do JSON
-                for item in data.get('itens', []):  # Assumindo que os itens estão em 'itens'
-                    equipamento = Equipamento.objects.get(id=item['equipamento_id'])
-                    funcionario = Funcionario.objects.get(id=item['funcionario_id'])
-
-                    # Cria o relacionamento DadosSolicitacao
-                    DadosSolicitacao.objects.create(
-                        solicitacao=solicitacao,
-                        equipamento=equipamento,
+                    # Cria a solicitação vinculada ao funcionário
+                    solicitacao = Solicitacao.objects.create(
+                        solicitante=usuario,
                         funcionario=funcionario,
-                        quantidade=item['quantidades'],
-                        observacoes=item['observacoes'],
-                        motivo=item['motivos']
+                        status='Pendente',
+                        observacoes=desc,
                     )
+
+                    # Processa cada item para este funcionário
+                    for item in itens:
+                        equipamento = Equipamento.objects.get(id=item['equipamento_id'])
+
+                        DadosSolicitacao.objects.create(
+                            solicitacao=solicitacao,
+                            equipamento=equipamento,
+                            quantidade=item['quantidades'],
+                            observacoes=item['observacoes'],
+                            motivo=item['motivos']
+                        )
 
                 return JsonResponse({
                     'success': True,
-                    'message': 'Solicitação criada com sucesso!'
+                    'message': f'Solicitações criadas com sucesso para {len(itens_por_funcionario)} funcionários!'
                 }, status=201)
             
         except IntegrityError:
             return JsonResponse({
                 'success': False,
-                'error': "Não é permitido repetir o mesmo funcionário e equipamento em uma mesma solicitação"
+                'error': "Não é permitido repetir o mesmo equipamento para um funcionário em uma mesma solicitação"
             })
 
         except Exception as e:
@@ -82,8 +91,6 @@ def solicitacao_template(request):
                 'success': False,
                 'error': str(e),
             }, status=400)
-
-    return JsonResponse({'error': 'Método não permitido'}, status=405)
 
 @login_required
 @master_solicit

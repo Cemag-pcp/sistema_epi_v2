@@ -155,8 +155,8 @@ export async function preencherModalEdicaoSolicitacao(data) {
         const primeiroItem = data.solicitacao.dados_solicitacao[0];
 
         firstForm.dataset.equipamento = primeiroItem.equipamento_nome;
-        firstForm.dataset.matricula = primeiroItem.funcionario_matricula || '';
-        firstForm.dataset.nome = primeiroItem.funcionario_nome;
+        firstForm.dataset.matricula = data.solicitacao.funcionario_matricula || '';
+        firstForm.dataset.nome = data.solicitacao.funcionario_nome;
         
         // Atualizar o texto do request
         const requestText = firstForm.querySelector('.request');
@@ -167,6 +167,7 @@ export async function preencherModalEdicaoSolicitacao(data) {
         // Preencher selects básicos
         const itemSelect = firstForm.querySelector('select[name="item"]');
         const funcionarioSelect = firstForm.querySelector('select[name="operator"]');
+        const motivoSelect = firstForm.querySelector('select[name="reason"]');
         
         if (itemSelect) {
             itemSelect.innerHTML = '<option value="">Selecione um equipamento</option>';
@@ -181,12 +182,25 @@ export async function preencherModalEdicaoSolicitacao(data) {
         
         if (funcionarioSelect) {
             funcionarioSelect.innerHTML = '<option value="">Selecione um funcionário</option>';
+            funcionarioSelect.disabled = true;
             data.funcionarios_disponiveis.forEach(func => {
                 const option = document.createElement('option');
                 option.value = func.id;
                 option.textContent = `${func.matricula} - ${func.nome}`;
-                if (func.id === primeiroItem.funcionario_id) option.selected = true;
+                if (func.id === data.solicitacao.funcionario_id) option.selected = true;
                 funcionarioSelect.appendChild(option);
+            });
+        }
+
+        if (motivoSelect) {
+            motivoSelect.innerHTML = '<option value="">Selecione um motivo</option>';
+            console.log(data.motivos)
+            data.motivos.forEach(motivos => {
+                const option = document.createElement('option');
+                option.value = motivos[0];
+                option.textContent = motivos[1];
+                if (motivos[0] === primeiroItem.motivo) option.selected = true;
+                motivoSelect.appendChild(option);
             });
         }
         
@@ -197,16 +211,13 @@ export async function preencherModalEdicaoSolicitacao(data) {
         const obsInput = firstForm.querySelector('textarea[name="observation"]');
         if (obsInput) obsInput.value = primeiroItem.observacoes || '';
         
-        const motivoSelect = firstForm.querySelector('select[name="reason"]');
-        if (motivoSelect) motivoSelect.value = primeiroItem.motivo || '';
-        
         // Adicionar clones para os demais itens
         data.solicitacao.dados_solicitacao.forEach((item, index) => {
             if (index > 0) {
                 addSolicitacaoClone(
                     item.equipamento_nome,
-                    item.funcionario_matricula || '',
-                    item.funcionario_nome
+                    data.solicitacao.funcionario_matricula || '',
+                    data.solicitacao.funcionario_nome
                 );
                 
                 // Preencher os dados do clone recém-criado
@@ -220,8 +231,9 @@ export async function preencherModalEdicaoSolicitacao(data) {
                     }
                     
                     const currentFuncSelect = currentForm.querySelector('select[name="operator"]');
+                    currentFuncSelect.disabled = true;
                     if (currentFuncSelect) {
-                        currentFuncSelect.value = item.funcionario_id;
+                        currentFuncSelect.value = data.solicitacao.funcionario_id;
                     }
                     
                     // Preencher outros campos

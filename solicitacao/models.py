@@ -10,7 +10,7 @@ class Solicitacao(models.Model):
     ]
 
     solicitante = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    responsavel_entrega = models.ForeignKey(Funcionario, on_delete=models.SET_NULL, null=True, blank=True, related_name='responsavel_entrega')
+    funcionario = models.ForeignKey(Funcionario, on_delete=models.CASCADE, default=1)
     data_solicitacao = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Pendente')
     observacoes = models.CharField(max_length=255, blank=True, null=True)

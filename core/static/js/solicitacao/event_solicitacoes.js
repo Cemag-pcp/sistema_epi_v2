@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Evento para abrir o modal e carregar os dados
     document.addEventListener('click', async function(event) {
         if (event.target.classList.contains('abrirModalEditarSolicitacao')) {
-            const solicitacaoId = event.target.getAttribute('data-id');
+            const solicitacaoId = event.target.getAttribute('data-solicitacao');
             const modal = document.getElementById('modal-editar-solicitacao');
-            modal.setAttribute('data-id', solicitacaoId);
+            modal.setAttribute('data-solicitacao', solicitacaoId);
             const modalInstance = new bootstrap.Modal(modal);
             
             try {
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         salvarBtn.disabled = true;
         
         try {
-            const solicitacaoId = document.getElementById('modal-editar-solicitacao').getAttribute('data-id');
+            const solicitacaoId = document.getElementById('modal-editar-solicitacao').getAttribute('data-solicitacao');
             const dadosSolicitacao = [];
             
             // Coletar dados de todos os formulários clonados

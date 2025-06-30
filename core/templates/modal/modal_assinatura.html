@@ -9,14 +9,16 @@
       </div>
       <form id="form-assinatura">
         <div class="modal-body">
-            <p>O funcionário xxxxxxxx devolverá o item substituído agora? <span style="color: red;">*</span></p>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" id="sim" name="is_devolucao" value="Sim" required>
-                <label class="form-check-label" for="sim">Sim</label>
-            </div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" id="nao" name="is_devolucao" value="Não" required>
-                <label class="form-check-label" for="nao">Não</label>
+            <div class="devolver-item">
+                <p>O funcionário xxxxxxxx devolverá o item substituído agora? <span style="color: red;">*</span></p>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" id="sim" name="is_devolucao" value="Sim" required>
+                    <label class="form-check-label" for="sim">Sim</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" id="nao" name="is_devolucao" value="Não" checked required>
+                    <label class="form-check-label" for="nao">Não</label>
+                </div>
             </div>
 
             <div class="row p-3" id="campo-tabela-qualidade">
@@ -29,7 +31,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Equipamento SFWDFOWDFIIF</td>
+                            <td></td>
                             <td>
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="radio" id="bom" name="qualidade" value="Bom">
