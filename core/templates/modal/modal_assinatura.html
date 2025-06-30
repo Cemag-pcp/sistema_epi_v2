@@ -1,0 +1,71 @@
+<div class="modal fade" id="modal-assinatura" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+            <h5 class="modal-title" id="modal-assinatura-title">Assinatura</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="form-assinatura">
+        <div class="modal-body">
+            <div class="devolver-item">
+                <p>O funcionário xxxxxxxx devolverá o item substituído agora? <span style="color: red;">*</span></p>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" id="sim" name="is_devolucao" value="Sim" required>
+                    <label class="form-check-label" for="sim">Sim</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" id="nao" name="is_devolucao" value="Não" checked required>
+                    <label class="form-check-label" for="nao">Não</label>
+                </div>
+            </div>
+
+            <div class="row p-3" id="campo-tabela-qualidade">
+                <table id="tabela-qualidade-equipamento" class="table table-hover w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Equipamento</th>
+                            <th>Qualidade do Equipamento devolvido <span style="color: red;">*</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td></td>
+                            <td>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="bom" name="qualidade" value="Bom">
+                                    <label class="form-check-label" for="bom">Bom</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="ruim" name="qualidade" value="Ruim">
+                                    <label class="form-check-label" for="ruim">Ruim</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" id="descarte" name="qualidade" value="Descarte">
+                                    <label class="form-check-label" for="descarte">Descarte</label>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="row mt-3">
+                <div class="row mb-3" id="signature">
+                    <label for="signature-canvas">Assinatura <span style="color: red;">*</span></label>
+                    <canvas id="signature-canvas" style="border: 1px solid #000; width: 90%; height: 200px; margin: 0 auto;"></canvas>
+                </div>    
+                <small class="text-end" style="color: red;">Obrigatórios(*)</small>  
+            </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+            <button type="button" class="btn btn-white" id="limpar-assinatura">Limpar assinatura</button>
+            <button type="submit" class="btn btn-primary d-flex align-items-center gap-2 salvar-assinatura">              
+                <span class="spinner-border spinner-border-sm" style="display:none"></span>
+                <span role="status">Salvar  </span>
+            </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -225,7 +225,7 @@ def alter_padrao(request, id):
                 padrao = Padrao.objects.get(id=id)
                 
                 # Obter todos os equipamentos disponíveis
-                equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo')
+                equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo').order_by("id")
                 
                 if request.user.is_superuser:
                     funcionarios = Funcionario.objects.filter(setor=padrao.setor,ativo=True).values('id', 'matricula', 'nome')

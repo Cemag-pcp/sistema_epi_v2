@@ -104,7 +104,6 @@ export function initializeDataTable(data) {
         responsive: true,
         lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Todos"]],
         pageLength: 10,
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
         initComplete: function() {
             // Add event listeners to edit and delete buttons
             $('#employeeTable').on('click', '.edit-btn', handleEditClick);

@@ -22,7 +22,9 @@ class DadosSolicitacao(models.Model):
 
     solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name='dados_solicitacao')
     equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE, related_name='dados_equipamento')
-    funcionario = models.ForeignKey(Funcionario, on_delete=models.CASCADE, related_name='dados_funcionario')
     quantidade = models.PositiveIntegerField(default=1)
     motivo = models.CharField(max_length=20, choices=REASON_CHOICES, default='substituicao')
     observacoes = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        unique_together = ('equipamento', 'solicitacao')
