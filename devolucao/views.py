@@ -1,3 +1,6 @@
 from django.shortcuts import render
 
-# Create your views here.
+
+def devolucao(request):
+
+    return render(request, 'devolucao.html')
