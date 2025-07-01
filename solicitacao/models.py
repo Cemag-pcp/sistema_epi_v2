@@ -1,5 +1,5 @@
 from django.db import models
-from usuario.models import Usuario
+from usuario.models import Funcionario
 
 
 class Solicitacao(models.Model):
@@ -8,10 +8,8 @@ class Solicitacao(models.Model):
         ('Pendente', 'PENDENTE'),
         ('Cancelado', 'CANCELADO'),
         ('Entregue', 'ENTREGUE'),
-    ]
-
-    solicitante = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    responsavel_entrega = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='responsavel_entrega')
+    ]  
+    solicitante = models.ForeignKey(Funcionario, on_delete=models.CASCADE, related_name='solicitante_solicitacao')
     data_solicitacao = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=30,choices=STATUS_CHOICES, default='Pendente')
     observacoes = models.CharField(max_length=255, blank=True, null=True)
