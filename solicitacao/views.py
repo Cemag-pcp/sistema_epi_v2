@@ -3,7 +3,8 @@ from django.db import transaction
 from django.db.utils import IntegrityError
 from .models import Solicitacao
 from padrao.models import Padrao
-from equipamento.models import Equipamento, DadosSolicitacao
+from equipamento.models import Equipamento
+from solicitacao.models import DadosSolicitacao
 from usuario.models import Funcionario
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required

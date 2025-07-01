@@ -24,7 +24,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
     columns: [
         { 
             data: 'id',
-            name: 'solicitacao__id',
+            name: 'id',
             className: 'text-center',
             render: function(data) {
                 return '<div class="d-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle mx-auto" style="width: 40px; height: 40px; font-weight: bold;">' +
@@ -76,10 +76,12 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
         },
         { 
             data: 'status_assinatura',
-            name: 'solicitacao__status',
-            render: function(data) {
+            name: 'status',
+            render: function(data, type, row) {
                 if (data === 'Pendente') {
-                    return '<button class="btn btn-yellow fw-bold button-assinatura">Assinatura Pendente</button>';
+                    return `<button class="btn btn-yellow fw-bold button-assinatura" data-solicitacao="${row.solicitacao_id}">
+                        Assinatura Pendente
+                    </button>`;
                 } else if (data === 'Entregue') {
                     return '<button class="btn btn-green fw-bold" disabled>Entregue</button>';
                 } else {
@@ -90,29 +92,37 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
         { 
             data: 'solicitacao_id',
             render: function(data, type, row) {
-                return '<div class="dropdown">' +
-                            '<button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">' +
-                                '<i class="bi bi-three-dots" style="color: black"></i>' +
-                            '</button>' +
-                            '<ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">' +
-                                '<li>' +
-                                    '<a data-solicitacao="' + data + '"' +
-                                        'data-nome="' + row.funcionario_nome + '"' +
-                                        'class="dropdown-item g-4 abrirModalEditarSolicitacao" style="cursor: pointer;">' +
-                                        '<i class="bi bi-pencil-square" style="margin-right: 8px; pointer-events: none;"></i>' +
-                                        'Editar' +
-                                    '</a>' +
-                                '</li>' +
-                                '<li>' +
-                                    '<a class="dropdown-item g-4 abrirModalExcluirAssinatura" ' +
-                                        'data-nome="' + row.funcionario_nome + '" data-id="' + data + '" ' +
-                                        'style="color: #dc2626; cursor: pointer;">' +
-                                        '<i class="bi bi-trash" style="margin-right: 8px; pointer-events: none;"></i>' +
-                                        'Excluir Assinatura' +
-                                    '</a>' +
-                                '</li>' +
-                            '</ul>' +
-                        '</div>';
+                return `<div class="dropdown">
+                    <button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots" style="color: black"></i>
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <li>
+                            <a data-solicitacao="${data}"
+                                data-nome="${row.funcionario_nome}"
+                                class="dropdown-item g-4 abrirModalEditarSolicitacao" style="cursor: pointer;">
+                                <i class="bi bi-pencil-square" style="margin-right: 8px; pointer-events: none;"></i>
+                                Editar
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item g-4 abrirModalExcluirAssinatura" 
+                                data-nome="${row.funcionario_nome}" data-id="${data}" 
+                                style="color: #dc2626; cursor: pointer;">
+                                <i class="bi bi-trash" style="margin-right: 8px; pointer-events: none;"></i>
+                                Excluir Assinatura
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item g-4 abrirModalCancelarSolicitacao" 
+                                data-nome="${row.funcionario_nome}" data-id="${data}" 
+                                style="color: #dc2626; cursor: pointer;">
+                                <i class="bi bi-x-circle" style="margin-right: 8px; pointer-events: none;"></i>
+                                Cancelar Solicitação
+                            </a>
+                        </li>
+                    </ul>
+                </div>`;
             }
         }
     ],
