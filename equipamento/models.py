@@ -1,4 +1,5 @@
 from django.db import models
+from usuario.models import Funcionario
 from solicitacao.models import Solicitacao
 
 
@@ -10,8 +11,20 @@ class Equipamento(models.Model):
     ativo = models.BooleanField(default=True)
     
 
-class EquipamentoSolicitacao(models.Model):
-    solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name='solicitacao_equipamento')
-    equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE, related_name='equipamento')
+class DadosSolicitacao(models.Model):
+    
+    REASON_CHOICES = [
+        ('primeira entrega', 'Primeira Entrega'),
+        ('substituicao', 'Substituição'),
+        ('perda', 'Perda'),
+        ('dano', 'Dano'),
+    ]
+
+    solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name='dados_solicitacao')
+    equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE, related_name='dados_equipamento')
     quantidade = models.PositiveIntegerField(default=1)
+    motivo = models.CharField(max_length=20, choices=REASON_CHOICES, default='substituicao')
     observacoes = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        unique_together = ('equipamento', 'solicitacao')

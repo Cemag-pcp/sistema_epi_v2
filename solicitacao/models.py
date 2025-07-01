@@ -1,18 +1,23 @@
 from django.db import models
-from usuario.models import Funcionario
+from usuario.models import Usuario, Funcionario
 
 
 class Solicitacao(models.Model):
-
     STATUS_CHOICES = [
         ('Pendente', 'PENDENTE'),
         ('Cancelado', 'CANCELADO'),
         ('Entregue', 'ENTREGUE'),
-    ]  
-    solicitante = models.ForeignKey(Funcionario, on_delete=models.CASCADE, related_name='solicitante_solicitacao')
+
+    solicitante = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    funcionario = models.ForeignKey(Funcionario, on_delete=models.CASCADE, default=1)
     data_solicitacao = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=30,choices=STATUS_CHOICES, default='Pendente')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Pendente')
     observacoes = models.CharField(max_length=255, blank=True, null=True)
-    data_criacao = models.DateTimeField(auto_now_add=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"Solicitação #{self.id} - {self.status}"
+
+class Assinatura(models.Model):
+    imagem_assinatura = models.ImageField(upload_to='assinatura/')
+    data_criacao = models.DateTimeField(auto_now_add=True)

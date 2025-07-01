@@ -1,0 +1,8 @@
+SELECT s1.id, s1.codigo_item, s1.quantidade, s1.motivo, s1.funcionario_recebe, s1.data_solicitada
+FROM sistema_epi.tb_solicitacoes s1
+INNER JOIN (
+    SELECT funcionario_recebe, codigo_item, MAX(id) as ultimo_id
+    FROM sistema_epi.tb_solicitacoes
+    GROUP BY funcionario_recebe, codigo_item
+) s2 ON s1.id = s2.ultimo_id
+ORDER BY s1.funcionario_recebe, s1.id DESC;

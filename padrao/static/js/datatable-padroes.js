@@ -62,7 +62,7 @@ export var table = $('#tabelaPadroes').DataTable({
                 
                 data.forEach(function(func) {
                     html += '<div class="d-flex align-items-center">' +
-                                '<span class="badge bg-secondary me-2">' + func.matricula + '</span>' +
+                                '<span class="badge bg-primary bg-opacity-10 me-2 text-primary" style="font-weight: bold;">' + func.matricula + '</span>' +
                                 '<span>' + func.nome + '</span>' +
                             '</div>';
                 });
@@ -93,7 +93,7 @@ export var table = $('#tabelaPadroes').DataTable({
                                     '<div class="d-flex flex-wrap gap-1">';
                         
                         func.itens.forEach(function(item) {
-                            html += '<span class="badge bg-secondary">' + item.nome + ' (' + item.quantidade + ')</span>';
+                            html += '<span class="badge bg-primary bg-opacity-10 text-primary" style="font-weight: bold;">' + item.nome + ' (' + item.quantidade + ')</span>';
                         });
                         
                         html += '</div></div>';

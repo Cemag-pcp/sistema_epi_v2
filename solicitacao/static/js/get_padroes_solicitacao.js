@@ -28,13 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (selectedValue) {
             getPadroes(selectedValue);
         } else {
-            loadFormDataRequest();
-            const cloneContainer = document.getElementById('clone-container-1');
-            const form = document.getElementById('form-card-solict');
-            const originalForm = cloneContainer.querySelector('.clone-form-1');            
-            cloneContainer.innerHTML = '';
-            cloneContainer.appendChild(originalForm);
-            form.reset();
+            resetFormData();
         }
     });
 });
@@ -56,7 +50,6 @@ function getPadroes(value) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            console.log(data);
             updateAvailableOptions(data.equipamentos, data.funcionarios_disponiveis);
             fillPadraoData(data.padrao);
         } else {
@@ -223,4 +216,14 @@ function updateAvailableOptions(equipamentos, funcionarios) {
             select.appendChild(option);
         });
     });
+}
+
+export function resetFormData() {
+    loadFormDataRequest();
+    const cloneContainer = document.getElementById('clone-container-1');
+    const form = document.getElementById('form-card-solict');
+    const originalForm = cloneContainer.querySelector('.clone-form-1');            
+    cloneContainer.innerHTML = '';
+    cloneContainer.appendChild(originalForm);
+    form.reset();
 }
