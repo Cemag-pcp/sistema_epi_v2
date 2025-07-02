@@ -92,25 +92,16 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
         { 
             data: 'solicitacao_id',
             render: function(data, type, row) {
-                return `<div class="dropdown">
-                    <button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-three-dots" style="color: black"></i>
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                let buttons = '';
+                
+                if (row.status_assinatura === 'Pendente') {
+                    buttons = `
                         <li>
                             <a data-solicitacao="${data}"
                                 data-nome="${row.funcionario_nome}"
                                 class="dropdown-item g-4 abrirModalEditarSolicitacao" style="cursor: pointer;">
                                 <i class="bi bi-pencil-square" style="margin-right: 8px; pointer-events: none;"></i>
                                 Editar
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item g-4 abrirModalExcluirAssinatura" 
-                                data-nome="${row.funcionario_nome}" data-id="${data}" 
-                                style="color: #dc2626; cursor: pointer;">
-                                <i class="bi bi-trash" style="margin-right: 8px; pointer-events: none;"></i>
-                                Excluir Assinatura
                             </a>
                         </li>
                         <li>
@@ -121,6 +112,38 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                                 Cancelar Solicitação
                             </a>
                         </li>
+                    `;
+                } else if (row.status_assinatura === 'Entregue') {
+                    buttons = `
+                        <li>
+                            <a class="dropdown-item g-4 abrirModalExcluirAssinatura" 
+                                data-nome="${row.funcionario_nome}" data-id="${data}" 
+                                style="color: #dc2626; cursor: pointer;">
+                                <i class="bi bi-trash" style="margin-right: 8px; pointer-events: none;"></i>
+                                Excluir Assinatura
+                            </a>
+                        </li>
+                    `;
+                } else {
+                    buttons = `
+                        <li>
+                            <a class="dropdown-item g-4 abrirModalCancelarSolicitacao" 
+                                data-nome="${row.funcionario_nome}" data-id="${data}" 
+                                style="color:#008337; cursor: pointer;">
+                                <i class="bi bi-door-open" style="margin-right: 8px; pointer-events: none;"></i>
+                                Reabrir Solicitação
+                            </a>
+                        </li>
+                    `;
+                }
+                // Só mostra o dropdown se houver botões para exibir
+
+                return `<div class="dropdown">
+                    <button class="btn btn-link btn-sm btn-rounded" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots" style="color: black"></i>
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        ${buttons}
                     </ul>
                 </div>`;
             }

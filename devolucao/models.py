@@ -1,6 +1,6 @@
 from django.db import models
-from solicitacao.models import Solicitacao
-from usuario.models import Funcionario
+from solicitacao.models import DadosSolicitacao
+from usuario.models import Usuario
 
 class Devolucao(models.Model):
     ESTADO_CHOICES = (
@@ -9,10 +9,9 @@ class Devolucao(models.Model):
         ('danificado', 'Danificado'),
     )
 
-    solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name='solicitacao_devolucao')
-    responsavel_recebimento = models.ForeignKey(Funcionario, on_delete=models.CASCADE, related_name='responsavel_recebimento')
+    dados_solicitacao = models.ForeignKey(DadosSolicitacao, on_delete=models.CASCADE, related_name='dados_solicitacao_devolucao')
+    responsavel_recebimento = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='responsavel_recebimento')
     estado_item = models.CharField(max_length=30, choices=ESTADO_CHOICES, default='bom')
     data_devolucao = models.DateTimeField(auto_now_add=True)
-    motivo = models.CharField(max_length=255)
     observacoes = models.CharField(max_length=255, blank=True, null=True)
     data_atualizacao = models.DateTimeField(auto_now=True)

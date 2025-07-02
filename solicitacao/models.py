@@ -41,10 +41,22 @@ class DadosSolicitacao(models.Model):
 class Assinatura(models.Model):
     solicitacao = models.OneToOneField(
         Solicitacao,
-        on_delete=models.CASCADE,  # Se a Solicitação for deletada, a Assinatura também é
-        null=False,                # Não permite Assinatura sem Solicitação
-        blank=False,               # Não permite criação via formulário sem Solicitação
-        related_name="assinatura_solicitacao"
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
     )
     imagem_assinatura = models.ImageField(upload_to='assinatura/', blank=False, null=False)
     data_criacao = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Quando uma assinatura é criada/atualizada, define o status da solicitação como "Entregue"
+        self.solicitacao.status = 'Entregue'
+        self.solicitacao.save()
+
+    def delete(self, *args, **kwargs):
+        # Antes de deletar, muda o status da solicitação para "Pendente"
+        solicitacao = self.solicitacao
+        super().delete(*args, **kwargs)
+        solicitacao.status = 'Pendente'
+        solicitacao.save()
