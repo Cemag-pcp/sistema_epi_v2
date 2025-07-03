@@ -9,6 +9,7 @@ from usuario.models import Funcionario
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from usuario.decorators import somente_master, master_solicit
+from django.db.models import Q
 import json
 
 @login_required
@@ -85,7 +86,7 @@ def solicitacao_template(request):
             return JsonResponse({
                 'success': False,
                 'error': "Não é permitido repetir o mesmo equipamento para um funcionário em uma mesma solicitação"
-            })
+            }, status=400)
 
         except Exception as e:
             return JsonResponse({
@@ -108,3 +109,37 @@ def solicitacao(request):
         'funcionarios': funcionarios,
         'equipamentos': equipamentos,
     }, status=200)
+
+@login_required
+@master_solicit
+def verificar_equipamentos(request):
+    # Recebe uma lista de pares funcionario_id/equipamento_id
+    pares = json.loads(request.GET.get('pares', '[]'))
+    
+    if not pares:
+        return JsonResponse({'error': 'Parâmetros faltando'}, status=400)
+    
+    # Prepara a consulta para verificar todos os pares de uma vez
+    conditions = Q()
+    for par in pares:
+        conditions |= (
+            Q(solicitacao__funcionario_id=par['funcionario_id']) &
+            Q(equipamento_id=par['equipamento_id']) &
+            ~Q(solicitacao__status='Cancelado')
+        )
+    
+    # Busca todos os registros que correspondem a qualquer um dos pares
+    existentes = DadosSolicitacao.objects.filter(conditions).values_list(
+        'solicitacao__funcionario_id', 'equipamento_id'
+    )
+    
+    # Converte para um conjunto de tuplas para busca rápida
+    existentes_set = {(f, e) for f, e in existentes}
+    
+    # Prepara o resultado
+    resultado = {
+        f"{par['funcionario_id']}_{par['equipamento_id']}": (par['funcionario_id'], par['equipamento_id']) in existentes_set
+        for par in pares
+    }
+    
+    return JsonResponse(resultado)

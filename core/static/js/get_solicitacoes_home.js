@@ -106,8 +106,8 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                         </li>
                         <li>
                             <a class="dropdown-item g-4 abrirModalCancelarSolicitacao" 
-                                data-nome="${row.funcionario_nome}" data-id="${data}" 
-                                style="color: #dc2626; cursor: pointer;">
+                                data-nome="${row.funcionario_nome}" data-id="${data}"
+                                data-action="cancelar" style="color: #dc2626; cursor: pointer;">
                                 <i class="bi bi-x-circle" style="margin-right: 8px; pointer-events: none;"></i>
                                 Cancelar Solicitação
                             </a>
@@ -129,7 +129,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                         <li>
                             <a class="dropdown-item g-4 abrirModalCancelarSolicitacao" 
                                 data-nome="${row.funcionario_nome}" data-id="${data}" 
-                                style="color:#008337; cursor: pointer;">
+                                data-action="reabrir" style="color:#008337; cursor: pointer;">
                                 <i class="bi bi-door-open" style="margin-right: 8px; pointer-events: none;"></i>
                                 Reabrir Solicitação
                             </a>

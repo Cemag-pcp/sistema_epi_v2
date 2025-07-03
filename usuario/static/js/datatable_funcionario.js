@@ -117,7 +117,7 @@ export function initializeDataTable(data) {
 
 // Function to format date for display
 export function formatDateForDisplay(dateString) {
-    return new Intl.DateTimeFormat('pt-BR').format(new Date(dateString+"T00:00:00"));
+    return new Intl.DateTimeFormat('pt-BR').format(new Date(dateString));
 }
 
 // Function to get status badge class

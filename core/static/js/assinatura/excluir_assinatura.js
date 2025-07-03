@@ -1,20 +1,8 @@
 import { getCookie } from "../../../../static/js/scripts.js";
 import { solicitacoesTable } from "../get_solicitacoes_home.js";
+import { ToastBottomEnd } from "../../../../static/js/scripts.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-
-    // Configuração do Toast
-    const Toast = Swal.mixin({
-        toast: true,
-        position: "bottom-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
-    });
 
     document.addEventListener('click', function (event) {
         if (event.target.classList.contains('abrirModalExcluirAssinatura')) {
@@ -29,9 +17,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (event.target.classList.contains('abrirModalCancelarSolicitacao')) {
             const idDadosSolicitacao = event.target.getAttribute('data-id');
+            const action = event.target.getAttribute('data-action');
             const modalCancelarSolicitacao = document.getElementById("modal-cancelar-solicitacao");
-
+            
+            const modalTitle = document.getElementById('modal-cancelar-solicitacao-title');
+            const modalBodyText = modalCancelarSolicitacao.querySelector('.modal-body p');
+            const buttonCancelarSolicitacao = modalCancelarSolicitacao.querySelector('.button-cancelar-solicitacao');
+            
+            if (action === 'reabrir') {
+                modalTitle.textContent = 'Reabrir Solicitação';
+                modalBodyText.textContent = `Tem certeza que deseja reabrir a solicitação?`;
+                buttonCancelarSolicitacao.querySelector('.text-button').textContent = 'Reabrir';
+                buttonCancelarSolicitacao.classList.remove('btn-danger');
+                buttonCancelarSolicitacao.classList.add('btn-success');
+            } else {
+                modalTitle.textContent = 'Cancelar Solicitação';
+                modalBodyText.textContent = `Tem certeza que deseja cancelar a solicitação?`;
+                buttonCancelarSolicitacao.querySelector('.text-button').textContent = 'Cancelar';
+                buttonCancelarSolicitacao.classList.remove('btn-success');
+                buttonCancelarSolicitacao.classList.add('btn-danger');
+            }
+            
             modalCancelarSolicitacao.setAttribute('data-solicitacao', idDadosSolicitacao);
+            modalCancelarSolicitacao.setAttribute('data-action', action);
 
             const modal = new bootstrap.Modal(modalCancelarSolicitacao);
             modal.show();
@@ -67,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     throw new Error(data.message || 'Erro ao atualizar solicitação');
                 }
                 
-                Toast.fire({
+                ToastBottomEnd.fire({
                     icon: 'success',
                     title: 'Solicitação atualizada com sucesso!'
                 });
@@ -78,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 solicitacoesTable.ajax.reload();
                 
             } catch (error) {
-                Toast.fire({
+                ToastBottomEnd.fire({
                     icon: 'error',
                     title: error.message || 'Erro ao atualizar solicitação'
                 });

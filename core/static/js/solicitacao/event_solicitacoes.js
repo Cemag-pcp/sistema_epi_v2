@@ -1,6 +1,7 @@
 import { getCookie } from "../../../../static/js/scripts.js";
 import { addSolicitacaoClone, removeSpecificSolicitacaoClone, preencherModalEdicaoSolicitacao } from "./modal_editar_solicitacao.js";
 import { solicitacoesTable } from "../get_solicitacoes_home.js";
+import { ToastBottomEnd } from "../../../../static/js/scripts.js";
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('form-editar-solicitacao');
@@ -10,19 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinner = salvarBtn.querySelector('.spinner-border');
     const spinnerCancel = salvarBtnCancel.querySelector('.spinner-border');
     const addBtn = document.getElementById('add-clone-solicitacao');
-
-    // Configuração do Toast
-    const Toast = Swal.mixin({
-        toast: true,
-        position: "bottom-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
-    });
 
     // Evento para abrir o modal e carregar os dados
     document.addEventListener('click', async function(event) {
@@ -136,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message || 'Erro ao atualizar solicitação');
             }
             
-            Toast.fire({
+            ToastBottomEnd.fire({
                 icon: 'success',
                 title: 'Solicitação atualizada com sucesso!'
             });
@@ -145,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bootstrap.Modal.getInstance(document.getElementById('modal-editar-solicitacao')).hide();
             
         } catch (error) {
-            Toast.fire({
+            ToastBottomEnd.fire({
                 icon: 'error',
                 title: error.message || 'Erro ao atualizar solicitação'
             });
@@ -178,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message || 'Erro ao atualizar solicitação');
             }
             
-            Toast.fire({
+            ToastBottomEnd.fire({
                 icon: 'success',
                 title: 'Solicitação atualizada com sucesso!'
             });
@@ -189,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
             solicitacoesTable.ajax.reload();
             
         } catch (error) {
-            Toast.fire({
+            ToastBottomEnd.fire({
                 icon: 'error',
                 title: error.message || 'Erro ao atualizar solicitação'
             });
