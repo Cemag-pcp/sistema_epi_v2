@@ -6,8 +6,8 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from usuario.decorators import somente_master
 from usuario.models import Funcionario
-from solicitacao.models import Solicitacao
-from equipamento.models import DadosSolicitacao, Equipamento
+from solicitacao.models import Solicitacao, DadosSolicitacao
+from equipamento.models import Equipamento
 
 # Create your views here.
 
