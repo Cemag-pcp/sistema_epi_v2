@@ -13,6 +13,7 @@
     <link href="{% static 'css/styles.css' %}" rel="stylesheet" />
     <link href="{% static 'css/crud.css' %}" rel="stylesheet" />
     <link href="{% static 'css/funcionario.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/devolucao.css' %}" rel="stylesheet" >
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"/>
 
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
@@ -59,6 +60,7 @@
                                     {% if request.user.funcionario.tipo_acesso == 'master' or request.user.is_superuser %}
                                         <a class="nav-link" href="{% url 'core:home' %}">Visualizar Solicitações</a>
                                         <a class="nav-link" href="{% url 'solicitacao:solicitacao' %}">Solicitar EPI</a>
+                                        <a class="nav-link" href="{% url 'devolucao:devolucao' %}">Devolução EPI</a>
                                         <a class="nav-link">Histórico EPI</a>
                                         <a class="nav-link">Ficha EPI</a>
                                     {% elif request.user.funcionario.tipo_acesso == 'solicitante' %}  

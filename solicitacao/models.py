@@ -8,7 +8,6 @@ class Solicitacao(models.Model):
         ('Pendente', 'PENDENTE'),
         ('Cancelado', 'CANCELADO'),
         ('Entregue', 'ENTREGUE'),
-    ]
 
     solicitante = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     funcionario = models.ForeignKey(Funcionario, on_delete=models.CASCADE, default=1)
