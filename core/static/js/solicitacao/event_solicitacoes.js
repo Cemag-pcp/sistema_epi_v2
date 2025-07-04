@@ -131,6 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Fechar o modal e recarregar a página ou tabela
             bootstrap.Modal.getInstance(document.getElementById('modal-editar-solicitacao')).hide();
+
+            solicitacoesTable.ajax.reload();
             
         } catch (error) {
             ToastBottomEnd.fire({

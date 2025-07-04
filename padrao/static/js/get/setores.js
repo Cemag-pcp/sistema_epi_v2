@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () =>{
             url += `?setor_id=${setorId}`;
         }
     
-        const response = await fetch(`/api_setores/?setor_id=${setorId}`, {
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
