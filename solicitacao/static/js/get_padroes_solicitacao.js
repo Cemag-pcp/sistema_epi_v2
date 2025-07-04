@@ -1,4 +1,4 @@
-import { loadFormDataRequest } from "./get_solicitacoes.js";
+import { loadFormDataRequest, verificarMultiplosEquipamentos } from "./get_solicitacoes.js";
 import { updateRequestNumbers } from "../../../static/js/clone.js";
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function getPadroes(value) {
-   
     const form = document.getElementById("form-card-solict");
     const spinner = document.getElementById("spinner");
     form.style.display = 'none';
@@ -48,10 +47,10 @@ function getPadroes(value) {
         }
     })
     .then(response => response.json())
-    .then(data => {
+    .then(async data => {  // Adicione async aqui
         if (data.success) {
             updateAvailableOptions(data.equipamentos, data.funcionarios_disponiveis);
-            fillPadraoData(data.padrao);
+            await fillPadraoData(data.padrao);  // Adicione await aqui
         } else {
             alert(data.message || 'Erro ao carregar padrão');
         }
@@ -60,22 +59,22 @@ function getPadroes(value) {
         console.error('Erro na requisição:', error);
         alert('Erro ao carregar dados do padrão');
     })
-    .finally(finnaly => {
+    .finally(() => {  // Corrija o typo "finnaly" para "finally"
         form.style.display = 'block';
         spinner.style.display = 'none';
-    })
+    });
 }
 
-function fillPadraoData(padraoData) {
+async function fillPadraoData(padraoData) {
     const cloneContainer = document.getElementById('clone-container-1');
     const originalForm = cloneContainer.querySelector('.clone-form-1');
     
-    // Limpar todos os formulários clonados, mantendo apenas o original
+    // Limpar clones existentes
     while (cloneContainer.children.length > 1) {
         cloneContainer.removeChild(cloneContainer.lastChild);
     }
     
-    // Resetar o formulário original
+    // Resetar formulário original
     const inputs = originalForm.querySelectorAll("input, textarea, select");
     inputs.forEach(input => {
         if (input.tagName === "SELECT") {
@@ -87,26 +86,39 @@ function fillPadraoData(padraoData) {
         }
     });
     
-    // Atualizar o número da solicitação no original
+    // Atualizar número da solicitação
     const requestText = originalForm.querySelector(".request");
     if (requestText) {
         requestText.textContent = "1ª Solicitação";
     }
     
-    // Se não houver funcionários, manter apenas o formulário original vazio
     if (padraoData.funcionarios.length === 0) return;
     
-    // Preencher dados básicos do padrão (apenas no primeiro formulário)
+    // Preencher dados básicos
     const nomeInput = originalForm.querySelector('input[name="nome"]');
     if (nomeInput) nomeInput.value = padraoData.nome || '';
     
     const setorSelect = originalForm.querySelector('select[name="setor"]');
     if (setorSelect) setorSelect.value = padraoData.setor_id || '';
     
-    // Criar um formulário para cada equipamento de cada funcionário
+    // Preparar lista de pares para verificação
+    const paresParaVerificar = [];
+    for (const funcionario of padraoData.funcionarios) {
+        for (const equipamento of funcionario.equipamentos) {
+            paresParaVerificar.push({
+                funcionario_id: funcionario.funcionario_id,
+                equipamento_id: equipamento.equipamento_id
+            });
+        }
+    }
+    
+    // Fazer uma única chamada para verificar todos os pares
+    const verificacoes = await verificarMultiplosEquipamentos(paresParaVerificar);
+    
+    // Criar formulários com os resultados
     let formIndex = 0;
-    padraoData.funcionarios.forEach(funcionario => {
-        funcionario.equipamentos.forEach(equipamento => {
+    for (const funcionario of padraoData.funcionarios) {
+        for (const equipamento of funcionario.equipamentos) {
             let form;
             
             if (formIndex === 0) {
@@ -114,7 +126,6 @@ function fillPadraoData(padraoData) {
             } else {
                 form = originalForm.cloneNode(true);
                 
-                // Adiciona o botão de remoção ao novo clone
                 const removeBtn = form.querySelector(".btn-outline-danger");
                 if (removeBtn) {
                     removeBtn.addEventListener("click", function() {
@@ -137,19 +148,18 @@ function fillPadraoData(padraoData) {
                 cloneContainer.appendChild(form);
             }
             
-            // Atualizar o número da solicitação
+            // Atualizar número da solicitação
             const requestText = form.querySelector(".request");
             if (requestText) {
                 requestText.textContent = `${formIndex + 1}ª Solicitação`;
             }
             
-            // Preencher dados do funcionário
+            // Preencher dados
             const funcionarioSelect = form.querySelector('.funcionario');
             if (funcionarioSelect) {
                 funcionarioSelect.value = funcionario.funcionario_id;
             }
             
-            // Preencher dados do equipamento
             const equipamentoSelect = form.querySelector('.equipamento');
             if (equipamentoSelect) {
                 equipamentoSelect.value = equipamento.equipamento_id;
@@ -160,9 +170,48 @@ function fillPadraoData(padraoData) {
                 quantidadeInput.value = equipamento.quantidade;
             }
             
+            // Preencher motivos baseado na verificação prévia
             const motivoSelect = form.querySelector('.motivo');
             if (motivoSelect) {
-                motivoSelect.value = equipamento.motivo;
+                motivoSelect.innerHTML = '';
+                
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.textContent = "Selecione um motivo";
+                defaultOption.selected = true;
+                defaultOption.disabled = true;
+                defaultOption.hidden = true;
+                motivoSelect.appendChild(defaultOption);
+                
+                const chave = `${funcionario.funcionario_id}_${equipamento.equipamento_id}`;
+                const existe = verificacoes[chave];
+                
+                if (existe) {
+                    const motivos = [
+                        {value: 'substituicao', text: 'Substituição'},
+                        {value: 'perda', text: 'Perda'},
+                        {value: 'dano', text: 'Dano'}
+                    ];
+                    
+                    motivos.forEach(motivo => {
+                        const option = document.createElement('option');
+                        option.value = motivo.value;
+                        option.textContent = motivo.text;
+                        motivoSelect.appendChild(option);
+                    });
+
+                    if (equipamento.motivo) {
+                        motivoSelect.value = equipamento.motivo;
+                    }
+
+                    console.log(equipamento.motivo)
+                } else {
+                    const option = document.createElement('option');
+                    option.value = 'primeira entrega';
+                    option.textContent = 'Primeira Entrega';
+                    motivoSelect.appendChild(option);
+                    motivoSelect.value = option.value;
+                }
             }
             
             const observacoesTextarea = form.querySelector('.observacoes');
@@ -171,8 +220,8 @@ function fillPadraoData(padraoData) {
             }
             
             formIndex++;
-        });
-    });
+        }
+    }
 }
 
 function updateAvailableOptions(equipamentos, funcionarios) {
