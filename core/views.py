@@ -15,6 +15,7 @@ import json
 import base64
 import uuid
 
+
 # Create your views here.
 
 @login_required
