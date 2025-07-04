@@ -1,10 +1,12 @@
 // Mock data
-const operators = [
+const operators1 = [
     { id: "1", name: "John Smith", department: "Construction" },
     { id: "2", name: "Maria Garcia", department: "Manufacturing" },
     { id: "3", name: "David Johnson", department: "Maintenance" },
     { id: "4", name: "Sarah Wilson", department: "Quality Control" },
 ];
+
+let operators = [];
 
 const ppeItems = {
     "1": [
@@ -86,9 +88,36 @@ function getCurrentReturnDate(itemId) {
 }
 
 // Initialize page
-function initializePage() {
+async function initializePage() {
+    await fetchOperators();
     populateOperatorSelect();
     setupEventListeners();
+}
+
+async function fetchOperators() {
+    try {
+        const response = await fetch(`/usuario`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                // Add authorization header if needed
+                // 'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        operators = data; // Assuming your API returns an array of operators
+        return operators;
+    } catch (error) {
+        console.error('Error fetching operators:', error);
+        // Show user-friendly error message
+        alert('Failed to load operators. Please check your connection and try again.');
+        return [];
+    }
 }
 
 function populateOperatorSelect() {
@@ -96,13 +125,7 @@ function populateOperatorSelect() {
     operators.forEach(operator => {
         const option = document.createElement('option');
         option.value = operator.id;
-        option.innerHTML = `
-            <div>
-                <div>${operator.name}</div>
-                <small>${operator.department}</small>
-            </div>
-        `;
-        option.textContent = `${operator.name} - ${operator.department}`;
+        option.textContent = `${operator.funcionario__matricula} - ${operator.funcionario__nome}`;
         select.appendChild(option);
     });
 }

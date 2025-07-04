@@ -9,7 +9,6 @@ class Solicitacao(models.Model):
         ('Cancelado', 'CANCELADO'),
         ('Entregue', 'ENTREGUE'),
     ]
-
     solicitante = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     funcionario = models.ForeignKey(Funcionario, on_delete=models.CASCADE, default=1)
     data_solicitacao = models.DateTimeField(auto_now_add=True)
