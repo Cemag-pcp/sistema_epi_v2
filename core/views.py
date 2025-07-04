@@ -3,11 +3,17 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db import transaction
 from django.db.models import Q
 from usuario.decorators import somente_master
 from usuario.models import Funcionario
-from solicitacao.models import Solicitacao
-from equipamento.models import DadosSolicitacao, Equipamento
+from solicitacao.models import Solicitacao, DadosSolicitacao, Assinatura
+from equipamento.models import Equipamento
+from devolucao.models import Devolucao
+from django.core.files.base import ContentFile
+import json
+import base64
+import uuid
 
 # Create your views here.
 
@@ -80,6 +86,7 @@ def home_solicitacoes(request):
                 'quantidade': dado.quantidade,
                 'motivo': dado.motivo,
                 'observacoes': dado.observacoes,
+                'equipamento_id': dado.equipamento.id,
                 'equipamento_codigo': dado.equipamento.codigo,
                 'equipamento_nome': dado.equipamento.nome,
             })
@@ -107,51 +114,174 @@ def home_solicitacoes(request):
 
 @login_required
 @somente_master
-@require_http_methods(["GET", "PUT", "PATCH"])
+@require_http_methods(["GET", "PATCH"])
 def alter_solicitacao(request, id):
-    # Removido o parâmetro func_id pois agora o funcionário está na solicitação
-    try:
-        solicitacao = Solicitacao.objects.select_related(
-            'funcionario', 'solicitante'
-        ).prefetch_related(
-            'dados_solicitacao__equipamento'
-        ).get(id=id)
+
+    if request.method == 'GET':
+        try:
+            solicitacao = Solicitacao.objects.select_related(
+                'funcionario', 'solicitante'
+            ).prefetch_related(
+                'dados_solicitacao__equipamento'
+            ).get(id=id)
+            
+            equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo').order_by("id")
         
-        # Obter todos os equipamentos disponíveis
-        equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo').order_by("id")
-    
-        # Obter dados da solicitação específica (não precisa mais filtrar por funcionário)
-        dados_solicitacao = []
-        for dado in solicitacao.dados_solicitacao.all():
-            dados_solicitacao.append({
-                'id': dado.id,
-                'equipamento_id': dado.equipamento.id,
-                'equipamento_nome': dado.equipamento.nome,
-                'quantidade': dado.quantidade,
-                'motivo': dado.motivo,
-                'observacoes': dado.observacoes,
-            })
+            dados_solicitacao = []
+            for dado in solicitacao.dados_solicitacao.all():
+                dados_solicitacao.append({
+                    'id': dado.id,
+                    'equipamento_id': dado.equipamento.id,
+                    'equipamento_nome': dado.equipamento.nome,
+                    'quantidade': dado.quantidade,
+                    'motivo': dado.motivo,
+                    'observacoes': dado.observacoes,
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'solicitacao': {
+                    'id': solicitacao.id,
+                    'status': solicitacao.status,
+                    'solicitante_id': solicitacao.solicitante.id if solicitacao.solicitante else None,
+                    'solicitante_nome': solicitacao.solicitante.nome if solicitacao.solicitante else None,
+                    'funcionario_id': solicitacao.funcionario.id if solicitacao.funcionario else None,
+                    'funcionario_nome': solicitacao.funcionario.nome if solicitacao.funcionario else None,
+                    'funcionario_matricula': solicitacao.funcionario.matricula if solicitacao.funcionario else None,
+                    'data_solicitacao': solicitacao.data_solicitacao.strftime("%Y-%m-%d %H:%M:%S"),
+                    'observacoes_gerais': solicitacao.observacoes,
+                    'dados_solicitacao': dados_solicitacao
+                },
+                'equipamentos': list(equipamentos),
+                'funcionarios_disponiveis': list(Funcionario.objects.filter(ativo=True).values('id', 'matricula', 'nome')),
+                'motivos': list(DadosSolicitacao.REASON_CHOICES)
+            }, status=200)
+            
+        except Solicitacao.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+    elif request.method == 'PATCH':
+        try:
+            # Implementação do método PATCH aqui
+            solicitacao = Solicitacao.objects.get(id=id)
+
+            if solicitacao.status == 'Pendente':
+                solicitacao.status = 'Cancelado'
+                solicitacao.save()
+            elif solicitacao.status == 'Cancelado':
+                solicitacao.status = 'Pendente'
+                solicitacao.save()
+            else:
+                return JsonResponse({'success': False, 'message': 'Solicitação não pode ser cancelada pois já foi entregue'}, status=404)
+            
+            return JsonResponse({'success': True, 'message': 'Solicitação atualizada com sucesso'}, status=200)
+            
+        except Solicitacao.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
         
-        return JsonResponse({
-            'success': True,
-            'solicitacao': {
-                'id': solicitacao.id,
-                'status': solicitacao.status,
-                'solicitante_id': solicitacao.solicitante.id if solicitacao.solicitante else None,
-                'solicitante_nome': solicitacao.solicitante.nome if solicitacao.solicitante else None,
-                'funcionario_id': solicitacao.funcionario.id if solicitacao.funcionario else None,
-                'funcionario_nome': solicitacao.funcionario.nome if solicitacao.funcionario else None,
-                'funcionario_matricula': solicitacao.funcionario.matricula if solicitacao.funcionario else None,
-                'data_solicitacao': solicitacao.data_solicitacao.strftime("%Y-%m-%d %H:%M:%S"),
-                'observacoes_gerais': solicitacao.observacoes,
-                'dados_solicitacao': dados_solicitacao
-            },
-            'equipamentos': list(equipamentos),
-            'funcionarios_disponiveis': list(Funcionario.objects.filter(ativo=True).values('id', 'matricula', 'nome')),
-            'motivos': list(DadosSolicitacao.REASON_CHOICES)
-        }, status=200)
+@login_required
+@somente_master
+@require_http_methods(["POST"])
+def send_signature(request):
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print(data)
+            
+            if not all(key in data for key in ['signature', 'solicitacao_id', 'equipamentos']):
+                return JsonResponse({'success': False, 'message': 'Dados incompletos'}, status=400)
+
+            with transaction.atomic():
+                try:
+                    solicitacao = Solicitacao.objects.select_for_update().get(id=data['solicitacao_id'])
+                except Solicitacao.DoesNotExist:
+                    return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
+
+                format, imgstr = data['signature'].split(';base64,') 
+                ext = format.split('/')[-1]
+                file_name = f"{uuid.uuid4()}.{ext}"
+                assinatura_path = ContentFile(base64.b64decode(imgstr), name=file_name)
+
+                assinatura = Assinatura.objects.create(
+                    solicitacao=solicitacao,
+                    imagem_assinatura=assinatura_path
+                )
+
+                if not assinatura.imagem_assinatura:
+                    raise Exception("Campo de assinatura vazio após criação.")
+                
+                try:
+                    print("URL da assinatura:", assinatura.imagem_assinatura.url)
+                except Exception as e:
+                    raise Exception(f"Erro ao acessar URL da assinatura: {str(e)}")
+
+                for equipamento_data in data['equipamentos']:
+                    equipamento_id = equipamento_data['equipamento_id']
+                    qualidade = equipamento_data['qualidade'].lower()  # deve estar entre 'bom', 'ruim', 'danificado'
+
+                    try:
+                        dados_solicitacao = DadosSolicitacao.objects.get(
+                            solicitacao=solicitacao,
+                            equipamento__id=equipamento_id
+                        )
+                    except DadosSolicitacao.DoesNotExist:
+                        raise Exception(f"DadosSolicitacao não encontrado para equipamento {equipamento_id}")
+
+                    # Criação da devolução
+                    Devolucao.objects.create(
+                        dados_solicitacao=dados_solicitacao,
+                        responsavel_recebimento=request.user,
+                        estado_item=qualidade  # deve estar de acordo com os choices
+                    )
+
+                assinatura.save()
+                solicitacao.status = 'Entregue'
+                solicitacao.save()
+
+                return JsonResponse({'success': True, 'message': 'Assinatura e devoluções registradas com sucesso'}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+@login_required
+@somente_master
+@require_http_methods(["DELETE", "PUT"])
+def alter_signature(request, id):
+
+    if request.method == 'DELETE':
+        try:
+            with transaction.atomic():
+                solicitacao = Solicitacao.objects.filter(id=id).first()
+                if not solicitacao:
+                    return JsonResponse({'success': False, 'message': 'Solicitação não encontrada.'}, status=404)
+
+                # Tenta buscar a assinatura
+                assinatura = Assinatura.objects.filter(solicitacao=solicitacao).first()
+                if not assinatura:
+                    return JsonResponse({'success': False, 'message': 'Assinatura não encontrada para esta solicitação.'}, status=404)
+
+                # Filtra todas as devoluções relacionadas aos dados da solicitação
+                devolucoes = Devolucao.objects.filter(dados_solicitacao__solicitacao=solicitacao)
+                devolucoes_count = devolucoes.count()
+                devolucoes.delete()
+
+                # Deleta a assinatura (isso também muda o status para "Pendente")
+                assinatura.delete()
+
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Assinatura e devoluções excluídas com sucesso.',
+                    'devolucoes_removidas': devolucoes_count
+                }, status=200)
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Ocorreu um erro ao excluir a assinatura e as devoluções: {str(e)}'
+            }, status=500)
         
-    except Solicitacao.DoesNotExist:
-        return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)}, status=500)

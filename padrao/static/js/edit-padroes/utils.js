@@ -1,3 +1,5 @@
+import { ToastBottomEnd } from "../../../../static/js/scripts.js";
+
 // Função para adicionar novo formulário clonado
 export function addCloneForm(equipamento= '', matricula='', nome='') {
     const cloneContainer = document.getElementById('clone-container-3');
@@ -103,17 +105,6 @@ function toggleCollapseFunction(){
 export function removeSpecificClone(indexToRemove) {
     const cloneContainer = document.getElementById('clone-container-3');
     const clones = cloneContainer.querySelectorAll('.clone-form-3');
-    const Toast = Swal.mixin({
-        toast: true,
-        position: "bottom-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
-    });
     
     // Verifica se há mais de um clone e se o índice é válido
     if (clones.length > 1 && indexToRemove >= 0 && indexToRemove < clones.length) {
@@ -124,7 +115,7 @@ export function removeSpecificClone(indexToRemove) {
         updateRemoveButtonsIndexes();
     } else if (clones.length <= 1) {
         // Não permite remover o último clone
-        Toast.fire({
+        ToastBottomEnd.fire({
             icon: 'warning',
             title: 'Você não pode remover a última solicitação!'
         });
