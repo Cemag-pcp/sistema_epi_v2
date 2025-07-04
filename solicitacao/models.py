@@ -1,4 +1,5 @@
 from django.db import models
+from equipamento.models import Equipamento
 from usuario.models import Usuario, Funcionario
 from equipamento.models import Equipamento
 
@@ -37,5 +38,24 @@ class DadosSolicitacao(models.Model):
         unique_together = ('equipamento', 'solicitacao')
 
 class Assinatura(models.Model):
-    imagem_assinatura = models.ImageField(upload_to='assinatura/')
+    solicitacao = models.OneToOneField(
+        Solicitacao,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+    )
+    imagem_assinatura = models.ImageField(upload_to='assinatura/', blank=False, null=False)
     data_criacao = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Quando uma assinatura é criada/atualizada, define o status da solicitação como "Entregue"
+        self.solicitacao.status = 'Entregue'
+        self.solicitacao.save()
+
+    def delete(self, *args, **kwargs):
+        # Antes de deletar, muda o status da solicitação para "Pendente"
+        solicitacao = self.solicitacao
+        super().delete(*args, **kwargs)
+        solicitacao.status = 'Pendente'
+        solicitacao.save()

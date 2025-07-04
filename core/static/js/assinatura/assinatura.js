@@ -1,5 +1,6 @@
 import { resizeCanvas } from "./resize-canva.js";
 import { solicitacoesTable } from "../get_solicitacoes_home.js";
+import { getCookie } from "../../../../static/js/scripts.js";
 
 document.addEventListener("DOMContentLoaded", function () {
     let assinatura;
@@ -29,9 +30,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.addEventListener('click', function (event) {
         if (event.target.classList.contains('button-assinatura')) {
+            const idDadosSolicitacao = event.target.getAttribute('data-solicitacao');
             const modalAssinatura = document.getElementById("modal-assinatura");
             const assinaturaCanva = document.getElementById("signature-canvas");
             const modalTitle = document.getElementById("modal-assinatura-title");
+
+            modalAssinatura.setAttribute('data-solicitacao', idDadosSolicitacao);
             
             // Obtém a linha da tabela onde o botão foi clicado
             const row = event.target.closest('tr');
@@ -79,6 +83,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Preenche a tabela de equipamentos
                 itensSubstituicao.forEach((item, index) => {
                     const tr = document.createElement('tr');
+                    tr.id = `equipamento-${index}`;
+                    tr.setAttribute('data-equipamento-id', item.equipamento_id);
+
                     tr.innerHTML = `
                         <td>${item.equipamento_nome} (Qtd: ${item.quantidade})</td>
                         <td>
@@ -134,8 +141,90 @@ document.addEventListener("DOMContentLoaded", function () {
         event.preventDefault();
 
         if (event.target.id === 'form-assinatura') {
-            console.log("FORMULÁRIO");
-            // Aqui você pode adicionar a lógica de envio do formulário
+            const form = event.target;
+            const submitButton = form.querySelector('.verificar-assinatura');
+            const spinner = submitButton.querySelector('.spinner-border');
+            const buttonText = submitButton.querySelector('span[role="status"]');
+            
+            // Mostra o spinner e desabilita o botão
+            spinner.style.display = 'inline-block';
+            buttonText.textContent = 'Salvando...';
+            submitButton.disabled = true;
+
+            // Obtém o ID da solicitação do botão de assinatura
+            const modalAssinatura = document.getElementById('modal-assinatura');
+            const solicitacaoId = modalAssinatura ? modalAssinatura.getAttribute('data-solicitacao') : null;
+            
+            if (!solicitacaoId) {
+
+                spinner.style.display = 'none';
+                buttonText.textContent = 'Salvar';
+                submitButton.disabled = false;
+                return;
+            }
+
+            // Obtém os dados do formulário
+            const isDevolucao = form.querySelector('input[name="is_devolucao"]:checked')?.value;
+            const signaturePad = document.getElementById('signature-canvas');
+            const signature = signaturePad.toDataURL(); // Converte a assinatura para base64
+
+            // Coleta os dados de qualidade dos equipamentos
+            const qualidadeEquipamentos = [];
+            document.querySelectorAll('tr[id^="equipamento-"]').forEach(row => {
+                const equipamentoId = row.getAttribute('data-equipamento-id');
+                const index = row.id.replace('equipamento-', '');
+                const qualidade = row.querySelector('input[name="qualidade-' + index + '"]:checked')?.value;
+                
+                if (qualidade) {
+                    qualidadeEquipamentos.push({
+                        equipamento_id: equipamentoId,
+                        qualidade: qualidade
+                    });
+                }
+            });
+
+            // Prepara os dados para envio
+            const formData = {
+                is_devolucao: isDevolucao,
+                signature: signature,
+                equipamentos: qualidadeEquipamentos,
+                solicitacao_id: solicitacaoId
+            };
+
+            // Faz a requisição POST
+            fetch(`/core/assinatura/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') // Função para pegar o token CSRF
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao enviar assinatura');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Fecha o modal e recarrega a tabela
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modal-assinatura'));
+                    modal.hide();
+                    solicitacoesTable.ajax.reload();
+                } else {
+                    throw new Error(data.message || 'Erro ao processar assinatura');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+            })
+            .finally(() => {
+                // Restaura o botão
+                spinner.style.display = 'none';
+                buttonText.textContent = 'Salvar';
+                submitButton.disabled = false;
+            });
         }
     });
 

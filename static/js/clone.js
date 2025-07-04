@@ -1,4 +1,6 @@
-    // Configuração para múltiplos containers de clone
+import { ToastBottomEnd } from "./scripts.js";
+
+// Configuração para múltiplos containers de clone
 export const formConfigurations = [
     {
         addBtnId: "add-clone-1",
@@ -16,18 +18,6 @@ export const formConfigurations = [
 export function setupCloneForms(config) {
     const addBtn = document.getElementById(config.addBtnId);
     const cloneContainer = document.getElementById(config.containerId);
-    const Toast = Swal.mixin({
-        toast: true,
-        position: "bottom-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
-    });
-
 
     if (!addBtn || !cloneContainer) return;
 
@@ -71,7 +61,7 @@ export function setupCloneForms(config) {
                     // Atualiza os números das solicitações restantes
                     updateRequestNumbers(cloneContainer, config.formClass);
                 } else {
-                    Toast.fire({
+                    ToastBottomEnd.fire({
                         icon: 'warning',
                         title: 'Você não pode remover a última solicitação!'
                     });
@@ -92,7 +82,7 @@ export function setupCloneForms(config) {
                 // Atualiza os números das solicitações restantes
                 updateRequestNumbers(cloneContainer, config.formClass);
             } else {
-                Toast.fire({
+                ToastBottomEnd.fire({
                     icon: 'warning',
                     title: 'Não é possível remover o primeiro formulário.'
                 });

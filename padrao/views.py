@@ -381,7 +381,7 @@ def equipaments_padrao(request):
 
         equipamentos = list(Equipamento.objects.filter(ativo=True).values("id","codigo","nome").order_by("id"))
 
-        motivos = [{'id': reason[0], 'nome': reason[1]} for reason in PadraoEquipamento.REASON_CHOICES]
+        motivos = [{'id': reason[0], 'nome': reason[1]} for reason in PadraoEquipamento.REASON_CHOICES if reason[0] != 'primeira entrega']
 
         return JsonResponse({'equipamentos':equipamentos, 'motivos':motivos}, status=200)
     
