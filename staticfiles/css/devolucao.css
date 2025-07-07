@@ -1,0 +1,44 @@
+.oldest-item {
+    background-color: #fef2f2 !important;
+    border-color: #fecaca !important;
+}
+.oldest-item .text-danger {
+    color: #dc2626 !important;
+}
+.condition-modified {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+.serial-number {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+}
+.empty-state {
+    padding: 3rem 0;
+    text-align: center;
+    color: #6b7280;
+}
+.empty-state i {
+    font-size: 3rem;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+.table-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+.return-date-section {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
