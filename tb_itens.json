@@ -49,6 +49,12 @@
 		"ca" : null
 	},
 	{
+		"codigo" : 709185,
+		"descricao" : "MÁSCARA DE SOLDA AUTOMÁTICA",
+		"vida_util" : 365,
+		"ca" : null
+	},
+	{
 		"codigo" : 700334,
 		"descricao" : "CINTO ERGONOMICO (PROT LOMBAR) (Un)",
 		"vida_util" : 365,
@@ -101,6 +107,12 @@
 		"descricao" : "CAPUZ BALACLAVA PRETO NINJA ",
 		"vida_util" : 365,
 		"ca" : null
+	},
+	{
+		"codigo" : 0,
+		"descricao" : "CAPACETE CONJUGADO ABAFADOR",
+		"vida_util" : 365,
+		"ca" : 29638
 	},
 	{
 		"codigo" : 700038,
