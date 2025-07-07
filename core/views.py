@@ -115,7 +115,7 @@ def home_solicitacoes(request):
 
 @login_required
 @somente_master
-@require_http_methods(["GET", "PATCH"])
+@require_http_methods(["GET", "PATCH", "PUT"])
 def alter_solicitacao(request, id):
 
     if request.method == 'GET':
@@ -183,6 +183,47 @@ def alter_solicitacao(request, id):
             return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
+    
+    elif request.method == 'PUT':
+        try:
+            with transaction.atomic():
+                solicitacao = Solicitacao.objects.get(id=id)
+                data = json.loads(request.body)
+                
+                # Processar dados_solicitacao se existir no payload
+                if 'dados_solicitacao' in data:
+                    # Obter IDs dos equipamentos que serão mantidos/atualizados
+                    novos_equipamentos_ids = [dado['equipamento_id'] for dado in data['dados_solicitacao']]
+                    
+                    # Deletar apenas os DadosSolicitacao que não estão no novo payload
+                    DadosSolicitacao.objects.filter(
+                        solicitacao=solicitacao
+                    ).exclude(
+                        equipamento_id__in=novos_equipamentos_ids
+                    ).delete()
+                    
+                    # Atualizar ou criar os novos DadosSolicitacao
+                    for dado in data['dados_solicitacao']:
+                        DadosSolicitacao.objects.update_or_create(
+                            solicitacao=solicitacao,
+                            equipamento_id=dado['equipamento_id'],
+                            defaults={
+                                'quantidade': dado['quantidade'],
+                                'motivo': dado['motivo'],
+                                'observacoes': dado.get('observacoes', '')
+                            }
+                        )
+                
+                return JsonResponse({
+                    'success': True, 
+                    'message': 'Solicitação atualizada com sucesso',
+                    'solicitacao_id': solicitacao.id
+                }, status=200)
+        
+        except Solicitacao.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
         
 @login_required
 @somente_master
