@@ -5,12 +5,14 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.views.decorators.http import require_http_methods
+
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, DatabaseError
+from django.core.exceptions import ObjectDoesNotExist
 
 from usuario.models import Funcionario,Setor,Usuario,Cargo
+from solicitacao.models import DadosSolicitacao
 from usuario.decorators import somente_master, master_solicit
-from datetime import datetime
 
 import traceback
 import json
@@ -38,7 +40,6 @@ def login_view(request):
                 #Enquanto ainda não existe uma página de (inventário??) vamos redirecionar para a home
             print(request.POST.get('next'))
             return redirect(next_url)
-            # return redirect('core:home')
             
         else:
             # Aqui você pode adicionar uma mensagem de erro se o login falhar
@@ -63,7 +64,7 @@ def api_funcionarios(request):
         funcionarios = Funcionario.objects.select_related('setor','setor__responsavel','cargo').values(
             'id', 'nome', 'matricula', 'setor__nome', 'setor__id',
                 'setor__responsavel__nome', 'setor__responsavel__matricula','cargo_id',
-                'cargo__nome', 'data_admissao', 'ativo','funcionario','tipo_acesso',
+                'cargo__nome', 'data_admissao', 'ativo','usuario','tipo_acesso',
         ).order_by('id')
         
 
@@ -79,7 +80,7 @@ def api_funcionarios(request):
                 'dataAdmissao': f['data_admissao'],
                 'status': 'Ativo' if f['ativo'] else 'Desativado',
                 'setorId': f['setor__id'] if f['setor__id'] else '',
-                'usuario': f['funcionario'] if f['funcionario'] else '', 
+                'usuario': f['usuario'] if f['usuario'] else '', 
                 'tipoAcesso': f['tipo_acesso'],
                 'cargoId': f['cargo_id'] if f['cargo_id'] else '',
             }
@@ -321,14 +322,35 @@ def api_setores(request):
 @require_http_methods(["GET","POST"])
 def usuario(request):
     if request.method == 'GET':
-        usuarios = list(Usuario.objects.filter(funcionario__tipo_acesso='solicitante').select_related('funcionario').values(
-            'id',
-            'nome',
-            'funcionario__tipo_acesso',
-            'funcionario__id',
-            'funcionario__nome',
-            'funcionario__matricula'
-        ))
+        tipo_acesso = request.GET.get('tipoAcesso')
+
+        if tipo_acesso == "solicitante":
+            usuarios = list(Usuario.objects.filter(funcionario__tipo_acesso='solicitante').select_related('funcionario').values(
+                'id',
+                'nome',
+                'funcionario__tipo_acesso',
+                'funcionario__id',
+                'funcionario__nome',
+                'funcionario__matricula'
+            ))
+        elif tipo_acesso == "operador":
+            usuarios = list(Usuario.objects.filter(funcionario__tipo_acesso='operador').select_related('funcionario').values(
+                'id',
+                'nome',
+                'funcionario__tipo_acesso',
+                'funcionario__id',
+                'funcionario__nome',
+                'funcionario__matricula'
+            ))
+        else:
+            usuarios = list(Usuario.objects.select_related('funcionario').values(
+                'id',
+                'nome',
+                'funcionario__tipo_acesso',
+                'funcionario__id',
+                'funcionario__nome',
+                'funcionario__matricula'
+            ))
 
         return JsonResponse(usuarios, safe=False)
     if request.method == 'POST':
@@ -505,3 +527,41 @@ def api_cargos(request):
         cargos = list(Cargo.objects.values())
 
         return JsonResponse(cargos, safe=False)
+    
+@login_required
+@somente_master
+def itens_ativos_funcionario(request,id):
+    if request.method == 'GET':
+        try:
+            itens_ativos = DadosSolicitacao.objects.filter(solicitacao__status='Entregue',solicitacao__funcionario=id,dados_solicitacao_devolucao=None).order_by("-solicitacao__data_atualizacao")
+
+
+            lista_itens_ativos = []
+            for item in itens_ativos:
+                lista_itens_ativos.append({
+                    'id': item.id,
+                    'solicitacao_id': item.solicitacao.id,
+                    'equipamento_id': item.equipamento.id,
+                    'equipamento_nome': item.equipamento.nome,
+                    'equipamento_codigo': item.equipamento.codigo,
+                    'quantidade': item.quantidade,
+                    'data_recebimento': item.solicitacao.data_atualizacao.date().strftime('%d/%m/%Y'),
+
+                })
+            #puxar todos os itens entregues que o funcionario possui
+            if len(lista_itens_ativos) > 0:
+                return JsonResponse(lista_itens_ativos, safe=False)
+            else:
+                return JsonResponse(lista_itens_ativos,status=404,safe=False)
+        except (AttributeError, ObjectDoesNotExist) as e:
+            traceback.print_exc()
+            return JsonResponse({'error': 'Erro ao acessar dados relacionados: ' + str(e)}, status=500)
+
+        except DatabaseError as e:
+            traceback.print_exc()
+            return JsonResponse({'error': 'Erro no banco de dados: ' + str(e)}, status=500)
+
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': 'Erro inesperado: ' + str(e)}, status=500)
+    
