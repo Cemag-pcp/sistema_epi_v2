@@ -18,5 +18,6 @@ urlpatterns = [
     path('setores/',views.setores,name='setores'),# Página setores
     path('setores/<int:id>/',views.editar_setor, name='editar_setor'),
     path('api_cargos/',views.api_cargos, name='api_cargos'), #api setores
+    path('api_itens_ativos/<int:id>/',views.itens_ativos_funcionario, name='itens_ativos_funcionario'), #Verificar itens ativos de um funcionário
     
 ]

@@ -117,7 +117,6 @@ async function updateEmployee(id, employeeData) {
         saveButtonText.classList.add('d-none');
         saveSpinner.classList.remove('d-none');
         saveEmployeeBtn.disabled = true;
-        console.log(employeeData);
         
         // In a real application, you would put to the API
         const response = await fetch(`${URL_EDITAR_FUNCIONARIO}${id}/`, {
@@ -416,7 +415,6 @@ saveEmployeeBtn.addEventListener('click', async function() {
     if (employeeForm.checkValidity()) {
         const id = employeeIdInput.value;
         
-        console.log(cargoInput.value);
         const employeeData = {
             matricula: matriculaInput.value,
             nome: nomeInput.value,
@@ -591,9 +589,7 @@ cancelUserBtn.addEventListener('click', async function() {
         confirmButtonText: 'Sim, continuar',
         cancelButtonText: 'Cancelar'
     });
-    console.log(result);
     if (result.isConfirmed) {
-        console.log(result.isConfirmed);
         userModal.hide();
         if (!isEditMode){
             showAlert('Funcionário adicionado com sucesso, mas o usuário não foi criado.', 'warning');
@@ -648,7 +644,6 @@ export function handleEditClick(e) {
         cargoInput.appendChild(optionCargo);
 
         cargoInput.value = employee.cargoId;
-        console.log(employee);
         
 
         // Hide the "Criar Usuário" checkbox in edit mode if usuario exists
@@ -684,7 +679,6 @@ export async function fetchEmployees() {
         const data = await response.json();
         // Armazenar os dados localmente
         employees = data;
-        console.log(employees);
 
         initializeDataTable(data);
     } catch (error) {
