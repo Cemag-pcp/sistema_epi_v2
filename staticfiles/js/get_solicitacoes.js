@@ -18,7 +18,6 @@ export function loadFormDataRequest() {
     defaultFuncionarioOption.value = "";
     defaultFuncionarioOption.textContent = "Selecione um funcionário";
     defaultFuncionarioOption.selected = true;
-    defaultFuncionarioOption.disabled = true;
     defaultFuncionarioOption.hidden = true;
     funcionarioSelect.appendChild(defaultFuncionarioOption);
 
@@ -26,7 +25,6 @@ export function loadFormDataRequest() {
     defaultEquipamentoOption.value = "";
     defaultEquipamentoOption.textContent = "Selecione um equipamento";
     defaultEquipamentoOption.selected = true;
-    defaultEquipamentoOption.disabled = true;
     defaultEquipamentoOption.hidden = true;
     equipamentoSelect.appendChild(defaultEquipamentoOption);
 

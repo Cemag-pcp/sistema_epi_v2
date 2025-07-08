@@ -23,13 +23,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 2. Listener para mudanças manuais
-    selectElement.addEventListener('change', function() {
+    selectElement.addEventListener('change', async function() {
         const selectedValue = this.value;
+        this.disabled = true;
         if (selectedValue) {
             getPadroes(selectedValue);
         } else {
             resetFormData();
         }
+        this.disabled = false;
     });
 });
 
@@ -59,7 +61,7 @@ function getPadroes(value) {
         console.error('Erro na requisição:', error);
         alert('Erro ao carregar dados do padrão');
     })
-    .finally(() => {  // Corrija o typo "finnaly" para "finally"
+    .finally(() => {
         form.style.display = 'block';
         spinner.style.display = 'none';
     });
