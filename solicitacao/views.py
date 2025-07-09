@@ -127,7 +127,7 @@ def verificar_equipamentos(request):
         conditions |= (
             Q(solicitacao__funcionario_id=par['funcionario_id']) &
             Q(equipamento_id=par['equipamento_id']) &
-            Q(solicitacao__status='Entregue')
+            ~Q(solicitacao__status='Cancelado')
         )
     
     # Busca todos os registros que correspondem a qualquer um dos pares
