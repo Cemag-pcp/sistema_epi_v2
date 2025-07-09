@@ -9,7 +9,7 @@
             "type": "debugpy",
             "request": "launch",
             "args": [
-                "import_solicitacoes"
+                "runserver"
             ],
             "django": true,
             "autoStartBrowser": false,
