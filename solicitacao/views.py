@@ -115,6 +115,8 @@ def solicitacao(request):
 def verificar_equipamentos(request):
     # Recebe uma lista de pares funcionario_id/equipamento_id
     pares = json.loads(request.GET.get('pares', '[]'))
+
+    print(pares)
     
     if not pares:
         return JsonResponse({'error': 'Parâmetros faltando'}, status=400)
@@ -125,7 +127,7 @@ def verificar_equipamentos(request):
         conditions |= (
             Q(solicitacao__funcionario_id=par['funcionario_id']) &
             Q(equipamento_id=par['equipamento_id']) &
-            ~Q(solicitacao__status='Cancelado')
+            Q(solicitacao__status='Entregue')
         )
     
     # Busca todos os registros que correspondem a qualquer um dos pares
@@ -133,13 +135,15 @@ def verificar_equipamentos(request):
         'solicitacao__funcionario_id', 'equipamento_id'
     )
     
+    print(existentes)
+
     # Converte para um conjunto de tuplas para busca rápida
     existentes_set = {(f, e) for f, e in existentes}
     
     # Prepara o resultado
     resultado = {
-        f"{par['funcionario_id']}_{par['equipamento_id']}": (par['funcionario_id'], par['equipamento_id']) in existentes_set
+        f"{par['funcionario_id']}_{par['equipamento_id']}": (int(par['funcionario_id']), int(par['equipamento_id'])) in existentes_set
         for par in pares
     }
-    
+
     return JsonResponse(resultado)
