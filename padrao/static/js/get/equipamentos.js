@@ -3,9 +3,18 @@ import { ToastBottomEnd } from "../../../../static/js/scripts.js";
 
 document.addEventListener('DOMContentLoaded', async () =>{
      try {
+        const modalElement = document.getElementById('modal-criar-padrao');
         // Se nenhum setor selecionado, limpa todos os selects
         document.querySelectorAll('.equipamento').forEach(select => {
             select.innerHTML = '<option value="" selected disabled hidden>Carregando...</option>';
+            const $select = $(select);
+
+            // Reativa o Select2
+            $select.select2({
+                dropdownParent: $(modalElement),  // Usa o modal como parent
+                width: '100%',
+                placeholder: 'Carregando...'  // Melhoria para o placeholder
+            });
         });
 
         document.querySelectorAll('.motivo').forEach(select => {
@@ -54,7 +63,21 @@ document.addEventListener('DOMContentLoaded', async () =>{
 
         // Atualizar TODOS os selects de funcionário (incluindo clones)
         document.querySelectorAll('.equipamento').forEach(select => {
+            const $select = $(select);
+
+            if ($select.hasClass('select2-hidden-accessible')) {
+                $select.select2('destroy');
+            }
+
+            // Atualiza as opções
             select.innerHTML = optionsHTML;
+
+            // Reativa o Select2
+            $select.select2({
+                dropdownParent: $(modalElement),  // Usa o modal como parent
+                width: '100%',
+                placeholder: 'Selecione um equipamento'  // Melhoria para o placeholder
+            });
         });
 
         document.querySelectorAll('.motivo').forEach(select => {

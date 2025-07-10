@@ -3,6 +3,8 @@ import { updateRequestNumbers } from "../../../static/js/clone.js";
 
 document.addEventListener('DOMContentLoaded', function() {
     const selectElement = document.getElementById('padrao-select');
+
+    $(selectElement).select2();
     
     // 1. Lógica inicial para tratar query da URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -23,15 +25,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 2. Listener para mudanças manuais
-    selectElement.addEventListener('change', async function() {
+    $(selectElement).on('change', function() {
+        console.log("Chamou")
         const selectedValue = this.value;
-        this.disabled = true;
+        selectElement.disabled = true;
         if (selectedValue) {
             getPadroes(selectedValue);
         } else {
             resetFormData();
         }
-        this.disabled = false;
+        selectElement.disabled = false;
     });
 });
 
@@ -270,11 +273,19 @@ function updateAvailableOptions(equipamentos, funcionarios) {
 }
 
 export function resetFormData() {
-    loadFormDataRequest();
+    // Remove listeners antigos primeiro
+    $(document).off('change', '.funcionario, .equipamento');
+    
+    // Reseta o container
     const cloneContainer = document.getElementById('clone-container-1');
-    const form = document.getElementById('form-card-solict');
     const originalForm = cloneContainer.querySelector('.clone-form-1');            
     cloneContainer.innerHTML = '';
     cloneContainer.appendChild(originalForm);
+    
+    // Reseta o form sem disparar eventos
+    const form = document.getElementById('form-card-solict');
     form.reset();
+    
+    // Carrega os dados novamente (agora com apenas um listener)
+    loadFormDataRequest();
 }

@@ -147,7 +147,8 @@ function populateOperatorSelect() {
 }
 
 function setupEventListeners() {
-    document.getElementById('operatorSelect').addEventListener('change', handleOperatorChange);
+    $('#operatorSelect').select2();
+    $('#operatorSelect').on('change', handleOperatorChange);
     document.getElementById('selectAll').addEventListener('change', handleSelectAll);
     document.getElementById('processObservationBtn').addEventListener('click', handleSubmit);
     document.getElementById('confirmObservationBtn').addEventListener('click', handleConfirmObservation);

@@ -5,6 +5,14 @@ export function addCloneForm(equipamento= '', matricula='', nome='') {
     const cloneContainer = document.getElementById('clone-container-3');
     const originals = cloneContainer.querySelectorAll('.clone-form-3');
     const lastOriginal = originals[originals.length - 1];
+
+    // Destroy Select2 on the original before cloning
+    $(lastOriginal).find('select.select2').each(function() {
+        if ($(this).hasClass("select2-hidden-accessible")) {
+            $(this).select2('destroy');
+        }
+    });
+
     const clone = lastOriginal.cloneNode(true);
 
     console.log(equipamento)
@@ -26,7 +34,6 @@ export function addCloneForm(equipamento= '', matricula='', nome='') {
         }
     }
 
-    // Restante do código permanece o mesmo...
     // Limpa os valores dos inputs
     const inputs = clone.querySelectorAll('input, textarea, select');
     inputs.forEach(input => {
@@ -39,6 +46,27 @@ export function addCloneForm(equipamento= '', matricula='', nome='') {
 
     // Adiciona o clone ao container
     cloneContainer.appendChild(clone);
+
+    // Reinitialize Select2 on both original and clone
+    $(lastOriginal).find('select.select2').each(function() {
+        const $select = $(this);
+        const $modal = $select.closest('#modal-editar-padrao');
+        
+        $select.select2({
+            dropdownParent: $modal.length ? $modal : $(document.body),
+            width: '100%'
+        });
+    });
+    
+    $(clone).find('select.select2').each(function() {
+        const $select = $(this);
+        const $modal = $select.closest('.modal');
+        
+        $select.select2({
+            dropdownParent: $modal.length ? $modal : $(document.body),
+            width: '100%'
+        });
+    });
 
     // Atualiza TODOS os data-index após adicionar o novo clone
     updateRemoveButtonsIndexes(); // Removemos os parâmetros

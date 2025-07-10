@@ -2,6 +2,12 @@
 
 {% load static %}
 
+{% block links %}
+
+<link rel="stylesheet" href="/static/css/select2.css">
+
+{% endblock %}
+
 {% block content %}
 <body>
     <div class="container-fluid py-4" style="max-width: 1200px;">
@@ -23,7 +29,7 @@
             <div class="card-body">
                 <div class="mb-3">
                     <label for="operatorSelect" class="form-label">Funcionário</label>
-                    <select class="form-select" id="operatorSelect">
+                    <select class="form-select select2" id="operatorSelect">
                         <option value="">Selecione um funcionário...</option>
                     </select>
                 </div>

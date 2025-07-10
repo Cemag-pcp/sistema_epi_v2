@@ -1,4 +1,5 @@
 export function loadFormDataRequest() {
+    $(document).off('change', '.funcionario, .equipamento');
     const form = document.getElementById("form-card-solict");
     const spinner = document.getElementById("spinner");
     const funcionarioSelect = document.querySelector('.funcionario');
@@ -37,19 +38,23 @@ export function loadFormDataRequest() {
     motivoSelect.appendChild(defaultMotivoOption);
 
     // Função para atualizar os motivos baseado na condição
-    const atualizarMotivos = (isPrimeiraEntrega) => {
+    const atualizarMotivos = (isPrimeiraEntrega, motivoSelect) => {
         motivoSelect.innerHTML = '';
+        const defaultMotivoOption = document.createElement('option');
+        defaultMotivoOption.value = "";
+        defaultMotivoOption.textContent = "Selecione um motivo";
+        defaultMotivoOption.selected = true;
+        defaultMotivoOption.disabled = true;
+        defaultMotivoOption.hidden = true;
         motivoSelect.appendChild(defaultMotivoOption);
 
         if (isPrimeiraEntrega) {
-            // Adiciona apenas primeira entrega
             const option = document.createElement('option');
             option.value = 'primeira entrega';
             option.textContent = 'Primeira Entrega';
             motivoSelect.appendChild(option);
             motivoSelect.value = option.value;
         } else {
-            // Adiciona os outros motivos
             const motivos = [
                 {value: 'substituicao', text: 'Substituição'},
                 {value: 'perda', text: 'Perda'},
@@ -66,8 +71,10 @@ export function loadFormDataRequest() {
     };
 
     // Event listener para quando ambos funcionário e equipamento são selecionados
-    const handleChange = async () => {
+    const handleChange = async function({ funcionarioSelect, equipamentoSelect, motivoSelect }) {
         motivoSelect.innerHTML = "";
+        funcionarioSelect.disabled = true;
+        equipamentoSelect.disabled = true;
 
         const defaultMotivoOption = document.createElement('option');
         defaultMotivoOption.value = "";
@@ -82,13 +89,21 @@ export function loadFormDataRequest() {
                 {funcionario_id: funcionarioSelect.value, equipamento_id: equipamentoSelect.value}
             ]);
             const chave = `${funcionarioSelect.value}_${equipamentoSelect.value}`;
-            atualizarMotivos(!existe[chave]);
+            atualizarMotivos(!existe[chave], motivoSelect);
         }
         defaultMotivoOption.textContent = "Selecione um motivo..."
+        funcionarioSelect.disabled = false;
+        equipamentoSelect.disabled = false;
     };
 
-    funcionarioSelect.addEventListener('change', handleChange);
-    equipamentoSelect.addEventListener('change', handleChange);
+    $(document).on('change', '.funcionario, .equipamento', function() {
+        const form = this.closest('.clone-form-1');
+        const funcionarioSelect = form.querySelector('.funcionario');
+        const equipamentoSelect = form.querySelector('.equipamento');
+        const motivoSelect = form.querySelector('.motivo');
+        
+        handleChange.call(this, { funcionarioSelect, equipamentoSelect, motivoSelect });
+    });
 
     fetch('/solicitacao/api')
         .then(response => response.json())
