@@ -50,7 +50,7 @@ export function addCloneForm(equipamento= '', matricula='', nome='') {
     // Reinitialize Select2 on both original and clone
     $(lastOriginal).find('select.select2').each(function() {
         const $select = $(this);
-        const $modal = $select.closest('#modal-editar-padrao');
+        const $modal = $select.closest('.modal');
         
         $select.select2({
             dropdownParent: $modal.length ? $modal : $(document.body),
