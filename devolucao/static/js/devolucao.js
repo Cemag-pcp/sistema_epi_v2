@@ -430,6 +430,7 @@ function handleSelectAll() {
     document.querySelectorAll('.item-checkbox').forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
         updateConditionCell(parseInt(checkbox.value), checkbox.checked);
+        updateQuantidadeDevolvidaCell(parseInt(checkbox.value), checkbox.checked);
     });
     
     updateSelectionUI();

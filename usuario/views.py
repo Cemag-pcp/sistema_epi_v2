@@ -548,7 +548,6 @@ def itens_ativos_funcionario(request,id):
             ).filter(
                 Q(total_devolvido__isnull=True) | Q(total_devolvido__lt=F('quantidade'))
             ).order_by('-solicitacao__data_atualizacao')
-
             )
 
             # print(itens_ativos)
