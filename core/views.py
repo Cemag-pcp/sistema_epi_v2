@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Sum
 from usuario.decorators import somente_master
 from usuario.models import Funcionario
 from solicitacao.models import Solicitacao, DadosSolicitacao, Assinatura
@@ -14,6 +14,7 @@ from django.core.files.base import ContentFile
 import json
 import base64
 import uuid
+import traceback
 
 # Create your views here.
 
@@ -38,7 +39,6 @@ def home_solicitacoes(request):
     ).prefetch_related(
         'dados_solicitacao__equipamento'
     )
-
     # Aplica filtro de busca se existir
     if search:
         query = query.filter(
@@ -263,21 +263,39 @@ def send_signature(request):
 
                 for equipamento_data in data['equipamentos']:
                     equipamento_id = equipamento_data['equipamento_id']
-                    qualidade = equipamento_data['qualidade'].lower()  # deve estar entre 'bom', 'ruim', 'danificado'
+                    qualidade = equipamento_data['condicao'].lower()  # deve estar entre 'bom', 'ruim', 'danificado'
 
                     try:
-                        dados_solicitacao = DadosSolicitacao.objects.get(
-                            solicitacao=solicitacao,
-                            equipamento__id=equipamento_id
+                        dados_solicitacao = DadosSolicitacao.objects.annotate(
+                            total_devolvido=Sum('dados_solicitacao_devolucao__quantidade_devolvida')
+                        ).get(
+                            pk=equipamento_data['id'] # Esse id é do DadosSolicitacao associado ao equipamento
                         )
+
+
+                        # Validando o que já foi devolvido
+                        total_ja_devolvido = dados_solicitacao.total_devolvido or 0
+
+                        # Pegando a quantidade disponível para devolução
+                        quantidade_disponivel = dados_solicitacao.quantidade - total_ja_devolvido
+
+                        # Validando a quantidade devolvida
+                        if int(equipamento_data['quantidade_devolvida']) <= 0:
+                            raise ValueError("Quantidade devolvida deve ser maior que zero!")
+                        # Quantidade devolvida não pode ser maior que a quantidade disponível
+
+                        if int(equipamento_data['quantidade_devolvida']) > quantidade_disponivel:
+                            raise ValueError(f"Quantidade devolvida ({equipamento_data['quantidade_devolvida']}) maior que a disponível ({quantidade_disponivel})!")
+                        
                     except DadosSolicitacao.DoesNotExist:
-                        raise Exception(f"DadosSolicitacao não encontrado para equipamento {equipamento_id}")
+                            raise Exception(f"DadosSolicitacao não encontrado para equipamento {equipamento_id}")
 
                     # Criação da devolução
                     Devolucao.objects.create(
                         dados_solicitacao=dados_solicitacao,
                         responsavel_recebimento=request.user,
-                        estado_item=qualidade  # deve estar de acordo com os choices
+                        estado_item=qualidade,  # deve estar de acordo com os choices
+                        quantidade_devolvida=int(equipamento_data['quantidade_devolvida']),
                     )
 
                 assinatura.save()
@@ -287,6 +305,7 @@ def send_signature(request):
                 return JsonResponse({'success': True, 'message': 'Assinatura e devoluções registradas com sucesso'}, status=200)
 
         except Exception as e:
+            traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 @login_required

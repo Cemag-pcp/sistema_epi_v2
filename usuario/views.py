@@ -7,6 +7,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.views.decorators.http import require_http_methods
 
 from django.core.exceptions import ValidationError
+from django.db.models import Sum, F, Q
 from django.db import transaction, DatabaseError
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -533,8 +534,22 @@ def api_cargos(request):
 def itens_ativos_funcionario(request,id):
     if request.method == 'GET':
         try:
-            itens_ativos = DadosSolicitacao.objects.filter(solicitacao__status='Entregue',solicitacao__funcionario=id,dados_solicitacao_devolucao=None).order_by("-solicitacao__data_atualizacao")
+            # itens_ativos = DadosSolicitacao.objects.filter(solicitacao__status='Entregue',solicitacao__funcionario=id,dados_solicitacao_devolucao=None).order_by("-solicitacao__data_atualizacao")
 
+            itens_ativos = ( DadosSolicitacao.objects
+            .select_related('solicitacao','equipamento')
+            .prefetch_related('dados_solicitacao_devolucao')
+            .annotate(
+                total_devolvido=Sum('dados_solicitacao_devolucao__quantidade_devolvida')
+            ).filter(
+                solicitacao__status='Entregue',
+                solicitacao__funcionario=id
+            ).filter(
+                Q(total_devolvido__isnull=True) | Q(total_devolvido__lt=F('quantidade'))
+            ).order_by('-solicitacao__data_atualizacao')
+            )
+
+            # print(itens_ativos)
 
             lista_itens_ativos = []
             for item in itens_ativos:
@@ -546,10 +561,11 @@ def itens_ativos_funcionario(request,id):
                     'equipamento_codigo': item.equipamento.codigo,
                     'quantidade': item.quantidade,
                     'data_recebimento': item.solicitacao.data_atualizacao.date().strftime('%d/%m/%Y'),
-
+                    'quantidade_devolvida_original': item.total_devolvido or 0,
+                    'quantidade_disponivel': item.quantidade - (item.total_devolvido or 0),
                 })
             #puxar todos os itens entregues que o funcionario possui
-            if len(lista_itens_ativos) > 0:
+            if lista_itens_ativos:
                 return JsonResponse(lista_itens_ativos, safe=False)
             else:
                 return JsonResponse(lista_itens_ativos,status=404,safe=False)

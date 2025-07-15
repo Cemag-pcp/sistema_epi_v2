@@ -15,3 +15,4 @@ class Devolucao(models.Model):
     data_devolucao = models.DateTimeField(auto_now_add=True)
     observacoes = models.CharField(max_length=255, blank=True, null=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
+    quantidade_devolvida = models.PositiveIntegerField()
