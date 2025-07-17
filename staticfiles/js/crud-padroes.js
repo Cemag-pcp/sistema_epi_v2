@@ -1,6 +1,7 @@
 import { getCookie } from "../../../static/js/scripts.js";
 import { addCloneForm, removeSpecificClone, preencherModalEdicao } from "./edit-padroes/utils.js";
 import { table } from "./datatable-padroes.js";
+import { ToastBottomEnd } from "../../../static/js/scripts.js";
 
 // CREATE PADROES
 
@@ -12,17 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinner = salvarBtn.querySelector('.spinner-border');
     const spinnerRequest = criarSolicitarBtn.querySelector('.spinner-border');
     const form = document.getElementById('form-criar-padrao');
-    const Toast = Swal.mixin({
-        toast: true,
-        position: "bottom-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
-    });
 
     abrirModalBtn.addEventListener('click', () => {
         modal.show();
@@ -94,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(data => {
             if (data.success) {
-                Toast.fire({
+                ToastBottomEnd.fire({
                     icon: 'success',
                     title: 'Padrão criado com sucesso!'
                 });
@@ -109,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         })
         .catch(error => {
-            Toast.fire({
+            ToastBottomEnd.fire({
                 icon: 'error',
                 title: error.message || 'Erro ao salvar padrão'
             });
@@ -132,19 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinner = salvarBtn.querySelector('.spinner-border');
     const spinnerEditar = solicitarBtn.querySelector('.spinner-border');
     const addBtn = document.getElementById('add-clone-3');
-
-    // Configuração do Toast
-    const Toast = Swal.mixin({
-        toast: true,
-        position: "bottom-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
-    });
 
     // Evento para abrir o modal e carregar os dados
     document.addEventListener('click', async function(event) {
@@ -201,7 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Event listeners para os botões de adicionar/remover
-    addBtn.addEventListener('click', addCloneForm);
+    addBtn.addEventListener('click', function() {
+        addCloneForm();
+    });
     document.addEventListener('click', function(event) {
         if (event.target.closest('.remove-specific')) {
             const button = event.target.closest('.remove-specific');
@@ -273,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             
             if (data.success) {
-                Toast.fire({
+                ToastBottomEnd.fire({
                     icon: 'success',
                     title: 'Padrão atualizado com sucesso!'
                 });
@@ -284,14 +263,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     modal.hide();
                 }
             } else {
-                Toast.fire({
+                ToastBottomEnd.fire({
                     icon: 'error',
                     title: data.message || 'Erro ao atualizar padrão'
                 });
             }
         })
         .catch(error => {
-            Toast.fire({
+            ToastBottomEnd.fire({
                 icon: 'error',
                 title: error.message || 'Ocorreu um erro ao carregar os dados do padrão',
             });
@@ -314,17 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const descricao = document.getElementById('padrao-desativado');
   const salvarBtn = document.getElementById('desativarPadrao');
   const spinner = salvarBtn.querySelector('.spinner-border');
-  const Toast = Swal.mixin({
-      toast: true,
-      position: "bottom-end",
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-      didOpen: (toast) => {
-        toast.onmouseenter = Swal.stopTimer;
-        toast.onmouseleave = Swal.resumeTimer;
-      }
-  });
   
   document.addEventListener('click', function (event) {
     if (event.target.classList.contains('abrirModalDesativarPadrao')) { 
@@ -362,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           if (data.success) {
-            Toast.fire({
+            ToastBottomEnd.fire({
                 icon: 'success',
                 title: 'Status do padrão alterado com sucesso!'
             });
@@ -374,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
       } catch (error) {
           console.error(error);
-          Toast.fire({
+          ToastBottomEnd.fire({
               icon: 'error',
               title: error.message || 'Erro ao atualizar equipamento'
           });

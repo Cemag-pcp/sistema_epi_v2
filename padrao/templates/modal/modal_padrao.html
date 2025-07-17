@@ -1,4 +1,4 @@
-<div class="modal fade" id="modal-criar-padrao" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" >
+<div class="modal fade" id="modal-criar-padrao" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-white d-flex justify-content-between align-items-start">
@@ -18,13 +18,13 @@
                 {% if request.user.funcionario.tipo_acesso == 'master' %}
                 <div class="col-md-12">
                     <label class="form-label text-modal">Setor do Padrão Criado</label>
-                    <select type="text" class="form-control text-modal" id="padrao_setor" name="padrao_setor" required>
+                    <select type="text" class="form-control text-modal select2" id="padrao_setor" name="padrao_setor" required>
                     </select>
                 </div>
                 {% else %}
                 <div class="col-md-12">
                     <label class="form-label text-modal">Setor do Padrão Criado</label>
-                    <select type="text" class="form-control text-modal" id="padrao_setor" name="padrao_setor"
+                    <select type="text" class="form-control text-modal select2" id="padrao_setor" name="padrao_setor"
                     data-setor-id="{{ request.user.funcionario.setor.id }}">
                     </select>
                 </div>
@@ -42,7 +42,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-9">
                             <label class="form-label text-modal">Equipamento</label>
-                            <select class="form-select text-modal equipamento" name="item" required>
+                            <select class="form-select text-modal equipamento select2" name="item" required>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -53,7 +53,7 @@
 
                     <div class="mb-3">
                         <label class="form-label text-modal">Funcionário</label>
-                        <select class="form-select text-modal funcionario" name="operator" required>
+                        <select class="form-select text-modal funcionario select2" name="operator" required>
                         </select>
                     </div>
 
@@ -96,7 +96,7 @@
   </div>
 </div>
 
-<div class="modal fade" id="modal-editar-padrao" data-id="" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+<div class="modal fade" id="modal-editar-padrao" data-id="" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-white d-flex justify-content-between align-items-start">
@@ -131,14 +131,14 @@
                         <div class="row mb-3">
                             <div class="col-md-12">
                                 <label class="form-label text-modal">Equipamento</label>
-                                <select class="form-select text-modal" name="item" required>
+                                <select class="form-select text-modal select2" name="item" required>
                                 </select>
                             </div>
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-9">
                                 <label class="form-label text-modal">Funcionário</label>
-                                <select class="form-select text-modal" name="operator" required>
+                                <select class="form-select text-modal select2" name="operator" required>
                                 </select>
                             </div>
                             <div class="col-md-3">

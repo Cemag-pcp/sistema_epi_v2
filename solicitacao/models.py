@@ -1,7 +1,7 @@
 from django.db import models
 from equipamento.models import Equipamento
 from usuario.models import Usuario, Funcionario
-from equipamento.models import Equipamento
+
 
 class Solicitacao(models.Model):
     STATUS_CHOICES = [

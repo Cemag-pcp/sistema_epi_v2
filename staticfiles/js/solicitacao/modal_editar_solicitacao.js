@@ -1,5 +1,7 @@
+import { ToastBottomEnd } from "../../../../static/js/scripts.js";
+
 // Função para adicionar novo formulário clonado para solicitação
-export function addSolicitacaoClone(equipamento= '', matricula='', nome='') {
+export function addSolicitacaoClone(equipamento= '', matricula='', nome='', funcionario_id='') {
     const cloneContainer = document.getElementById('clone-container-solicitacao');
     const originals = cloneContainer.querySelectorAll('.clone-form-solicitacao');
     const lastOriginal = originals[originals.length - 1];
@@ -9,9 +11,11 @@ export function addSolicitacaoClone(equipamento= '', matricula='', nome='') {
     clone.dataset.equipamento = equipamento;
     clone.dataset.matricula = matricula;
     clone.dataset.nome = nome;
+    clone.dataset.funcionario_id = funcionario_id;
+    funcionario_id = lastOriginal.querySelector('[name="operator"]')?.value || lastOriginal.dataset.funcionario_id || '';
     
     const requestText = clone.querySelector('.request');
-    if (equipamento !== '' && matricula !== '' && nome !== '') {
+    if (equipamento !== '' && matricula !== '' && nome !== '' && funcionario_id !== '') {
         // Atualiza o texto do item
         if (requestText) {
             const cloneNumber = originals.length + 1;
@@ -28,7 +32,11 @@ export function addSolicitacaoClone(equipamento= '', matricula='', nome='') {
     const inputs = clone.querySelectorAll('input, textarea, select');
     inputs.forEach(input => {
         if (input.tagName === 'SELECT') {
-            input.selectedIndex = 0;
+            if (input.name === 'operator') {
+                input.value = funcionario_id;
+            } else {
+                input.selectedIndex = 0;
+            }
         } else if (input.type !== 'submit') {
             input.value = '';
             if (input.name === 'quantity') input.value = 1;
@@ -104,17 +112,6 @@ function toggleSolicitacaoCollapseFunction() {
 export function removeSpecificSolicitacaoClone(indexToRemove) {
     const cloneContainer = document.getElementById('clone-container-solicitacao');
     const clones = cloneContainer.querySelectorAll('.clone-form-solicitacao');
-    const Toast = Swal.mixin({
-        toast: true,
-        position: "bottom-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
-    });
     
     // Verifica se há mais de um clone e se o índice é válido
     if (clones.length > 1 && indexToRemove >= 0 && indexToRemove < clones.length) {
@@ -125,7 +122,7 @@ export function removeSpecificSolicitacaoClone(indexToRemove) {
         updateSolicitacaoRemoveButtonsIndexes();
     } else if (clones.length <= 1) {
         // Não permite remover o último clone
-        Toast.fire({
+        ToastBottomEnd.fire({
             icon: 'warning',
             title: 'Você não pode remover o último item!'
         });

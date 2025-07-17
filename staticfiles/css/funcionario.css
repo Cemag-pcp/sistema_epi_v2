@@ -35,3 +35,6 @@
     align-items: center;
     z-index: 1000;
 }
+.uppercase {
+    text-transform: uppercase;
+}

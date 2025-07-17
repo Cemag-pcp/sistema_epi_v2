@@ -16,7 +16,6 @@ import base64
 import uuid
 import traceback
 
-
 # Create your views here.
 
 @login_required
