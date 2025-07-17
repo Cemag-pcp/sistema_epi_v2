@@ -51,3 +51,16 @@ export const ToastBottomEnd = Swal.mixin({
         toast.onmouseleave = Swal.resumeTimer;
     }
 });
+
+// Função para inicializar Select2 em elementos padrão
+$('.select2').select2({
+    width: '100%'
+});
+
+// Função para inicializar Select2 em modais
+$('.select2-modal').each(function() {
+    $(this).select2({
+        dropdownParent: $(this).closest('.modal'),
+        width: '100%'
+    });
+});

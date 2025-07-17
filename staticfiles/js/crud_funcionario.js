@@ -85,17 +85,13 @@ async function addEmployee(employeeData) {
             errorValidacao(data, 'Falha ao adicionar funcionário');
         }
 
-        
+        // Pega o ID do novo funcionário
         const newId = employees.length > 0 ? Math.max(...employees.map(emp => emp.id)) + 1 : 1;
-        //Trocando o valor do id do setor para o nome
-        // employeeData['setorId'] = parseInt(employeeData['setor']);
-        //Trocando o valor do id do cargo para o nome
-        // employeeData['cargoId'] = parseInt(employeeData['cargo']);
+
         const newEmployee = { id: newId, ...employeeData };
         employees.push(newEmployee);
         
-        // renderEmployees(employees);
-        // Exemplo de atualização após adicionar um funcionário
+        // atualização após adicionar um funcionário
         dataTable.clear().rows.add(employees).draw(false);
         employeeModal.hide();
         
@@ -121,7 +117,6 @@ async function updateEmployee(id, employeeData) {
         saveButtonText.classList.add('d-none');
         saveSpinner.classList.remove('d-none');
         saveEmployeeBtn.disabled = true;
-        console.log(employeeData);
         
         // In a real application, you would put to the API
         const response = await fetch(`${URL_EDITAR_FUNCIONARIO}${id}/`, {
@@ -138,22 +133,15 @@ async function updateEmployee(id, employeeData) {
         if (!response.ok){
             errorValidacao(data, 'Falha ao atualizar funcionário');
         }
-
-
-        // For demonstration, we'll update the sample data
-        // Simulate API delay
-        // await new Promise(resolve => setTimeout(resolve, 1000));
+        // Reconstruir o datatable com os dados atualizados, pois na edição pode haver mudanças no responsável,
+        // o que muda o campo de vários funcionarios ao mesmo tempo
+        await fetchEmployees();
         
-        // employeeData['setor'] = employeeData['setorNome'];
-        // employeeData['cargo'] = employeeData['cargoNome'];
-        // Atualizar o datatable sem reinicializar
-        const index = employees.findIndex(emp => emp.id == id);
-        if (index !== -1) {
-            employees[index] = { ...employees[index], ...employeeData };
-        }
-        console.log(employees[index]);
-        // Refresh the DataTable
-        dataTable.row(index).data(employees[index]).draw(false);
+        // const index = employees.findIndex(emp => emp.id == id);
+        // if (index !== -1) {
+        //     employees[index] = { ...employees[index], ...employeeData };
+        // }
+        // dataTable.row(index).data(employees[index]).draw(false);
         employeeModal.hide();
         
         return id;
@@ -193,8 +181,6 @@ async function createUser(userData) {
             errorValidacao(data, 'Falha ao criar usuário');
         }
         
-        // For demonstration, we'll simulate API delay
-        // await new Promise(resolve => setTimeout(resolve, 1000));
         const index = employees.findIndex(emp => emp.id == userData.funcionarioId);
         if (index !== -1) {
             employees[index].usuario = true;
@@ -241,9 +227,6 @@ async function deactivateEmployee(id) {
             errorValidacao(data, 'Falha ao desativar funcionário');
         }
         
-        // For demonstration, we'll update the sample data
-        // Simulate API delay
-        // await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
@@ -278,16 +261,6 @@ function validatePasswordMatch() {
     if (senha === confirmarSenha) {
         confirmarSenhaInput.classList.remove('is-invalid');
 
-        if (senha.length < 8){
-            confirmarSenhaInput.classList.add('is-invalid');
-            senhaFeedback.innerText = 'A senha possui menos de 8 caracteres';
-            return false;
-        }
-        if (isOnlyNumbers(senha)){
-            confirmarSenhaInput.classList.add('is-invalid');
-            senhaFeedback.innerText = 'A senha contém apenas números';
-            return false;
-        }
         return true;
     } else {
         confirmarSenhaInput.classList.add('is-invalid');
@@ -442,7 +415,6 @@ saveEmployeeBtn.addEventListener('click', async function() {
     if (employeeForm.checkValidity()) {
         const id = employeeIdInput.value;
         
-        console.log(cargoInput.value);
         const employeeData = {
             matricula: matriculaInput.value,
             nome: nomeInput.value,
@@ -556,9 +528,6 @@ function mostrarErroModal(mensagem) {
             em.innerText = ''; 
         }, 5000);
     })
-
-    
-    
 }
 
 function esconderErroModal() {
@@ -620,9 +589,7 @@ cancelUserBtn.addEventListener('click', async function() {
         confirmButtonText: 'Sim, continuar',
         cancelButtonText: 'Cancelar'
     });
-    console.log(result);
     if (result.isConfirmed) {
-        console.log(result.isConfirmed);
         userModal.hide();
         if (!isEditMode){
             showAlert('Funcionário adicionado com sucesso, mas o usuário não foi criado.', 'warning');
@@ -630,14 +597,6 @@ cancelUserBtn.addEventListener('click', async function() {
         tempEmployeeData = null;
     }
     
-    // const confirmCancel = confirm("Tem certeza que deseja cancelar a criação do usuário?");
-    // if (confirmCancel) {
-    //     userModal.hide();
-    //     if (!isEditMode){
-    //         showAlert('Funcionário adicionado com sucesso, mas o usuário não foi criado.', 'warning');
-    //     }
-    //     tempEmployeeData = null;
-    // }
 });
 
 // Custom search functionality for DataTable
@@ -685,7 +644,6 @@ export function handleEditClick(e) {
         cargoInput.appendChild(optionCargo);
 
         cargoInput.value = employee.cargoId;
-        console.log(employee);
         
 
         // Hide the "Criar Usuário" checkbox in edit mode if usuario exists
@@ -714,17 +672,13 @@ export async function fetchEmployees() {
     try {
         loadingSpinner.classList.remove('d-none');
         noResults.classList.add('d-none');
-        
-        // In a real application, you would fetch from the API
+
+        // Fetch employees from the API
         const response = await fetch(URL_LISTAR_FUNCIONARIOS);
         if (!response.ok) throw new Error('Failed to fetch employees');
         const data = await response.json();
         // Armazenar os dados localmente
         employees = data;
-        console.log(employees);
-        // For demonstration, we'll use the sample data
-        // Simulate API delay
-        // await new Promise(resolve => setTimeout(resolve, 500));
 
         initializeDataTable(data);
     } catch (error) {
@@ -735,6 +689,7 @@ export async function fetchEmployees() {
     }
 }
 
+// Function to handle validation errors
 function errorValidacao(data, error) {
         if (data.errors) {
             let errorMessage;
@@ -745,10 +700,6 @@ function errorValidacao(data, error) {
         } else{
             throw new Error(error);
         }
-}
-
-function isOnlyNumbers(password) {
-    return /^\d+$/.test(password);
 }
 
 

@@ -1,8 +1,13 @@
-import { loadFormDataRequest, verificarMultiplosEquipamentos } from "./get_solicitacoes.js";
+import { loadFormDataRequest, verificarMultiplosEquipamentos, setupChangeListeners } from "./get_solicitacoes.js";
 import { updateRequestNumbers } from "../../../static/js/clone.js";
+
+let abortController = null;
+let activeRequests = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
     const selectElement = document.getElementById('padrao-select');
+
+    $(selectElement).select2();
     
     // 1. Lógica inicial para tratar query da URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -23,51 +28,84 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 2. Listener para mudanças manuais
-    selectElement.addEventListener('change', async function() {
+    $(selectElement).on('change', function() {
         const selectedValue = this.value;
-        this.disabled = true;
+
+        if (abortController) {
+            abortController.abort();
+        }
+
         if (selectedValue) {
             getPadroes(selectedValue);
         } else {
             resetFormData();
         }
-        this.disabled = false;
     });
 });
 
 function getPadroes(value) {
     const form = document.getElementById("form-card-solict");
     const spinner = document.getElementById("spinner");
-    form.style.display = 'none';
-    spinner.style.display = 'block';
-
+    
+    // Mostra o spinner apenas na primeira requisição ativa
+    if (activeRequests === 0) {
+        form.style.display = 'none';
+        spinner.style.display = 'block';
+    }
+    
+    activeRequests++; // Incrementa o contador
+    
+    // Cria um novo AbortController para a requisição atual
+    abortController = new AbortController();
+    
     fetch(`/padroes/${value}`, {
         method: 'GET',
         headers: {
             'X-Requested-With': 'XMLHttpRequest',
             'Content-Type': 'application/json',
-        }
+        },
+        signal: abortController.signal
     })
-    .then(response => response.json())
-    .then(async data => {  // Adicione async aqui
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        throw new Error('Erro na requisição');
+    })
+    .then(async data => {
         if (data.success) {
             updateAvailableOptions(data.equipamentos, data.funcionarios_disponiveis);
-            await fillPadraoData(data.padrao);  // Adicione await aqui
+            await fillPadraoData(data.padrao);
         } else {
             alert(data.message || 'Erro ao carregar padrão');
         }
     })
     .catch(error => {
-        console.error('Erro na requisição:', error);
-        alert('Erro ao carregar dados do padrão');
+        // Ignora erros causados pelo abort
+        if (error.name !== 'AbortError') {
+            console.error('Erro na requisição:', error);
+            alert('Erro ao carregar dados do padrão');
+        }
     })
     .finally(() => {
-        form.style.display = 'block';
-        spinner.style.display = 'none';
+        activeRequests--; // Decrementa o contador
+        
+        // Esconde o spinner apenas quando não houver mais requisições ativas
+        if (activeRequests === 0) {
+            form.style.display = 'block';
+            spinner.style.display = 'none';
+        }
+        
+        // Limpa o controlador apenas se for o último
+        if (activeRequests === 0) {
+            abortController = null;
+        }
     });
 }
 
 async function fillPadraoData(padraoData) {
+    $(document).off('change', '.funcionario, .equipamento');
+
     const cloneContainer = document.getElementById('clone-container-1');
     const originalForm = cloneContainer.querySelector('.clone-form-1');
     
@@ -92,6 +130,11 @@ async function fillPadraoData(padraoData) {
     const requestText = originalForm.querySelector(".request");
     if (requestText) {
         requestText.textContent = "1ª Solicitação";
+    }
+
+    if (padraoData.funcionarios.length === 0) {
+        setupChangeListeners();
+        return;
     }
     
     if (padraoData.funcionarios.length === 0) return;
@@ -126,8 +169,15 @@ async function fillPadraoData(padraoData) {
             if (formIndex === 0) {
                 form = originalForm;
             } else {
-                form = originalForm.cloneNode(true);
+                // Destruir todos os Select2 (incluindo o original)
+                $(originalForm).find('select.select2').each(function() {
+                    if ($(this).hasClass("select2-hidden-accessible")) {
+                        $(this).select2('destroy');
+                    }
+                });
                 
+                form = originalForm.cloneNode(true);
+
                 const removeBtn = form.querySelector(".btn-outline-danger");
                 if (removeBtn) {
                     removeBtn.addEventListener("click", function() {
@@ -148,6 +198,22 @@ async function fillPadraoData(padraoData) {
                 }
                 
                 cloneContainer.appendChild(form);
+
+                $(originalForm).find('select.select2').each(function() {
+                    const $select = $(this);
+                    
+                    $select.select2({
+                        width: '100%'
+                    });
+                });
+                
+                $(form).find('select.select2').each(function() {
+                    const $select = $(this);
+                    
+                    $select.select2({
+                        width: '100%'
+                    });
+                });
             }
             
             // Atualizar número da solicitação
@@ -160,11 +226,13 @@ async function fillPadraoData(padraoData) {
             const funcionarioSelect = form.querySelector('.funcionario');
             if (funcionarioSelect) {
                 funcionarioSelect.value = funcionario.funcionario_id;
+                $(funcionarioSelect).trigger('change');
             }
             
             const equipamentoSelect = form.querySelector('.equipamento');
             if (equipamentoSelect) {
                 equipamentoSelect.value = equipamento.equipamento_id;
+                $(equipamentoSelect).trigger('change');
             }
             
             const quantidadeInput = form.querySelector('.quantidade');
@@ -176,14 +244,6 @@ async function fillPadraoData(padraoData) {
             const motivoSelect = form.querySelector('.motivo');
             if (motivoSelect) {
                 motivoSelect.innerHTML = '';
-                
-                const defaultOption = document.createElement('option');
-                defaultOption.value = "";
-                defaultOption.textContent = "Selecione um motivo";
-                defaultOption.selected = true;
-                defaultOption.disabled = true;
-                defaultOption.hidden = true;
-                motivoSelect.appendChild(defaultOption);
                 
                 const chave = `${funcionario.funcionario_id}_${equipamento.equipamento_id}`;
                 const existe = verificacoes[chave];
@@ -224,6 +284,8 @@ async function fillPadraoData(padraoData) {
             formIndex++;
         }
     }
+    
+    setupChangeListeners();
 }
 
 function updateAvailableOptions(equipamentos, funcionarios) {
@@ -270,11 +332,19 @@ function updateAvailableOptions(equipamentos, funcionarios) {
 }
 
 export function resetFormData() {
-    loadFormDataRequest();
+    // Remove listeners antigos primeiro
+    $(document).off('change', '.funcionario, .equipamento');
+    
+    // Reseta o container
     const cloneContainer = document.getElementById('clone-container-1');
-    const form = document.getElementById('form-card-solict');
     const originalForm = cloneContainer.querySelector('.clone-form-1');            
     cloneContainer.innerHTML = '';
     cloneContainer.appendChild(originalForm);
+    
+    // Reseta o form sem disparar eventos
+    const form = document.getElementById('form-card-solict');
     form.reset();
+    
+    // Carrega os dados novamente (agora com apenas um listener)
+    loadFormDataRequest();
 }

@@ -1,4 +1,5 @@
 import { getCookie } from "../../../../static/js/scripts.js";
+import { ToastBottomEnd } from "../../../../static/js/scripts.js";
 
 document.addEventListener('DOMContentLoaded', async () =>{
      try {
@@ -63,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () =>{
     } catch (error) {
         console.error('Erro ao carregar equipamento:', error);
         // Mostrar feedback visual para o usuário
-        Toast.fire({
+        ToastBottomEnd.fire({
             icon: 'error',
             title: 'Erro ao carregar equipamento'
         });
