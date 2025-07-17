@@ -62,7 +62,7 @@
                                         <a class="nav-link" href="{% url 'solicitacao:solicitacao' %}">Solicitar EPI</a>
                                         <a class="nav-link" href="{% url 'devolucao:devolucao' %}">Devolução EPI</a>
                                         <a class="nav-link">Histórico EPI</a>
-                                        <a class="nav-link">Ficha EPI</a>
+                                        <a class="nav-link" href="{% url 'ficha:ficha' %}">Ficha EPI</a>
                                     {% elif request.user.funcionario.tipo_acesso == 'solicitante' %}  
                                         <a class="nav-link" href="{% url 'solicitacao:solicitacao' %}">Solicitar EPI</a>
                                     {% endif %}       

@@ -2,6 +2,10 @@
     max-height: 60vh;
     overflow-y: auto;
 }
+
+.hidden-icon {
+    display: none !important;
+}
  
 /* Ajusta a caixa de seleção para parecer com o form-control */
 .select2-container .select2-selection {
