@@ -2,6 +2,12 @@
 
 {% load static %}
 
+{% block links %}
+
+<link rel="stylesheet" href="/static/css/select2.css">
+
+{% endblock %}
+
 {% block content %}
 
 
@@ -15,11 +21,11 @@
 <main class="container py-2">
     <div class="card shadow-sm mb-4 mx-auto" style="max-width: 42rem;">
         <div class="d-flex justify-content-between align-items-center card-header bg-white">
-            <div>
+            <div class="col-md-8">
                 <h3 class="modal-title">Solicitação</h3>
                 <span class="desc-modal-title">Preencha este formulário para solicitar equipamentos de proteção individual</span>
             </div>
-            <div>
+            <div class="col-md-4">
                 <label for="" class="text-modal">Padrões</label>
                 <select class="form-control" name="" id="padrao-select">
                    <option value="" {% if not query_value %}selected{% endif %}></option>
@@ -52,7 +58,7 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label text-modal">Equipamento</label>
-                                <select class="form-select text-modal equipamento" name="equipamento" required>
+                                <select class="form-select text-modal equipamento select2" name="equipamento" required>
                                     <option value="" selected hidden disabled>Selecione um equipamento...</option>
                                     {% for equipamento in equipamentos %}
                                     <option value="{{ equipamento.id }}">{{ equipamento.codigo }} - {{ equipamento.nome }}</option>
@@ -67,7 +73,7 @@
 
                         <div class="mb-3">
                             <label class="form-label text-modal">Funcionários</label>
-                            <select class="form-select text-modal funcionario" name="funcionario" required>
+                            <select class="form-select text-modal funcionario select2" name="funcionario" required>
                                 <option value="" selected hidden disabled>Selecione um funcionário...</option>
                                 {% for funcionario in funcionarios %}
                                 <option value="{{ funcionario.id }}">{{ funcionario.matricula }} - {{ funcionario.nome }}</option>
