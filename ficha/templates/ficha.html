@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block links %}
+
+<link rel="stylesheet" href="/static/css/select2.css">
+
+{% endblock %}
+
+{% block content %}
+
+<form id="form-ficha">
+  <div class="row justify-content-center" style="margin-top: 50px;">
+    <div class="col-12 col-sm-12 col-md-6 col-lg-6 col-xl-6 text-center">
+        <h1 style="font-weight: 700;"><label for="">Filtrar Ficha de EPI</label></h1>
+        <p class="fw-medium" style="color: #6e6e77;">Utilize o filtro abaixo para consultar as fichas de EPI, 
+        verificando a situação e histórico de entrega por colaborador.</p>
+        <div class="input-group mt-4" style="flex-wrap: nowrap">
+          <select class="form-control select2" id="select-ficha">
+            <option value="">Selecione um funcionário...</option>
+            {% for funcionario in funcionarios %}
+                <option value="{{funcionario.id}}">{{funcionario.matricula}} - {{funcionario.nome}}</option>
+            {% endfor %}
+          </select>
+          <button id="filtrar-ficha" class="input-group-text btn btn-light border" type="submit">
+            <i id="search-icon-glass" class="fa-solid fa-magnifying-glass"></i>
+            <span id="loading-spinner" class="spinner-border spinner-border-sm"
+            aria-hidden="true" style="display: none;"></span>
+            <span class="visually-hidden" role="status">Loading...</span>
+          </button>
+        </div>
+    </div>
+  </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script src="{% static 'submit/ficha.js' %}"></script>
+
+{% endblock %}
