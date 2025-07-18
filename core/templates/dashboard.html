@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block links %}
+<link rel="stylesheet" href="/static/css/select2.css">
+<style>
+    .card-solicitacao {
+        min-height: 300px; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+    .itens-solicitacao {
+        max-height: 150px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+        border: 1px solid #eee;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    .badge-status {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+    }
+    #container-dashboard {
+        min-height: 300px;
+        position: relative;
+    }
+    .loading-container {
+        text-align: center;
+        padding: 2rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h3 class="mb-4 fw-bold">Dashboard</h3>
+<div id="container-dashboard">
+    <div class="loading-container">
+        <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Carregando solicitações...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/dashboard.js' %}" type="module"></script>
+{% endblock %}

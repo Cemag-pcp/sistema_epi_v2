@@ -15,6 +15,7 @@ import json
 import base64
 import uuid
 import traceback
+from datetime import timedelta
 
 # Create your views here.
 
@@ -345,3 +346,61 @@ def alter_signature(request, id):
                 'message': f'Ocorreu um erro ao excluir a assinatura e as devoluções: {str(e)}'
             }, status=500)
         
+def dashboard_template(request):
+    return render(request, 'dashboard.html') 
+
+def dashboard(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Autenticação necessária'
+        }, status=401)
+
+    try:
+        page_number = request.GET.get('page', 1)
+        items_per_page = 10
+
+        solicitacoes_pendentes = Solicitacao.objects.filter(status='Pendente').prefetch_related('dados_solicitacao').order_by('-data_solicitacao')
+        
+        paginator = Paginator(solicitacoes_pendentes, items_per_page)
+        page_obj = paginator.get_page(page_number)
+        
+        dados = []
+        for solicitacao in page_obj:
+            itens = []
+            for dado in solicitacao.dados_solicitacao.all():
+                itens.append({
+                    'equipamento': dado.equipamento.nome,
+                    'quantidade': dado.quantidade,
+                    'motivo': dado.get_motivo_display(),
+                    'observacoes': dado.observacoes or ''
+                })
+            
+            dados.append({
+                'id': solicitacao.id,
+                'solicitante': solicitacao.solicitante.nome,
+                'funcionario': solicitacao.funcionario.nome,
+                'data_solicitacao': (solicitacao.data_solicitacao - timedelta(hours=3)).strftime('%d/%m/%Y %H:%M'),
+                'timestamp_solicitacao': int(solicitacao.data_solicitacao.timestamp()),
+                'status': solicitacao.get_status_display(),
+                'observacoes': solicitacao.observacoes or '',
+                'itens': itens
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'solicitacoes': dados,
+            'pagination': {
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'total_items': paginator.count
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)

@@ -95,3 +95,21 @@
     font-size: 0.875rem;
     font-weight: 500;
 }
+
+.tempo-aberto {
+    background-color: #f8f9fa;
+    padding: 5px 10px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.tempo-decorrido {
+    font-weight: bold;
+    color: #343a40;
+}
+
+.badge-status {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+    margin-left: 5px;
+}

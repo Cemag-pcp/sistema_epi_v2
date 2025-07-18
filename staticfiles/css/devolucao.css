@@ -14,7 +14,7 @@
 }
 .serial-number {
     font-family: 'Courier New', monospace;
-    font-size: 0.875rem;
+    /* font-size: 0.875rem; */
 }
 .empty-state {
     padding: 3rem 0;

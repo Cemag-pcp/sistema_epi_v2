@@ -49,7 +49,35 @@ def solicitacao_template(request):
                         itens_por_funcionario[funcionario_id] = []
                     itens_por_funcionario[funcionario_id].append(item)
 
-                # Criando uma solicitação para cada funcionário
+                # Verificações antes de criar as solicitações
+                for funcionario_id, itens in itens_por_funcionario.items():
+                    funcionario = Funcionario.objects.get(id=funcionario_id)
+                    
+                    for item in itens:
+                        equipamento = Equipamento.objects.get(id=item['equipamento_id'])
+                        motivo = item['motivos']
+                        
+                        # Verifica se o funcionário já solicitou este equipamento antes
+                        ja_solicitou = DadosSolicitacao.objects.filter(
+                            solicitacao__funcionario=funcionario,
+                            equipamento=equipamento
+                        ).exists()
+                        
+                        # Primeira condição de erro
+                        if ja_solicitou and motivo.lower() == 'primeira entrega':
+                            return JsonResponse({
+                                'success': False,
+                                'message': f'Erro: O funcionário {funcionario.nome} já solicitou o equipamento {equipamento.nome} anteriormente e o motivo não pode ser "primeira entrega".'
+                            }, status=400)
+                        
+                        # Segunda condição de erro
+                        if not ja_solicitou and motivo.lower() != 'primeira entrega':
+                            return JsonResponse({
+                                'success': False,
+                                'message': f'Erro: O funcionário {funcionario.nome} nunca solicitou o equipamento {equipamento.nome} antes e o motivo deve ser "primeira entrega".'
+                            }, status=400)
+
+                # Se passou pelas verificações, cria as solicitações
                 for funcionario_id, itens in itens_por_funcionario.items():
                     funcionario = Funcionario.objects.get(id=funcionario_id)
                     
@@ -69,7 +97,7 @@ def solicitacao_template(request):
                     # Processa cada item para este funcionário
                     for item in itens:
                         equipamento = Equipamento.objects.get(id=item['equipamento_id'])
-
+                        
                         DadosSolicitacao.objects.create(
                             solicitacao=solicitacao,
                             equipamento=equipamento,

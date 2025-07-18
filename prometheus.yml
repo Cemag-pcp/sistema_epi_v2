@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'django-app'
+    scrape_interval: 15s
+    scrape_timeout: 30s  # Aumente para 30 segundos
+    static_configs:
+      - targets: ['django-app:8000']
+    metrics_path: '/metrics'  # Endpoint padrão do Prometheus exporter

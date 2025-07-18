@@ -3,7 +3,7 @@ import sys
 
 # Configurações específicas de desenvolvimento
 DEBUG = env.bool('DEBUG', default=True)
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'sistema-epi-v2-testes.onrender.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'django-app','sistema-epi-v2-testes.onrender.com']
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1', 'https://sistema-epi-v2-testes.onrender.com'
 ]
