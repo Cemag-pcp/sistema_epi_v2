@@ -1,14 +1,14 @@
 from pathlib import Path
 import os
 import environ
-from ..otel import setup_otel_metrics
+# from ..otel import setup_otel_metrics
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-setup_otel_metrics()
+# setup_otel_metrics()
 
 SECRET_KEY = env('SECRET_KEY')
 
