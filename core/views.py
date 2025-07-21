@@ -15,7 +15,7 @@ import json
 import base64
 import uuid
 import traceback
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 # Create your views here.
 
@@ -31,16 +31,23 @@ def home_solicitacoes(request):
     page = int(request.GET.get('page', 1))
     per_page = int(request.GET.get('per_page', 10))
     search = request.GET.get('search', '')
-    sort_field = request.GET.get('sort', 'data_solicitacao')  # Campo padrão alterado
+    id_solicitacao = request.GET.get('id_solicitacao', '')
+    funcionario = request.GET.get('funcionario', '')
+    equipamento = request.GET.get('equipamento', '')
+    data_inicio = request.GET.get('data_inicio', '')
+    data_fim = request.GET.get('data_fim', '')
+    status = request.GET.get('status', '').split(',')
+    sort_field = request.GET.get('sort', 'data_solicitacao')
     order = request.GET.get('order', 'desc')
 
-    # Consulta base - agora partindo de Solicitacao
+    # Consulta base
     query = Solicitacao.objects.select_related(
         'funcionario', 'solicitante'
     ).prefetch_related(
         'dados_solicitacao__equipamento'
     )
-    # Aplica filtro de busca se existir
+
+    # Aplica filtros
     if search:
         query = query.filter(
             Q(id__icontains=search) |
@@ -48,6 +55,33 @@ def home_solicitacoes(request):
             Q(funcionario__matricula__icontains=search) |
             Q(dados_solicitacao__equipamento__nome__icontains=search)
         ).distinct()
+    
+    if id_solicitacao:
+        query = query.filter(id__icontains=id_solicitacao)
+
+    if funcionario:
+        query = query.filter(
+            Q(funcionario__nome__icontains=funcionario) |
+            Q(funcionario__matricula__icontains=funcionario)
+        ).distinct()
+
+    if equipamento:
+        query = query.filter(
+            dados_solicitacao__equipamento__nome__icontains=equipamento
+        ).distinct()
+
+    if data_inicio:
+        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+        query = query.filter(data_solicitacao__gte=data_inicio)
+
+    if data_fim:
+        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
+        # Adiciona 1 dia para incluir o dia inteiro
+        data_fim += timedelta(days=1)
+        query = query.filter(data_solicitacao__lt=data_fim)
+
+    if status and status != ['']:
+        query = query.filter(status__in=status)
 
     # Mapeamento de campos de ordenação
     field_mapping = {
