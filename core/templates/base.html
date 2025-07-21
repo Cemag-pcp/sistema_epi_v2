@@ -91,7 +91,7 @@
 
                             {% if request.user.funcionario.tipo_acesso == 'master' or request.user.is_superuser %}
                                 <div class="sb-sidenav-menu-heading">Dashboard</div>
-                                <a class="nav-link collapsed" href="#" aria-expanded="false">
+                                <a class="nav-link collapsed" href="{% url 'core:dashboard' %}" aria-expanded="false">
                                     <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
                                     Dashboard
                                 </a>
