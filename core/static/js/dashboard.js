@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="card p-3 card-solicitacao">
                         <div>
                             <h5>Solicitação #${solicitacao.id}</h5>
-                            <span class="badge badge-secondary badge-status">
+                            <span class="badge badge-primary badge-status status-peding">
                                 ${solicitacao.status}
                             </span>
                             <div class="tempo-aberto mt-2 mb-2">
@@ -183,21 +183,28 @@ document.addEventListener('DOMContentLoaded', function() {
         paginationContainer.appendChild(paginationEl);
     }
 
-        // Função para formatar o tempo decorrido
+    // Função para formatar o tempo decorrido
     function formatarTempo(segundos) {
-        const minutos = Math.floor(segundos / 60);
-        const horas = Math.floor(minutos / 60);
-        const dias = Math.floor(horas / 24);
-        
+        const dias = Math.floor(segundos / (60 * 60 * 24));
+        const horas = Math.floor((segundos % (60 * 60 * 24)) / 3600);
+        const minutos = Math.floor((segundos % 3600) / 60);
+        const segundosRestantes = segundos % 60;
+
+        let resultado = '';
+
         if (dias > 0) {
-            return `${dias}d ${horas % 24}h`;
-        } else if (horas > 0) {
-            return `${horas}h ${minutos % 60}m`;
-        } else if (minutos > 0) {
-            return `${minutos}m ${segundos % 60}s`;
-        } else {
-            return `${segundos}s`;
+            resultado += `${dias}d `;
         }
+        if (horas > 0 || dias > 0) {
+            resultado += `${horas}h `;
+        }
+        if (minutos > 0 || horas > 0 || dias > 0) {
+            resultado += `${minutos}m `;
+        }
+
+        resultado += `${segundosRestantes}s`;
+
+        return resultado.trim();
     }
 
     // Função para atualizar os tempos decorridos
