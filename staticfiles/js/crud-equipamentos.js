@@ -1,6 +1,8 @@
 import { getCookie } from '/static/js/scripts.js';
 import { adicionarLinhaTabela } from './addRow.js';
 import { table, inicializarDataTable } from './datatable-equipamentos.js';
+import { ToastBottomEnd } from '../../../static/js/scripts.js';
+
 // CREATE EQUIPAMENTS
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -9,17 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const salvarBtn = document.getElementById('salvarEquipamento');
     const spinner = salvarBtn.querySelector('.spinner-border');
     const form = document.getElementById('form-criar-equipamento');
-    const Toast = Swal.mixin({
-      toast: true,
-      position: "bottom-end",
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-      didOpen: (toast) => {
-        toast.onmouseenter = Swal.stopTimer;
-        toast.onmouseleave = Swal.resumeTimer;
-      }
-    });
 
     abrirModalBtn.addEventListener('click', () => {
         modal.show();
@@ -62,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 adicionarLinhaTabela(data.equipamento, tabelaEquipamentos);
               
-                Toast.fire({
+                ToastBottomEnd.fire({
                     icon: 'success',
                     title: 'Equipamento criado com sucesso!'
                 });
@@ -74,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Erro ao criar:', error);
             
-            Toast.fire({
+            ToastBottomEnd.fire({
                 icon: 'error',
                 title: error.message || 'Erro ao criar equipamento',
                 footer: typeof error.message === 'object' ? JSON.stringify(error.message) : null
@@ -96,17 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const modal = new bootstrap.Modal(document.getElementById('modal-editar-equipamento'));
   const salvarBtn = document.getElementById('editarEquipamento');
   const spinner = salvarBtn.querySelector('.spinner-border');
-  const Toast = Swal.mixin({
-      toast: true,
-      position: "bottom-end",
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-      didOpen: (toast) => {
-        toast.onmouseenter = Swal.stopTimer;
-        toast.onmouseleave = Swal.resumeTimer;
-      }
-  });
   
   document.addEventListener('click', function (event) {
     if (event.target.classList.contains('abrirModalEditarEquipamento')) { 
@@ -185,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   }, 1000);
               }
               
-              Toast.fire({
+              ToastBottomEnd.fire({
                   icon: 'success',
                   title: 'Equipamento atualizado com sucesso!'
               });
@@ -198,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
           console.error(error.response);
           console.log(error.response);
 
-          Toast.fire({
+          ToastBottomEnd.fire({
               icon: 'error',
               title: error.message || 'Erro ao atualizar equipamento'
           });
@@ -218,17 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const descricao = document.getElementById('equipamento-desativado');
   const salvarBtn = document.getElementById('desativarEquipamento');
   const spinner = salvarBtn.querySelector('.spinner-border');
-  const Toast = Swal.mixin({
-      toast: true,
-      position: "bottom-end",
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-      didOpen: (toast) => {
-        toast.onmouseenter = Swal.stopTimer;
-        toast.onmouseleave = Swal.resumeTimer;
-      }
-  });
   
   document.addEventListener('click', function (event) {
     if (event.target.classList.contains('abrirModalDesativarEquipamento')) { 
@@ -289,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                       badgeSpan.classList.add('badge-danger');
                   }
                   
-                  Toast.fire({
+                  ToastBottomEnd.fire({
                       icon: 'success',
                       title: 'Item deletado com sucesso!'
                   });
@@ -304,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
       } catch (error) {
           console.error(error);
-          Toast.fire({
+          ToastBottomEnd.fire({
               icon: 'error',
               title: error.message || 'Erro ao atualizar equipamento'
           });

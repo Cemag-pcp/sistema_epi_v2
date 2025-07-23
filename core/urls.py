@@ -11,4 +11,6 @@ urlpatterns = [
     path('assinatura/<int:id>/', views.alter_signature, name='assinatura_by_id'),
     path('historico/', views.historico, name='historico'),
     path('api_historico/', views.api_historico, name='api_historico'),
+    path('dashboard/', views.dashboard_template, name='dashboard'),
+    path('dashboard/cards/', views.dashboard, name='dashboard_cards'),
 ]

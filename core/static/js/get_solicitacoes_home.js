@@ -3,14 +3,19 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
     serverSide: true,
     processing: true,
     ajax: {
-        url: '/core/solicitacoes/',  // Atualize com sua URL correta
+        url: '/core/solicitacoes/',
         type: 'GET',
         data: function(d) {
             return {
                 page: Math.ceil((d.start + 1) / d.length),
                 per_page: d.length,
                 search: d.search.value,
-                // Adicione outros filtros se necessário
+                id_solicitacao: filtrosSolicitacoes.idSolicitacao,
+                funcionario: filtrosSolicitacoes.funcionario,
+                equipamento: filtrosSolicitacoes.equipamento,
+                data_inicio: filtrosSolicitacoes.dataInicio,
+                data_fim: filtrosSolicitacoes.dataFim,
+                status: filtrosSolicitacoes.status.join(','),
                 sort: d.columns[d.order[0].column].name || 'data_solicitacao',
                 order: d.order[0].dir || 'desc'
             };
@@ -155,7 +160,6 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
     language: {
         url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json',
         loadingRecords: "",
-        processing: "",
     },
     initComplete: function() {
         // Adiciona eventos de toggle para os itens
@@ -176,7 +180,121 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
     }
 });
 
-// Carrega a tabela quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', () => {
+// Variáveis para armazenar os filtros
+let filtrosSolicitacoes = {
+    codigoNome: '',
+    equipamento: '',
+    dataInicio: '',
+    dataFim: '',
+    status: ['Pendente', 'Entregue', 'Cancelado']
+};
+
+// Função para aplicar os filtros
+function aplicarFiltrosSolicitacoes() {
+    // Atualiza a DataTable com os filtros
     solicitacoesTable.ajax.reload();
+    
+    // Mostra os filtros aplicados
+    atualizarFiltrosAplicados();
+}
+
+// Função para atualizar os badges de filtros aplicados
+function atualizarFiltrosAplicados() {
+
+    if (filtrosSolicitacoes.idSolicitacao) {
+        document.getElementById('itens-filtrados-solicitacoes-id').style.display = 'inline-block';
+        document.getElementById('itens-filtrados-solicitacoes-id').textContent = `ID: ${filtrosSolicitacoes.idSolicitacao}`;
+    } else {
+        document.getElementById('itens-filtrados-solicitacoes-id').style.display = 'none';
+    }
+    
+    // Funcionário
+    if (filtrosSolicitacoes.funcionario) {
+        document.getElementById('itens-filtrados-solicitacoes-funcionario').style.display = 'inline-block';
+        document.getElementById('itens-filtrados-solicitacoes-funcionario').textContent = `Funcionário: ${filtrosSolicitacoes.funcionario}`;
+    } else {
+        document.getElementById('itens-filtrados-solicitacoes-funcionario').style.display = 'none';
+    }
+    
+    // Equipamento
+    if (filtrosSolicitacoes.equipamento) {
+        document.getElementById('itens-filtrados-solicitacoes-equipamento').style.display = 'inline-block';
+        document.getElementById('itens-filtrados-solicitacoes-equipamento').textContent = `Equipamento: ${filtrosSolicitacoes.equipamento}`;
+    } else {
+        document.getElementById('itens-filtrados-solicitacoes-equipamento').style.display = 'none';
+    }
+    
+    // Data
+    if (filtrosSolicitacoes.dataInicio || filtrosSolicitacoes.dataFim) {
+        document.getElementById('itens-filtrados-solicitacoes-data').style.display = 'inline-block';
+        let textoData = '';
+        if (filtrosSolicitacoes.dataInicio && filtrosSolicitacoes.dataFim) {
+            textoData = `Data: ${filtrosSolicitacoes.dataInicio} até ${filtrosSolicitacoes.dataFim}`;
+        } else if (filtrosSolicitacoes.dataInicio) {
+            textoData = `Data a partir de ${filtrosSolicitacoes.dataInicio}`;
+        } else {
+            textoData = `Data até ${filtrosSolicitacoes.dataFim}`;
+        }
+        document.getElementById('itens-filtrados-solicitacoes-data').textContent = textoData;
+    } else {
+        document.getElementById('itens-filtrados-solicitacoes-data').style.display = 'none';
+    }
+    
+    // Status
+    if (filtrosSolicitacoes.status.length < 3) {
+        document.getElementById('itens-filtrados-solicitacoes-status').style.display = 'inline-block';
+        document.getElementById('itens-filtrados-solicitacoes-status').textContent = `Status: ${filtrosSolicitacoes.status.join(', ')}`;
+    } else {
+        document.getElementById('itens-filtrados-solicitacoes-status').style.display = 'none';
+    }
+}
+
+// Evento de clique no botão Filtrar
+document.getElementById('btn-filtrar-solicitacoes').addEventListener('click', function() {
+    // Atualiza os filtros
+    filtrosSolicitacoes.idSolicitacao = document.getElementById('pesquisar-id-solicitacao').value;
+    filtrosSolicitacoes.funcionario = document.getElementById('pesquisar-funcionario').value;
+    filtrosSolicitacoes.equipamento = document.getElementById('pesquisar-equipamento').value;
+    filtrosSolicitacoes.dataInicio = document.getElementById('data-solicitacao-inicio').value;
+    filtrosSolicitacoes.dataFim = document.getElementById('data-solicitacao-fim').value;
+    
+    // Atualiza os status
+    filtrosSolicitacoes.status = [];
+    if (document.getElementById('status_pendente').checked) {
+        filtrosSolicitacoes.status.push('Pendente');
+    }
+    if (document.getElementById('status_entregue').checked) {
+        filtrosSolicitacoes.status.push('Entregue');
+    }
+    if (document.getElementById('status_cancelado').checked) {
+        filtrosSolicitacoes.status.push('Cancelado');
+    }
+    
+    aplicarFiltrosSolicitacoes();
+});
+
+// Evento de clique no botão Limpar
+document.getElementById('btn-limpar-solicitacoes').addEventListener('click', function() {
+    // Limpa os campos
+    document.getElementById('pesquisar-id-solicitacao').value = '';
+    document.getElementById('pesquisar-funcionario').value = '';
+    document.getElementById('pesquisar-equipamento').value = '';
+    document.getElementById('data-solicitacao-inicio').value = '';
+    document.getElementById('data-solicitacao-fim').value = '';
+    
+    // Marca todos os status
+    document.getElementById('status_pendente').checked = true;
+    document.getElementById('status_entregue').checked = true;
+    document.getElementById('status_cancelado').checked = true;
+    
+    // Limpa os filtros
+    filtrosSolicitacoes = {
+        codigoNome: '',
+        equipamento: '',
+        dataInicio: '',
+        dataFim: '',
+        status: ['Pendente', 'Entregue', 'Cancelado']
+    };
+    
+    aplicarFiltrosSolicitacoes();
 });

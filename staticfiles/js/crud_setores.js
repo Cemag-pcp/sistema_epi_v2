@@ -87,7 +87,7 @@ function initializeSetorDataTable(data) {
                                 <div class="profile-img me-2">
                                     <i class="bi bi-person-badge"></i>
                                 </div>
-                                <span>${data}</span>
+                                <span>${row.responsavel__matricula} - ${data}</span>
                             </div>
                         `;
                     }
@@ -138,9 +138,6 @@ async function fetchSetores() {
         if (!response.ok) throw new Error('Failed to fetch setores');
         const data = await response.json();
         setorDataLocal = data;
-        // For demonstration, we'll use the sample data
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
         
         initializeSetorDataTable(data);
     } catch (error) {
@@ -189,14 +186,6 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
             }
         }
         }
-        // Se for o erro específico que deve permitir confirmação:
-        
-
-        
-        
-        // For demonstration, we'll update the sample data
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
         
         const index = setorDataLocal.findIndex(setor => setor.id == id);
         if (index !== -1) {
@@ -204,20 +193,25 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
             setorDataLocal[index].responsavel_id = updatedSetor.responsavel.id;
             setorDataLocal[index].responsavel__matricula = updatedSetor.responsavel.matricula;
         }
-        if (updatedSetor.setorVazio){
-            const indexSetorVazio = setorDataLocal.findIndex(setor => setor.id == updatedSetor.setorVazio);
+
+        setorDataTable.row(index).data(setorDataLocal[index]).draw(false);
+        
+        let indexSetorVazio;
+
+        if (updatedSetor.responsavel.setorVazio){
+            indexSetorVazio = setorDataLocal.findIndex(setor => setor.id == updatedSetor.responsavel.setorVazio);
             if (indexSetorVazio !== -1){
-                setorDataLocal[indexSetorVazio].responsavel__nome = '';
+                setorDataLocal[indexSetorVazio].responsavel__nome = '--';
                 setorDataLocal[indexSetorVazio].responsavel_id = '';
                 setorDataLocal[indexSetorVazio].responsavel__matricula = '';
             }
+            setorDataTable.row(indexSetorVazio).data(setorDataLocal[indexSetorVazio]).draw(false);
         }
         
         
         // Altera a linha do setor editado
         // setorDataTable.clear().rows.add(setorDataLocal).draw();
-        setorDataTable.row(index).data(setorDataLocal[index]).draw(false);
-        setorDataTable.row(indexSetorVazio).data(setorDataLocal[indexSetorVazio]).draw(false);
+        
         
         editSetorModal.hide();
         showAlert('Responsável do setor atualizado com sucesso!');
@@ -257,7 +251,7 @@ function handleEditClick(e) {
         const optionResponsavel = document.createElement('option');
 
         //criando option do setor do funcionario
-        optionResponsavel.value = usuario.funcionario__id || ""; // Use setorId if available, otherwise fallback to setor
+        optionResponsavel.value = usuario.funcionario__id; // Use setorId if available, otherwise fallback to setor
         optionResponsavel.textContent = (usuario.funcionario__matricula && usuario.funcionario__nome)
                                         ? usuario.funcionario__matricula + ' - ' + usuario.funcionario__nome
                                         : 'Responsável Desconhecido'; // Fallback to setorNome or a default text
@@ -320,8 +314,6 @@ async function fetchUsuarios() {
         if (!response.ok) throw new Error('Failed to fetch usuarios');
         const data =  await response.json();
         usuariosData = data;
-        // For demonstration, we'll use the sample data
-        // Simulate API delay
         
         // initializeSetorDataTable(data);
     } catch (error) {

@@ -1,5 +1,5 @@
 import { getCookie } from "../../../../static/js/scripts.js"
-
+import { ToastBottomEnd } from "../../../../static/js/scripts.js";
 
 // Função para carregar funcionários por setor
 export async function carregarFuncionariosPorSetor(setorId) {
@@ -9,7 +9,7 @@ export async function carregarFuncionariosPorSetor(setorId) {
             select.innerHTML = '<option value="" selected disabled hidden>Carregando...</option>';
         });
 
-        const response = await fetch(`/padroes/funcionarios/${setorId}`, {
+        const response = await fetch(`/setor/${setorId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ export async function carregarFuncionariosPorSetor(setorId) {
     } catch (error) {
         console.error('Erro ao carregar funcionários:', error);
         // Mostrar feedback visual para o usuário
-        Toast.fire({
+        ToastBottomEnd.fire({
             icon: 'error',
             title: 'Erro ao carregar funcionários'
         });

@@ -1,67 +1,89 @@
-// Mock data
-const operators1 = [
-    { id: "1", name: "John Smith", department: "Construction" },
-    { id: "2", name: "Maria Garcia", department: "Manufacturing" },
-    { id: "3", name: "David Johnson", department: "Maintenance" },
-    { id: "4", name: "Sarah Wilson", department: "Quality Control" },
-];
+import { getCookie } from "/static/js/scripts.js";
 
 let operators = [];
-
-const ppeItems = {
-    "1": [
-        { id: "ppe-1", name: "Safety Helmet", category: "Head Protection", assignedDate: "2023-12-01", condition: "Worn", serialNumber: "SH-001" },
-        { id: "ppe-1b", name: "Safety Helmet", category: "Head Protection", assignedDate: "2024-01-15", condition: "Good", serialNumber: "SH-015" },
-        { id: "ppe-2", name: "Safety Glasses", category: "Eye Protection", assignedDate: "2024-01-15", condition: "Good", serialNumber: "SG-045" },
-        { id: "ppe-3", name: "Work Gloves", category: "Hand Protection", assignedDate: "2024-01-10", condition: "Damaged", serialNumber: "WG-123" },
-        { id: "ppe-3b", name: "Work Gloves", category: "Hand Protection", assignedDate: "2024-02-01", condition: "Good", serialNumber: "WG-456" },
-        { id: "ppe-4", name: "Safety Boots", category: "Foot Protection", assignedDate: "2024-01-10", condition: "Good", serialNumber: "SB-789" },
-        { id: "ppe-5", name: "High-Vis Vest", category: "Body Protection", assignedDate: "2024-01-15", condition: "Good", serialNumber: "HV-456" },
-    ],
-    "2": [
-        { id: "ppe-6", name: "Safety Helmet", category: "Head Protection", assignedDate: "2024-02-10", condition: "Good", serialNumber: "SH-002" },
-        { id: "ppe-7", name: "Ear Plugs", category: "Hearing Protection", assignedDate: "2024-02-10", condition: "Good", serialNumber: "EP-234" },
-        { id: "ppe-8", name: "Chemical Gloves", category: "Hand Protection", assignedDate: "2024-02-15", condition: "Good", serialNumber: "CG-567" },
-        { id: "ppe-9", name: "Safety Goggles", category: "Eye Protection", assignedDate: "2024-02-10", condition: "Good", serialNumber: "SG-890" },
-    ],
-    "3": [
-        { id: "ppe-10", name: "Safety Helmet", category: "Head Protection", assignedDate: "2024-01-20", condition: "Good", serialNumber: "SH-003" },
-        { id: "ppe-11", name: "Work Gloves", category: "Hand Protection", assignedDate: "2024-01-20", condition: "Damaged", serialNumber: "WG-345" },
-        { id: "ppe-12", name: "Safety Harness", category: "Fall Protection", assignedDate: "2024-01-25", condition: "Good", serialNumber: "SH-678" },
-        { id: "ppe-13", name: "Respirator Mask", category: "Respiratory Protection", assignedDate: "2024-02-05", condition: "Good", serialNumber: "RM-901" },
-    ],
-    "4": [
-        { id: "ppe-14", name: "Safety Glasses", category: "Eye Protection", assignedDate: "2024-02-20", condition: "Good", serialNumber: "SG-234" },
-        { id: "ppe-15", name: "Lab Coat", category: "Body Protection", assignedDate: "2024-02-20", condition: "Good", serialNumber: "LC-567" },
-        { id: "ppe-16", name: "Nitrile Gloves", category: "Hand Protection", assignedDate: "2024-02-20", condition: "Good", serialNumber: "NG-890" },
-    ],
-};
+let currentOperatorPPEItems = [];
+let itemConditions = {};
 
 // State variables
 let selectedOperator = "";
 let selectedItems = [];
-let itemConditions = {};
-let itemReturnDates = {};
 
-// Helper functions
-function getTodayDate() {
-    return new Date().toISOString().split("T")[0];
+// UI State Management Functions
+function showPPELoadingState() {
+    document.getElementById('ppeLoadingState').style.display = 'block';
+    document.getElementById('ppeLoadingSpinner').style.display = 'inline-block';
+    document.getElementById('ppeControls').style.display = 'none';
+    document.getElementById('ppeTableContainer').style.display = 'none';
+    document.getElementById('processButtonContainer').style.display = 'none';
+    document.getElementById('ppeErrorState').style.display = 'none';
+    document.getElementById('noItemsState').style.display = 'none';
+}
+
+function hidePPELoadingState() {
+    document.getElementById('ppeLoadingState').style.display = 'none';
+    document.getElementById('ppeLoadingSpinner').style.display = 'none';
+}
+
+function showPPEErrorState(error) {
+    const errorMessage = error.name === 'AbortError' 
+        ? 'Request timed out. Please check your connection.'
+        : 'Failed to load PPE items. Please try again.';
+    
+    document.getElementById('ppeErrorMessage').textContent = errorMessage;
+    document.getElementById('ppeErrorState').style.display = 'block';
+    document.getElementById('ppeControls').style.display = 'none';
+    document.getElementById('ppeTableContainer').style.display = 'none';
+    document.getElementById('processButtonContainer').style.display = 'none';
+    document.getElementById('noItemsState').style.display = 'none';
+}
+
+function showNoItemsState() {
+    document.getElementById('noItemsState').style.display = 'block';
+    document.getElementById('processButtonContainer').style.display = 'none';
+    document.getElementById('ppeTableContainer').style.display = 'none';
+    document.getElementById('processButtonContainer').style.display = 'none';
+    document.getElementById('ppeErrorState').style.display = 'none';
+}
+
+function showPPEItemsTable() {
+    document.getElementById('ppeControls').style.display = 'flex';
+    document.getElementById('ppeTableContainer').style.display = 'block';
+    document.getElementById('processButtonContainer').style.display = 'flex';
+    document.getElementById('ppeErrorState').style.display = 'none';
+    document.getElementById('noItemsState').style.display = 'none';
+}
+
+function showErrorNotification(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
 }
 
 function getOldestDuplicateItems(items) {
     const itemGroups = {};
     items.forEach(item => {
-        if (!itemGroups[item.name]) {
-            itemGroups[item.name] = [];
+        if (!itemGroups[item.equipamento_nome]) {
+            itemGroups[item.equipamento_nome] = [];
         }
-        itemGroups[item.name].push(item);
+        itemGroups[item.equipamento_nome].push(item);
     });
 
     const oldestDuplicateIds = new Set();
     Object.values(itemGroups).forEach(group => {
         if (group.length > 1) {
             const oldest = group.reduce((prev, current) =>
-                new Date(prev.assignedDate) < new Date(current.assignedDate) ? prev : current
+                new Date(prev.data_recebimento) < new Date(current.data_recebimento) ? prev : current
             );
             oldestDuplicateIds.add(oldest.id);
         }
@@ -72,19 +94,15 @@ function getOldestDuplicateItems(items) {
 
 function getConditionBadge(condition) {
     const variants = {
-        Good: "success",
-        Worn: "secondary",
-        Damaged: "danger"
+        bom: "success",
+        ruim: "secondary",
+        danificado: "danger"
     };
     return `<span class="badge bg-${variants[condition] || 'secondary'}">${condition}</span>`;
 }
 
 function getCurrentCondition(item) {
     return itemConditions[item.id] || item.condition;
-}
-
-function getCurrentReturnDate(itemId) {
-    return itemReturnDates[itemId] || getTodayDate();
 }
 
 // Initialize page
@@ -96,12 +114,10 @@ async function initializePage() {
 
 async function fetchOperators() {
     try {
-        const response = await fetch(`/usuario`, {
+        const response = await fetch(`/api/funcionarios/`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                // Add authorization header if needed
-                // 'Authorization': `Bearer ${token}`
             }
         });
 
@@ -113,9 +129,9 @@ async function fetchOperators() {
         operators = data; // Assuming your API returns an array of operators
         return operators;
     } catch (error) {
-        console.error('Error fetching operators:', error);
+        console.error('Erro ao buscar funcionários:', error);
         // Show user-friendly error message
-        alert('Failed to load operators. Please check your connection and try again.');
+        alert('Falha ao carregar funcionários! Por favor, verifique a sua conexão e tente novamente.');
         return [];
     }
 }
@@ -125,7 +141,7 @@ function populateOperatorSelect() {
     operators.forEach(operator => {
         const option = document.createElement('option');
         option.value = operator.id;
-        option.textContent = `${operator.funcionario__matricula} - ${operator.funcionario__nome}`;
+        option.textContent = `${operator.matricula} - ${operator.nome}`;
         select.appendChild(option);
     });
 }
@@ -133,15 +149,15 @@ function populateOperatorSelect() {
 function setupEventListeners() {
     document.getElementById('operatorSelect').addEventListener('change', handleOperatorChange);
     document.getElementById('selectAll').addEventListener('change', handleSelectAll);
-    document.getElementById('processReturnBtn').addEventListener('click', handleSubmit);
-    document.getElementById('confirmReturnBtn').addEventListener('click', handleConfirmReturn);
+    document.getElementById('processObservationBtn').addEventListener('click', handleSubmit);
+    document.getElementById('confirmObservationBtn').addEventListener('click', handleConfirmObservation);
+    document.getElementById('retryPpeBtn').addEventListener('click', handleRetryPPE);
 }
 
 function handleOperatorChange(event) {
-    selectedOperator = event.target.value;
+    selectedOperator = parseInt(event.target.value);
     selectedItems = [];
     itemConditions = {};
-    itemReturnDates = {};
     
     if (selectedOperator) {
         showPPEItems();
@@ -150,17 +166,23 @@ function handleOperatorChange(event) {
     }
 }
 
-function showPPEItems() {
+async function showPPEItems() {
     const operator = operators.find(op => op.id === selectedOperator);
-    const items = ppeItems[selectedOperator] || [];
     
     document.getElementById('ppeItemsCard').style.display = 'block';
     document.getElementById('emptyStateCard').style.display = 'none';
     document.getElementById('operatorInfo').textContent = 
-        `PPE items currently assigned to ${operator.name} (${operator.department})`;
+        `EPIs atualmente atribuídos à ${operator.nome}`;
     
-    populatePPETable(items);
-    updateSelectionUI();
+    // Fetch PPE items from API
+    const items = await fetchOperatorPPEItems(selectedOperator);
+    
+    if (items.length > 0) {
+        populatePPETable(items);
+        showPPEItemsTable();
+        updateSelectionUI();
+    }
+    // Error and no-items states are handled in fetchOperatorPPEItems
 }
 
 function hidePPEItems() {
@@ -184,22 +206,23 @@ function populatePPETable(items) {
                 <input class="form-check-input item-checkbox" type="checkbox" value="${item.id}" data-item-id="${item.id}">
             </td>
             <td class="${isOldest ? 'text-danger fw-medium' : 'fw-medium'}">
-                ${item.name}
-                ${isOldest ? '<span class="badge bg-danger ms-2" style="font-size: 0.7rem;">Oldest</span>' : ''}
+                ${item.equipamento_nome}
+                ${isOldest ? '<span class="badge bg-danger ms-2" style="font-size: 0.7rem;">Mais antigo</span>' : ''}
             </td>
-            <td>${item.category}</td>
-            <td class="serial-number">${item.serialNumber}</td>
+            <td class="serial-number">${item.equipamento_codigo}</td>
             <td>
                 <i class="bi bi-calendar3 me-1 text-muted"></i>
-                ${item.assignedDate}
+                ${item.data_recebimento}
             </td>
             <td class="condition-cell" data-item-id="${item.id}">
-                <span class="text-muted">Select to view</span>
+                <span class="text-muted">Selecione para ver</span>
             </td>
         `;
         
         tbody.appendChild(row);
-    });
+
+        itemConditions[item.id] = 'bom';
+    });  
     
     // Add event listeners to checkboxes
     document.querySelectorAll('.item-checkbox').forEach(checkbox => {
@@ -209,8 +232,102 @@ function populatePPETable(items) {
     updateSelectAllLabel(items.length);
 }
 
+async function handleConfirmObservation() {
+    const operator = operators.find(op => op.id === selectedOperator);
+    
+    const itemsWithDetails = selectedItems.map(itemId => {
+        const item = currentOperatorPPEItems.find(i => i.id === itemId);
+        const finalCondition = itemConditions[itemId] || item.condition;
+        const observation = document.getElementById(`obsDevolucao-${itemId}`).value || "";
+        
+        return {
+            ...item,
+            condicao: finalCondition,
+            observacao: observation
+        };
+    });
+
+    const confirmBtn = document.getElementById('confirmObservationBtn');
+    const originalText = confirmBtn.innerHTML;
+    
+    
+    try {
+        // Show loading state on the confirm button
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
+
+        // ✅ ADD: API requisition to finish devolution
+        // Make API call to finish devolution
+        const response = await fetch('/devolucao/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                funcionarioId: selectedOperator,
+                items: itemsWithDetails,
+            })
+        });
+
+        if (!response.ok) {
+            const errorResult = await response.json();  // 👈 pega a resposta mesmo com erro
+            const errorMessage = errorResult.message || `Erro HTTP: ${response.status}`;
+            throw new Error(errorMessage);  // 👈 repassa para o catch
+        }
+
+        const result = await response.json();
+        
+        // Show success message
+        showSuccessNotification(`Devoluções de ${selectedItems.length} item(s) para ${operator.nome} concluídas com sucesso!`);
+        
+        // Reset form
+        selectedItems = [];
+        itemConditions = {};
+        
+        // Hide modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+        modal.hide();
+        
+        // Refresh the table
+        if (selectedOperator) {
+            await showPPEItems(); // Refresh to show updated data
+        }
+        
+    } catch (error) {
+        console.error('Erro ao finalizar devolução:', error);
+        
+        // Show error message
+        showErrorNotification(error.message || 'Erro desconhecido ao processar devolução.');
+        
+        // Re-enable button
+        const confirmBtn = document.getElementById('confirmObservationBtn');
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+    }
+}
+
+// ✅ ADD: Success notification function
+function showSuccessNotification(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    alertDiv.innerHTML = `
+        <i class="bi bi-check-circle me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
 function handleItemToggle(event) {
-    const itemId = event.target.value;
+    const itemId = parseInt(event.target.value);
     const isChecked = event.target.checked;
     
     if (isChecked) {
@@ -227,45 +344,41 @@ function handleItemToggle(event) {
 
 function updateConditionCell(itemId, isSelected) {
     const cell = document.querySelector(`[data-item-id="${itemId}"].condition-cell`);
-    const items = ppeItems[selectedOperator] || [];
-    const item = items.find(i => i.id === itemId);
+    const item = currentOperatorPPEItems.find(i => i.id === itemId);
     
     if (!item) return;
     
     if (isSelected) {
         const currentCondition = getCurrentCondition(item);
-        const isModified = itemConditions[itemId] && itemConditions[itemId] !== item.condition;
-        
+
         cell.innerHTML = `
             <div class="d-flex align-items-center gap-2">
                 <select class="form-select form-select-sm condition-select" data-item-id="${itemId}" style="width: 120px;">
-                    <option value="Good" ${currentCondition === 'Good' ? 'selected' : ''}>Good</option>
-                    <option value="Worn" ${currentCondition === 'Worn' ? 'selected' : ''}>Worn</option>
-                    <option value="Damaged" ${currentCondition === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                    <option value="bom" ${currentCondition === 'bom' ? 'selected' : ''}>Bom</option>
+                    <option value="ruim" ${currentCondition === 'ruim' ? 'selected' : ''}>Ruim</option>
+                    <option value="danificado" ${currentCondition === 'danificado' ? 'selected' : ''}>Danificado</option>
                 </select>
-                ${isModified ? '<span class="condition-modified">Modified</span>' : ''}
             </div>
         `;
         
         // Add event listener to the select
         cell.querySelector('.condition-select').addEventListener('change', handleConditionChange);
     } else {
-        cell.innerHTML = '<span class="text-muted">Select to view</span>';
+        cell.innerHTML = '<span class="text-muted">Selecione para ver</span>';
     }
 }
 
 function handleConditionChange(event) {
-    const itemId = event.target.dataset.itemId;
+    const itemId = parseInt(event.target.dataset.itemId);
     const newCondition = event.target.value;
     itemConditions[itemId] = newCondition;
-    
     // Update the modified indicator
     updateConditionCell(itemId, true);
 }
 
 function handleSelectAll() {
-    const items = ppeItems[selectedOperator] || [];
-    const allItemIds = items.map(item => item.id);
+    // const items = ppeItems[selectedOperator] || [];
+    const allItemIds = currentOperatorPPEItems.map(item => item.id);
     const selectAllCheckbox = document.getElementById('selectAll');
     
     if (selectAllCheckbox.checked) {
@@ -277,15 +390,14 @@ function handleSelectAll() {
     // Update individual checkboxes
     document.querySelectorAll('.item-checkbox').forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
-        updateConditionCell(checkbox.value, checkbox.checked);
+        updateConditionCell(parseInt(checkbox.value), checkbox.checked);
     });
     
     updateSelectionUI();
 }
 
 function updateSelectionUI() {
-    const items = ppeItems[selectedOperator] || [];
-    const totalItems = items.length;
+    const totalItems = currentOperatorPPEItems.length;
     const selectedCount = selectedItems.length;
     
     // Update select all checkbox
@@ -295,42 +407,35 @@ function updateSelectionUI() {
     
     // Update labels
     updateSelectAllLabel(totalItems);
-    document.getElementById('selectionCount').textContent = `${selectedCount} of ${totalItems} selected`;
+    document.getElementById('selectionCount').textContent = `${selectedCount} de ${totalItems} selecionados`;
     
     // Update process button
-    const processBtn = document.getElementById('processReturnBtn');
+    const processBtn = document.getElementById('processObservationBtn');
     processBtn.disabled = selectedCount === 0;
-    processBtn.textContent = `Process Return (${selectedCount} items)`;
+    processBtn.textContent = `Processar Devolução (${selectedCount} itens)`;
 }
 
 function updateSelectAllLabel(totalItems) {
-    document.getElementById('selectAllLabel').textContent = `Select All (${totalItems} items)`;
+    document.getElementById('selectAllLabel').textContent = `Selecionar todos (${totalItems} itens)`;
 }
 
 function handleSubmit() {
     if (selectedItems.length === 0) {
-        alert("Please select at least one item to return.");
+        alert("Por favor, selecione pelo menos um item para devolver.");
         return;
     }
-    
-    // Initialize return dates for selected items
-    selectedItems.forEach(itemId => {
-        if (!itemReturnDates[itemId]) {
-            itemReturnDates[itemId] = getTodayDate();
-        }
-    });
     
     showConfirmModal();
 }
 
 function showConfirmModal() {
     const operator = operators.find(op => op.id === selectedOperator);
-    const items = ppeItems[selectedOperator] || [];
+    const items = currentOperatorPPEItems;
     const oldestDuplicateIds = getOldestDuplicateItems(items);
     
     // Update modal header info
-    document.getElementById('modalOperatorName').textContent = operator.name;
-    document.getElementById('modalOperatorDept').textContent = operator.department;
+    document.getElementById('modalOperatorName').textContent = operator.nome;
+    document.getElementById('modalOperatorMatricula').textContent = operator.matricula;
     document.getElementById('modalItemCount').textContent = selectedItems.length;
     document.getElementById('confirmItemCount').textContent = selectedItems.length;
     
@@ -343,9 +448,7 @@ function showConfirmModal() {
         if (!item) return;
         
         const currentCondition = getCurrentCondition(item);
-        const isConditionModified = itemConditions[itemId] && itemConditions[itemId] !== item.condition;
-        const isOldest = oldestDuplicateIds.has(item.id);
-        
+        const isOldest = oldestDuplicateIds.has(item.id);       
         const itemDiv = document.createElement('div');
         itemDiv.className = `return-date-section ${isOldest ? 'border-danger bg-danger-subtle' : ''}`;
         
@@ -353,19 +456,16 @@ function showConfirmModal() {
             <div class="row">
                 <div class="col-md-8">
                     <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="fw-medium ${isOldest ? 'text-danger' : ''}">${item.name}</span>
-                        ${isOldest ? '<span class="badge bg-danger">Oldest</span>' : ''}
+                        <span class="fw-medium ${isOldest ? 'text-danger' : ''}">${item.equipamento_nome}</span>
+                        ${isOldest ? '<span class="badge bg-danger">Mais antigo</span>' : ''}
                     </div>
                     <div class="row g-2 small text-muted">
-                        <div class="col-6"><strong>Category:</strong> ${item.category}</div>
-                        <div class="col-6"><strong>Serial:</strong> ${item.serialNumber}</div>
-                        <div class="col-6"><strong>Assigned:</strong> ${item.assignedDate}</div>
+                        <div class="col-6"><strong>Código:</strong> ${item.equipamento_codigo}</div>
+                        <div class="col-6"><strong>Atribuído em:</strong> ${item.data_recebimento}</div>
                         <div class="col-6">
-                            <strong>Condition:</strong> ${getConditionBadge(currentCondition)}
-                            ${isConditionModified ? '<span class="condition-modified ms-1">Modified</span>' : ''}
+                            <strong>Condição:</strong> ${getConditionBadge(currentCondition)}
                         </div>
                     </div>
-                    ${isConditionModified ? `<p class="small text-muted mt-1">Original: ${getConditionBadge(item.condition)}</p>` : ''}
                 </div>
                 <div class="col-md-4">
                     <label for="obsDevolucao-${item.id}" class="form-label small fw-medium">Observação</label>
@@ -390,41 +490,57 @@ function showConfirmModal() {
 function handleReturnDateChange(event) {
     const itemId = event.target.dataset.itemId;
     const date = event.target.value;
-    itemReturnDates[itemId] = date;
 }
 
-function handleConfirmReturn() {
-    const operator = operators.find(op => op.id === selectedOperator);
-    const items = ppeItems[selectedOperator] || [];
-    
-    // Get the final details for selected items
-    const itemsWithDetails = selectedItems.map(itemId => {
-        const item = items.find(i => i.id === itemId);
-        const finalCondition = itemConditions[itemId] || item.condition;
-        const returnDate = itemReturnDates[itemId] || getTodayDate();
+async function fetchOperatorPPEItems(operatorId) {
+    try {
+        showPPELoadingState();
+
+        const response = await fetch(`/api_itens_ativos/${operatorId}/`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                // Operator has no PPE items
+                hidePPELoadingState();
+                showNoItemsState();
+                return [];
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
         
-        return {
-            ...item,
-            condition: finalCondition,
-            returnDate: returnDate
-        };
-    });
-    
-    console.log("Items being returned:", itemsWithDetails);
-    alert(`Successfully processed return of ${selectedItems.length} item(s) for ${operator.name}`);
-    
-    // Reset form
-    selectedItems = [];
-    itemConditions = {};
-    itemReturnDates = {};
-    
-    // Hide modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
-    modal.hide();
-    
-    // Refresh the table
+        // Validate response structure
+        if (!Array.isArray(data)) {
+            throw new Error('Invalid response format: expected array of PPE items');
+        }
+        
+        currentOperatorPPEItems = data;
+        hidePPELoadingState();
+        return data;
+
+    } catch (error) {
+        console.error('Error fetching PPE items:', error);
+        hidePPELoadingState();
+        showPPEErrorState(error);
+        return [];
+    }
+}
+
+function handleRetryPPE() {
     if (selectedOperator) {
-        showPPEItems();
+        fetchOperatorPPEItems(selectedOperator).then(items => {
+            if (items.length > 0) {
+                populatePPETable(items);
+                showPPEItemsTable();
+                updateSelectionUI();
+            }
+        });
     }
 }
 

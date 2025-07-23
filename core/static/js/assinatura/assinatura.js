@@ -1,7 +1,13 @@
 import { resizeCanvas } from "./resize-canva.js";
 import { solicitacoesTable } from "../get_solicitacoes_home.js";
-import { getCookie } from "../../../../static/js/scripts.js";
-import {getOldestDuplicateItems, updateConditionCell, updateQuantidadeDevolvidaCell, updateSelectionUI, handleSelectAll, showErrorNotification} from "/static/js/utils.js";
+import { getCookie, ToastBottomEnd } from "../../../../static/js/scripts.js";
+import { getOldestDuplicateItems, 
+        updateConditionCell, 
+        updateQuantidadeDevolvidaCell, 
+        updateSelectionUI, 
+        handleSelectAll, 
+        showErrorNotification 
+       } from "/static/js/utils.js";
 
 // Variaveis para armazenar dados de devolução
 let selectedItems = [];
@@ -16,11 +22,11 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('selectAll').addEventListener('change', () => {
         selectedItems = handleSelectAll(itensFiltrados, selectedItems);
     });
-    
+
     // Função para controlar a exibição e obrigatoriedade dos campos de qualidade
     function toggleCamposQualidade() {
         const devolucaoSelecionada = formAssinatura.querySelector('input[name="is_devolucao"]:checked');
-        
+
         if (devolucaoSelecionada && devolucaoSelecionada.value === "Sim") {
             campoQualidade.style.display = "block";
             return true;
@@ -30,7 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    document.addEventListener('hidden.bs.modal',function() {
+    document.addEventListener('hidden.bs.modal', function () {
         console.log('Modal fechado');
         const selectAllCheckbox = document.getElementById('selectAll');
         selectAllCheckbox.checked = false; // Desmarca o checkbox de selecionar todos
@@ -45,21 +51,21 @@ document.addEventListener("DOMContentLoaded", function () {
             const modalTitle = document.getElementById("modal-assinatura-title");
 
             modalAssinatura.setAttribute('data-solicitacao', idDadosSolicitacao);
-            
+
             // Obtém a linha da tabela onde o botão foi clicado
             const row = event.target.closest('tr');
             const rowData = solicitacoesTable.row(row).data();
-            
+
             // Preenche o título do modal com o nome do funcionário
             modalTitle.textContent = `Assinatura - ${rowData.funcionario_nome}`;
-            
+
             // Elementos que queremos mostrar/ocultar
             const devolucaoSection = document.querySelector('.devolver-item');
             const funcionarioText = devolucaoSection.querySelector('p:first-of-type');
             const tabelaQualidade = document.getElementById('tabela-qualidade-equipamento');
-            
+
             // Filtra apenas os itens com motivo "substituicao"
-            const itensSubstituicao = rowData.itens.filter(item => 
+            const itensSubstituicao = rowData.itens.filter(item =>
                 item.motivo && item.motivo.toLowerCase() === 'substituicao'
             );
 
@@ -68,17 +74,17 @@ document.addEventListener("DOMContentLoaded", function () {
             // Verificar quais itens estão ativos para o funcionário
             // Comparar os itens ativos com os itens de substituição
             // Mostrar apenas os itens que estão ativos e são de substituição
-            
+
             // Limpa completamente a tabela antes de preencher
             const tbody = tabelaQualidade.querySelector('tbody');
             tbody.innerHTML = '';
-            
+
             if (itensSubstituicao.length === 0) {
                 // Oculta a seção de devolução e qualidade
                 devolucaoSection.style.display = 'none';
                 tabelaQualidade.style.display = 'none';
                 campoQualidade.style.display = 'none';
-                
+
                 // Remove qualquer mensagem anterior
                 const existingMessage = tbody.querySelector('tr.text-center');
                 if (existingMessage) {
@@ -88,10 +94,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Mostra a seção de devolução e qualidade
                 devolucaoSection.style.display = 'block';
                 tabelaQualidade.style.display = 'table';
-                
+
                 // Preenche o texto do funcionário no modal
                 funcionarioText.textContent = `O funcionário ${rowData.funcionario_nome} devolverá o item substituído agora?`;
-                
+
                 // Marca "Não" como selecionado
                 document.getElementById('nao').checked = true;
 
@@ -107,7 +113,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     button.disabled = true; // Desabilita todos os botões de assinatura enquanto carrega
                 });
 
-                await itensAtivosFuncionario(rowData.funcionario_id).then(itensAtivos =>{
+                await itensAtivosFuncionario(rowData.funcionario_id).then(itensAtivos => {
                     console.log('Itens ativos do funcionário:', itensAtivos);
                     itensAtivosUso = itensAtivos;
                 }).finally(() => {
@@ -124,7 +130,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
                 console.log('Itens filtrados:');
                 console.log(itensFiltrados);
-                
+
                 // Verificando itens mais antigos
 
                 const oldestDuplicateIds = getOldestDuplicateItems(itensFiltrados);
@@ -162,7 +168,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     tbody.appendChild(tr);
                 });
 
-                    
+
                 // Atualiza os listeners para os radio buttons de devolução
                 radiosDevolucao.forEach(radio => {
                     radio.addEventListener('change', toggleCamposQualidade);
@@ -174,10 +180,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
             }
-                
+
             // Inicializa ou reinicializa a assinatura
             assinatura = new SignaturePad(assinaturaCanva);
-            
+
             // Configurações opcionais
             assinatura.minWidth = 1;
             assinatura.maxWidth = 3;
@@ -185,19 +191,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Redimensiona quando o modal é mostrado
             resizeCanvas(assinaturaCanva, assinatura);
-            
+
             const modal = new bootstrap.Modal(modalAssinatura);
             modal.show();
 
             // Redimensiona novamente quando a animação do modal terminar
-            modalAssinatura.addEventListener('shown.bs.modal', function() {
+            modalAssinatura.addEventListener('shown.bs.modal', function () {
                 resizeCanvas(assinaturaCanva, assinatura);
             });
-            
+
             // Inicializa o estado dos campos
             toggleCamposQualidade();
 
-            
+
         }
     });
 
@@ -205,7 +211,7 @@ document.addEventListener("DOMContentLoaded", function () {
         event.preventDefault();
 
         //Verifica se o checkbox de devolução está marcado
-        if (toggleCamposQualidade()){
+        if (toggleCamposQualidade()) {
             console.log(selectedItems);
             if (selectedItems.length == 0) {
                 // Se não houver nenhum item selecionado, exibe uma mensagem de erro
@@ -217,21 +223,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let qtdDevolvidaInvalida = false;
         let erroText = '';
-        
-        for (const itemId of selectedItems){
+
+        for (const itemId of selectedItems) {
             const items = itensFiltrados;
 
             const item = items.find(i => i.id === itemId);
             const cell = document.querySelector(`[data-item-id="${itemId}"].quantidade-devolvida-cell`);
             let inputValue = cell.querySelector('input').value;
 
-            if (parseInt(inputValue) <= 0){
+            if (parseInt(inputValue) <= 0) {
                 erroText = `Quantidade devolvida para o EPI ${item.equipamento_codigo}-${item.equipamento_nome} inválida.`;
                 qtdDevolvidaInvalida = true;
                 break;
             }
 
-            if (parseInt(inputValue) > parseInt(item.quantidade_disponivel)){
+            if (parseInt(inputValue) > parseInt(item.quantidade_disponivel)) {
                 erroText = `Quantidade devolvida para o EPI ${item.equipamento_codigo}-${item.equipamento_nome} é maior que a disponível.`;
                 qtdDevolvidaInvalida = true;
                 break;
@@ -239,7 +245,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         }
         //Verificar se a flag foi modificada
-        if (qtdDevolvidaInvalida){
+        if (qtdDevolvidaInvalida) {
             showErrorNotification(erroText);
             return;
         }
@@ -250,7 +256,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const submitButton = form.querySelector('.verificar-assinatura');
             const spinner = submitButton.querySelector('.spinner-border');
             const buttonText = submitButton.querySelector('span[role="status"]');
-            
+
             // Mostra o spinner e desabilita o botão
             spinner.style.display = 'inline-block';
             buttonText.textContent = 'Salvando...';
@@ -259,7 +265,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // Obtém o ID da solicitação do botão de assinatura
             const modalAssinatura = document.getElementById('modal-assinatura');
             const solicitacaoId = modalAssinatura ? modalAssinatura.getAttribute('data-solicitacao') : null;
-            
+
             if (!solicitacaoId) {
 
                 spinner.style.display = 'none';
@@ -272,6 +278,17 @@ document.addEventListener("DOMContentLoaded", function () {
             const isDevolucao = form.querySelector('input[name="is_devolucao"]:checked')?.value;
             const signaturePad = document.getElementById('signature-canvas');
             const signature = signaturePad.toDataURL(); // Converte a assinatura para base64
+            
+            if (assinatura.isEmpty()) {
+                ToastBottomEnd.fire({
+                    icon: 'error',
+                    title: 'Preencha a assinatura antes de enviar.'
+                });
+                spinner.style.display = 'none';
+                buttonText.textContent = 'Salvar';
+                submitButton.disabled = false;
+                return;
+            }
 
             let itemQtdsDevolvidas = {};
             let itemCondicoes = {};
@@ -279,7 +296,7 @@ document.addEventListener("DOMContentLoaded", function () {
             selectedItems.forEach(itemId => {
                 const cell = document.querySelector(`[data-item-id="${itemId}"].quantidade-devolvida-cell`);
                 const input = cell.querySelector('input');
-                let quantidadeDevolvida = parseInt(input.value);  
+                let quantidadeDevolvida = parseInt(input.value);
                 itemQtdsDevolvidas[itemId] = quantidadeDevolvida;
 
                 const conditionCell = document.querySelector(`[data-item-id="${itemId}"].condition-cell`);
@@ -292,7 +309,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             })
 
-            const itensEnvio = selectedItems.map(itemId =>{
+            const itensEnvio = selectedItems.map(itemId => {
                 const item = itensFiltrados.find(i => i.id === itemId);
 
                 if (!item) return null; // Skip if item not found
@@ -320,31 +337,31 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 body: JSON.stringify(formData)
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao enviar assinatura');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Fecha o modal e recarrega a tabela
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('modal-assinatura'));
-                    modal.hide();
-                    solicitacoesTable.ajax.reload();
-                } else {
-                    throw new Error(data.message || 'Erro ao processar assinatura');
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-            })
-            .finally(() => {
-                // Restaura o botão
-                spinner.style.display = 'none';
-                buttonText.textContent = 'Salvar';
-                submitButton.disabled = false;
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro ao enviar assinatura');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Fecha o modal e recarrega a tabela
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modal-assinatura'));
+                        modal.hide();
+                        solicitacoesTable.ajax.reload();
+                    } else {
+                        throw new Error(data.message || 'Erro ao processar assinatura');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                })
+                .finally(() => {
+                    // Restaura o botão
+                    spinner.style.display = 'none';
+                    buttonText.textContent = 'Salvar';
+                    submitButton.disabled = false;
+                });
         }
     });
 
@@ -355,7 +372,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Redimensiona quando a janela muda de tamanho
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
         const canvas = document.getElementById("signature-canvas");
         if (canvas && assinatura) {
             resizeCanvas(canvas, assinatura);
@@ -367,7 +384,7 @@ function handleItemToggle(event) {
     const itemId = parseInt(event.target.value);
     const isChecked = event.target.checked;
 
-    
+
     if (isChecked) {
         if (!selectedItems.includes(itemId)) {
             selectedItems.push(itemId);
@@ -381,10 +398,10 @@ function handleItemToggle(event) {
     updateQuantidadeDevolvidaCell(itemId, isChecked, itensFiltrados);
     updateConditionCell(itemId, isChecked, itensFiltrados);
     updateSelectionUI(itensFiltrados, selectedItems);
-    
+
 }
 
-async function itensAtivosFuncionario(funcionarioId){
+async function itensAtivosFuncionario(funcionarioId) {
     try {
         const response = await fetch(`/api_itens_ativos/${funcionarioId}/`);
         if (!response.ok) {

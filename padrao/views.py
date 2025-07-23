@@ -222,28 +222,39 @@ def alter_padrao(request, id):
         
         if request.method == 'GET':
             try:
-                padrao = Padrao.objects.get(id=id)
+                # Otimização: Usar select_related para setor e prefetch_related para relacionamentos
+                padrao = Padrao.objects.select_related('setor').prefetch_related(
+                    'padraofuncionario_set__funcionario',
+                    'padraofuncionario_set__equipamentos__equipamento'
+                ).get(id=id)
                 
-                # Obter todos os equipamentos disponíveis
-                equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo').order_by("id")
+                # Otimização: Query única para equipamentos ativos com apenas os campos necessários
+                equipamentos = Equipamento.objects.filter(ativo=True).only('id', 'nome', 'codigo').order_by('id')
                 
-                if request.user.is_superuser:
-                    funcionarios = Funcionario.objects.filter(setor=padrao.setor,ativo=True).values('id', 'matricula', 'nome')
-                else:
-                    funcionarios = Funcionario.objects.filter(setor=request.user.funcionario.setor, ativo=True).values('id', 'matricula', 'nome')
+                # Otimização: Query condicional simplificada
+                setor_filter = padrao.setor if request.user.is_superuser else request.user.funcionario.setor
+                funcionarios = Funcionario.objects.filter(
+                    setor=setor_filter,
+                    ativo=True
+                ).only('id', 'matricula', 'nome')
                 
-                # Obter dados do padrão específico
+                # Otimização: Pré-carregar todos os dados necessários em queries eficientes
                 padrao_funcionarios = []
-                for pf in padrao.padraofuncionario_set.all():
-                    equipamentos_funcionario = []
-                    for pe in pf.equipamentos.all():
-                        equipamentos_funcionario.append({
+                padrao_funcionarios_qs = padrao.padraofuncionario_set.select_related('funcionario').prefetch_related(
+                    'equipamentos__equipamento'
+                ).all()
+                
+                for pf in padrao_funcionarios_qs:
+                    equipamentos_funcionario = [
+                        {
                             'equipamento_id': pe.equipamento.id,
                             'nome': pe.equipamento.nome,
                             'quantidade': pe.quantidade,
                             'motivo': pe.motivo,
                             'observacoes': pe.observacoes,
-                        })
+                        }
+                        for pe in pf.equipamentos.all()
+                    ]
                     
                     padrao_funcionarios.append({
                         'funcionario_id': pf.funcionario.id,
@@ -252,7 +263,11 @@ def alter_padrao(request, id):
                         'equipamentos': equipamentos_funcionario
                     })
                 
-                return JsonResponse({
+                # Otimização: Converter para lista apenas uma vez no final
+                equipamentos_list = list(equipamentos.values('id', 'nome', 'codigo'))
+                funcionarios_list = list(funcionarios.values('id', 'matricula', 'nome'))
+                
+                response_data = {
                     'success': True,
                     'padrao': {
                         'id': padrao.id,
@@ -262,9 +277,11 @@ def alter_padrao(request, id):
                         'funcionarios': padrao_funcionarios,
                         'data_criacao': padrao.data_criacao.strftime("%Y-%m-%d %H:%M:%S")
                     },
-                    'equipamentos': list(equipamentos),
-                    'funcionarios_disponiveis': list(funcionarios),
-                }, status=200)
+                    'equipamentos': equipamentos_list,
+                    'funcionarios_disponiveis': funcionarios_list,
+                }
+                
+                return JsonResponse(response_data, status=200)
                 
             except Padrao.DoesNotExist:
                 return JsonResponse({'success': False, 'message': 'Padrão não encontrado'}, status=404)

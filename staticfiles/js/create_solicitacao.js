@@ -1,5 +1,6 @@
 import { getCookie } from "../../../static/js/scripts.js";
 import { resetFormData } from "./get_padroes_solicitacao.js";
+import { ToastBottomEnd } from "../../../static/js/scripts.js";
 
 document.getElementById('form-card-solict').addEventListener("submit", (event) => {
     event.preventDefault();
@@ -43,15 +44,37 @@ document.getElementById('form-card-solict').addEventListener("submit", (event) =
         },
         body: JSON.stringify({'itens': listaSolicitacoes, 'padrao': padraoSelecionado})
     })
-    .then(response => response.json())
+    .then(async response => {
+        const data = await response.json();
+        
+        if (!response.ok) {
+            if (data.error && data.error.includes("Não é permitido repetir o mesmo equipamento")) {
+                throw new Error(data.error);
+            }
+            throw new Error(data.error || data.message || 'Erro ao processar a solicitação');
+        }
+        
+        return data;
+    })
     .then(data => {
-        console.log(data);
+        if (data.success === false) {
+            throw new Error(data.error || data.message || 'Erro ao processar a solicitação');
+        }
+        
+        console.log('Sucesso:', data);
         resetFormData();
         padrao.value = "";
+        ToastBottomEnd.fire({
+            icon: 'success',
+            title: data.message || 'Solicitação criada com sucesso!'
+        });
     })
     .catch(error => {
         console.error('Erro na requisição:', error);
-        alert('Erro ao enviar solicitação');
+        ToastBottomEnd.fire({
+            icon: 'error',
+            title: error.message || 'Ocorreu um erro inesperado ao enviar a solicitação'
+        });
     })
     .finally(() => {
         // Restaurar botão independente do resultado

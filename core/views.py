@@ -16,7 +16,7 @@ import json
 import base64
 import uuid
 import traceback
-
+from datetime import timedelta, datetime
 
 # Create your views here.
 
@@ -32,16 +32,23 @@ def home_solicitacoes(request):
     page = int(request.GET.get('page', 1))
     per_page = int(request.GET.get('per_page', 10))
     search = request.GET.get('search', '')
-    sort_field = request.GET.get('sort', 'data_solicitacao')  # Campo padrão alterado
+    id_solicitacao = request.GET.get('id_solicitacao', '')
+    funcionario = request.GET.get('funcionario', '')
+    equipamento = request.GET.get('equipamento', '')
+    data_inicio = request.GET.get('data_inicio', '')
+    data_fim = request.GET.get('data_fim', '')
+    status = request.GET.get('status', '').split(',')
+    sort_field = request.GET.get('sort', 'data_solicitacao')
     order = request.GET.get('order', 'desc')
 
-    # Consulta base - agora partindo de Solicitacao
+    # Consulta base
     query = Solicitacao.objects.select_related(
         'funcionario', 'solicitante'
     ).prefetch_related(
         'dados_solicitacao__equipamento'
     )
-    # Aplica filtro de busca se existir
+
+    # Aplica filtros
     if search:
         query = query.filter(
             Q(id__icontains=search) |
@@ -49,6 +56,33 @@ def home_solicitacoes(request):
             Q(funcionario__matricula__icontains=search) |
             Q(dados_solicitacao__equipamento__nome__icontains=search)
         ).distinct()
+    
+    if id_solicitacao:
+        query = query.filter(id__icontains=id_solicitacao)
+
+    if funcionario:
+        query = query.filter(
+            Q(funcionario__nome__icontains=funcionario) |
+            Q(funcionario__matricula__icontains=funcionario)
+        ).distinct()
+
+    if equipamento:
+        query = query.filter(
+            dados_solicitacao__equipamento__nome__icontains=equipamento
+        ).distinct()
+
+    if data_inicio:
+        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+        query = query.filter(data_solicitacao__gte=data_inicio)
+
+    if data_fim:
+        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
+        # Adiciona 1 dia para incluir o dia inteiro
+        data_fim += timedelta(days=1)
+        query = query.filter(data_solicitacao__lt=data_fim)
+
+    if status and status != ['']:
+        query = query.filter(status__in=status)
 
     # Mapeamento de campos de ordenação
     field_mapping = {
@@ -350,279 +384,6 @@ def alter_signature(request, id):
 def historico(request):
     return render(request, 'historico.html')
 
-# def api_historico(request):
-    # solicitacoes = Solicitacao.objects.select_related(
-    #     'funcionario', 'solicitante'
-    # ).prefetch_related(
-    #     'dados_solicitacao__equipamento'
-    # )
-
-    # devolucoes = Devolucao.objects.select_related(
-    #     'dados_solicitacao', 'responsavel_recebimento'
-    # ).prefetch_related(
-    #     'dados_solicitacao__equipamento'
-    # )
-
-# def api_historico(request):
-#     # Add pagination support
-#     page = int(request.GET.get('page', 1))
-#     page_size = int(request.GET.get('page_size', 25))
-    
-#     # Add search support
-#     search = request.GET.get('search', '')
-#     if search:
-#         solicitacoes = solicitacoes.filter(
-#             Q(funcionario__nome__icontains=search) |
-#             Q(dados_solicitacao__equipamento__nome__icontains=search)
-#         )
-    
-#     # Add filtering
-#     status = request.GET.get('status', '')
-#     if status:
-#         solicitacoes = solicitacoes.filter(status=status)
-    
-#     # Add date filtering
-#     data_inicio = request.GET.get('data_inicio', '')
-#     if data_inicio:
-#         solicitacoes = solicitacoes.filter(data_atualizacao__gte=data_inicio)
-    
-#     # Add ordering
-#     ordering = request.GET.get('ordering', '-data_atualizacao')
-#     solicitacoes = solicitacoes.order_by(ordering)
-    
-#     # Apply pagination
-#     start = (page - 1) * page_size
-#     end = start + page_size
-#     solicitacoes = solicitacoes[start:end]
-
-#     # Estrutura de resposta
-#     dados_formatados = []
-#     for solicitacao in solicitacoes:
-#         # Obtém todos os itens da solicitação
-#         itens = []
-#         for dado in solicitacao.dados_solicitacao.all():
-#             itens.append({
-#                 'quantidade': dado.quantidade,
-#                 'motivo': dado.motivo,  
-#                 'equipamento_id': dado.equipamento.id,
-#                 'equipamento_codigo': dado.equipamento.codigo,
-#                 'equipamento_nome': dado.equipamento.nome,
-#             })
-
-#         dados_formatados.append({
-#             'id': solicitacao.id,
-#             'solicitacao_id': solicitacao.id,
-#             'data_atualizacao': solicitacao.data_atualizacao.isoformat(),
-#             'funcionario_id': solicitacao.funcionario.id,
-#             'funcionario_matricula': solicitacao.funcionario.matricula,
-#             'funcionario_nome': solicitacao.funcionario.nome,
-#             'status': solicitacao.status,
-#             'solicitante_matricula': solicitacao.solicitante.matricula,
-#             'solicitante_nome': solicitacao.solicitante.nome,
-#             'itens': itens,
-#             'observacoes_gerais': solicitacao.observacoes,
-#         })
-
-#     for devolucao in devolucoes:
-#         itens_devolucao = []
-
-#         itens_devolucao.append({
-#             'quantidade': devolucao.quantidade_devolvida,
-#             'estado_item': devolucao.estado_item,
-#             'equipamento_id': devolucao.dados_solicitacao.equipamento.id,
-#             'equipamento_codigo': devolucao.dados_solicitacao.equipamento.codigo,
-#             'equipamento_nome': devolucao.dados_solicitacao.equipamento.nome,
-#         })
-
-#         dados_formatados.append({
-#             'id': devolucao.id,
-#             'solicitacao_id': devolucao.dados_solicitacao.id,
-#             'funcionario_id': devolucao.dados_solicitacao.solicitacao.funcionario.id,
-#             'responsavel_recebimento_id': devolucao.responsavel_recebimento.id,
-#             'responsavel_recebimento_nome': devolucao.responsavel_recebimento.nome,
-#             'data_atualizacao': devolucao.data_devolucao.isoformat(),
-#             'itens': itens_devolucao,
-#             'status': 'Devolvido',
-#         })
-
-
-#     return JsonResponse({
-#         'dados_solicitados': dados_formatados,
-#         'total_itens': len(dados_formatados),
-#     }, status=200)
-
-
-# def api_historico(request):
-#     # Paginação
-#     page = int(request.GET.get('page', 1))
-#     page_size = int(request.GET.get('page_size', 25))
-    
-#     # Parâmetros de busca e filtro
-#     search = request.GET.get('search', '')
-#     status = request.GET.get('status', '')
-#     data_inicio = request.GET.get('data_inicio', '')
-#     data_fim = request.GET.get('data_fim', '')
-#     ordering = request.GET.get('ordering', '-data_atualizacao')
-    
-#     # --- Solicitacoes ---
-#     solicitacoes = Solicitacao.objects.select_related(
-#         'funcionario', 'solicitante'
-#     ).prefetch_related(
-#         'dados_solicitacao__equipamento'
-#     )
-    
-#     if search:
-#         solicitacoes = solicitacoes.filter(
-#             Q(funcionario__nome__icontains=search) |
-#             Q(dados_solicitacao__equipamento__nome__icontains=search) |
-#             Q(solicitante__nome__icontains=search)
-#         )
-    
-#     if status and status != 'devolvido':  # Don't filter solicitacoes by 'devolvido'
-#         solicitacoes = solicitacoes.filter(status=status.capitalize())
-#     elif status == 'devolvido':
-#         solicitacoes = solicitacoes.none()
-
-#     if data_inicio:
-#         try:
-#             data_inicio_formatada = datetime.strptime(data_inicio, "%Y-%m-%d")
-#             solicitacoes = solicitacoes.filter(data_atualizacao__gte=data_inicio_formatada)
-#         except ValueError:
-#             pass
-    
-#     if data_fim:
-#         try:
-#             data_fim_formatada = datetime.strptime(data_fim, "%Y-%m-%d")
-#             solicitacoes = solicitacoes.filter(data_atualizacao__lte=data_fim_formatada)
-#         except ValueError:
-#             pass
-    
-#     solicitacoes = solicitacoes.order_by(ordering)
-    
-#     # --- Devolucoes ---
-#     devolucoes = Devolucao.objects.select_related(
-#         'dados_solicitacao__solicitacao__funcionario',
-#         'dados_solicitacao__equipamento',
-#         'responsavel_recebimento'
-#     )
-    
-#     if search:
-#         devolucoes = devolucoes.filter(
-#             Q(dados_solicitacao__equipamento__nome__icontains=search) |
-#             Q(dados_solicitacao__solicitacao__funcionario__nome__icontains=search) |
-#             Q(responsavel_recebimento__nome__icontains=search)
-#         )
-    
-#     # Only include devolucoes if status is 'devolvido' or no status filter
-#     if status and status != 'devolvido':
-#         devolucoes = devolucoes.none()  # Exclude all devolucoes
-    
-#     if data_inicio:
-#         try:
-#             data_inicio_formatada = datetime.strptime(data_inicio, "%Y-%m-%d")
-#             devolucoes = devolucoes.filter(data_devolucao__gte=data_inicio_formatada)
-#         except ValueError:
-#             pass
-    
-#     if data_fim:
-#         try:
-#             data_fim_formatada = datetime.strptime(data_fim, "%Y-%m-%d")
-#             devolucoes = devolucoes.filter(data_devolucao__lte=data_fim_formatada)
-#         except ValueError:
-#             pass
-    
-#     # Ordenar devoluções pela data também
-#     if ordering.startswith('-'):
-#         devolucoes = devolucoes.order_by('-data_devolucao')
-#     else:
-#         devolucoes = devolucoes.order_by('data_devolucao')
-    
-#     # --- Dados formatados ---
-#     dados_formatados = []
-    
-#     # Process solicitacoes
-#     for solicitacao in solicitacoes:
-#         itens = []
-#         for dado in solicitacao.dados_solicitacao.all():
-#             itens.append({
-#                 'quantidade': dado.quantidade,
-#                 'motivo': dado.motivo,
-#                 'equipamento_id': dado.equipamento.id,
-#                 'equipamento_codigo': dado.equipamento.codigo,
-#                 'equipamento_nome': dado.equipamento.nome,
-#             })
-        
-#         dados_formatados.append({
-#             'id': f"SOL_{solicitacao.id}",  # Unique ID for solicitacoes
-#             'solicitacao_id': solicitacao.id,
-#             'data_solicitacao': solicitacao.data_solicitacao.isoformat(),
-#             'data_atualizacao': solicitacao.data_atualizacao.isoformat(),
-#             'funcionario_id': solicitacao.funcionario.id,
-#             'funcionario_matricula': solicitacao.funcionario.matricula,
-#             'funcionario_nome': solicitacao.funcionario.nome,
-#             'status': solicitacao.status,
-#             'solicitante_matricula': solicitacao.solicitante.matricula,
-#             'solicitante_nome': solicitacao.solicitante.nome,
-#             'itens': itens,
-#             'observacoes_gerais': solicitacao.observacoes or '',
-#             'tipo': 'solicitacao'  # Add type identifier
-#         })
-    
-#     # Process devolucoes
-#     for devolucao in devolucoes:
-#         itens_devolucao = [{
-#             'quantidade': devolucao.quantidade_devolvida,
-#             'estado_item': devolucao.estado_item,
-#             'equipamento_id': devolucao.dados_solicitacao.equipamento.id,
-#             'equipamento_codigo': devolucao.dados_solicitacao.equipamento.codigo,
-#             'equipamento_nome': devolucao.dados_solicitacao.equipamento.nome,
-#         }]
-        
-#         dados_formatados.append({
-#             'id': f"DEV_{devolucao.id}",  # Unique ID for devolucoes
-#             'solicitacao_id': devolucao.dados_solicitacao.solicitacao.id,
-#             'funcionario_id': devolucao.dados_solicitacao.solicitacao.funcionario.id,
-#             'funcionario_matricula': devolucao.dados_solicitacao.solicitacao.funcionario.matricula,
-#             'funcionario_nome': devolucao.dados_solicitacao.solicitacao.funcionario.nome,
-#             'responsavel_recebimento_id': devolucao.responsavel_recebimento.id if devolucao.responsavel_recebimento else None,
-#             'responsavel_recebimento_nome': devolucao.responsavel_recebimento.nome if devolucao.responsavel_recebimento else None,
-#             'data_atualizacao': devolucao.data_devolucao.isoformat(),
-#             'itens': itens_devolucao,
-#             'status': 'Devolvido',
-#             'observacoes_gerais': '',
-#             'tipo': 'devolucao'  # Add type identifier
-#         })
-    
-#     # Sort combined list
-#     dados_formatados.sort(key=lambda x: x['data_atualizacao'], reverse=ordering.startswith('-'))
-    
-#     # Get total count BEFORE pagination
-#     total_count = len(dados_formatados)
-    
-#     # Apply pagination
-#     start = (page - 1) * page_size
-#     end = start + page_size
-#     dados_paginados = dados_formatados[start:end]
-    
-#     # Calculate pagination info
-#     total_pages = (total_count + page_size - 1) // page_size  # Ceiling division
-#     has_next = page < total_pages
-#     has_previous = page > 1
-    
-#     return JsonResponse({
-#         'dados_solicitados': dados_paginados,
-#         'total_itens': total_count,  # FIXED: Return total count, not paginated count
-#         'current_page': page,
-#         'total_pages': total_pages,
-#         'page_size': page_size,
-#         'has_next': has_next,
-#         'has_previous': has_previous,
-#         'count': total_count,  # Alternative field name for compatibility
-#     }, status=200)
-
-#     #Puxar todas as solicitações e devoluções
-#     # return render(request, 'historico.html')
-
 def api_historico(request):
     # Paginação
     page = int(request.GET.get('page', 1))
@@ -904,3 +665,63 @@ def api_historico(request):
             'paginated_entries_returned': len(dados_formatados)
         }
     }, status=200)
+
+        
+def dashboard_template(request):
+    return render(request, 'dashboard.html') 
+
+def dashboard(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Autenticação necessária'
+        }, status=401)
+
+    try:
+        page_number = request.GET.get('page', 1)
+        items_per_page = 10
+
+        solicitacoes_pendentes = Solicitacao.objects.filter(status='Pendente').prefetch_related('dados_solicitacao').order_by('-data_solicitacao')
+        
+        paginator = Paginator(solicitacoes_pendentes, items_per_page)
+        page_obj = paginator.get_page(page_number)
+        
+        dados = []
+        for solicitacao in page_obj:
+            itens = []
+            for dado in solicitacao.dados_solicitacao.all():
+                itens.append({
+                    'equipamento': dado.equipamento.nome,
+                    'quantidade': dado.quantidade,
+                    'motivo': dado.get_motivo_display(),
+                    'observacoes': dado.observacoes or ''
+                })
+            
+            dados.append({
+                'id': solicitacao.id,
+                'solicitante': solicitacao.solicitante.nome,
+                'funcionario': solicitacao.funcionario.nome,
+                'data_solicitacao': (solicitacao.data_solicitacao - timedelta(hours=3)).strftime('%d/%m/%Y %H:%M'),
+                'timestamp_solicitacao': int(solicitacao.data_solicitacao.timestamp()),
+                'status': solicitacao.get_status_display(),
+                'observacoes': solicitacao.observacoes or '',
+                'itens': itens
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'solicitacoes': dados,
+            'pagination': {
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'total_items': paginator.count
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)

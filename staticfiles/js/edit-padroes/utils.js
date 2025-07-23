@@ -1,17 +1,32 @@
+import { ToastBottomEnd } from "../../../../static/js/scripts.js";
+
 // Função para adicionar novo formulário clonado
-export function addCloneForm() {
+export function addCloneForm(equipamento= '', matricula='', nome='') {
     const cloneContainer = document.getElementById('clone-container-3');
     const originals = cloneContainer.querySelectorAll('.clone-form-3');
     const lastOriginal = originals[originals.length - 1];
     const clone = lastOriginal.cloneNode(true);
 
-    // Atualiza o número da solicitação
+    console.log(equipamento)
+    // Armazena os dados do funcionário no clone
+    clone.dataset.equipamento = equipamento;
+    clone.dataset.matricula = matricula;
+    clone.dataset.nome = nome;
     const requestText = clone.querySelector('.request');
-    if (requestText) {
-        const cloneNumber = originals.length + 1;
-        requestText.textContent = `${cloneNumber}ª Solicitação do Padrão`;
+    if (equipamento !== '' & matricula !== '' & nome !== '') {
+        // Atualiza o número da solicitação
+        if (requestText) {
+            const cloneNumber = originals.length + 1;
+            requestText.textContent = `${cloneNumber}ª - ${equipamento} | ${matricula} - ${nome}`;
+        }
+    } else {
+        if (requestText) {
+            const cloneNumber = originals.length + 1;
+            requestText.textContent = `${cloneNumber}ª Solicitação do Padrão`;
+        }
     }
 
+    // Restante do código permanece o mesmo...
     // Limpa os valores dos inputs
     const inputs = clone.querySelectorAll('input, textarea, select');
     inputs.forEach(input => {
@@ -26,7 +41,7 @@ export function addCloneForm() {
     cloneContainer.appendChild(clone);
 
     // Atualiza TODOS os data-index após adicionar o novo clone
-    updateRemoveButtonsIndexes();
+    updateRemoveButtonsIndexes(); // Removemos os parâmetros
 
     toggleCollapseFunction()
 }
@@ -41,10 +56,22 @@ function updateRemoveButtonsIndexes() {
             removeBtn.setAttribute('data-index', index);
         }
         
+        // Obtém os dados do funcionário do próprio clone
+        const matricula = clone.dataset.matricula || '';
+        const nome = clone.dataset.nome || '';
+        const equipamento = clone.dataset.equipamento || '';
+
         // Atualiza também o texto da solicitação para garantir consistência
         const requestText = clone.querySelector('.request');
-        if (requestText) {
-            requestText.textContent = `${index + 1}ª Solicitação do Padrão`;
+        console.log(equipamento)
+        if (equipamento !== '' & matricula !== '' & nome !== '') {
+            if (requestText) {
+                requestText.textContent = `${index + 1}ª - ${equipamento} | ${matricula} - ${nome}`;
+            }
+        } else {
+            if (requestText) {
+                requestText.textContent = `${index + 1}ª Solicitação do Padrão`;
+            }
         }
 
         const formFields = clone.querySelector('.collapse');
@@ -60,7 +87,7 @@ function updateRemoveButtonsIndexes() {
 }
 
 function toggleCollapseFunction(){
-        document.querySelectorAll('.toggle-collapse').forEach(button => {
+    document.querySelectorAll('.toggle-collapse').forEach(button => {
         button.addEventListener('click', function() {
             const icon = this.querySelector('i');
             if (this.getAttribute('aria-expanded') === 'true') {
@@ -78,17 +105,6 @@ function toggleCollapseFunction(){
 export function removeSpecificClone(indexToRemove) {
     const cloneContainer = document.getElementById('clone-container-3');
     const clones = cloneContainer.querySelectorAll('.clone-form-3');
-    const Toast = Swal.mixin({
-        toast: true,
-        position: "bottom-end",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
-    });
     
     // Verifica se há mais de um clone e se o índice é válido
     if (clones.length > 1 && indexToRemove >= 0 && indexToRemove < clones.length) {
@@ -99,7 +115,7 @@ export function removeSpecificClone(indexToRemove) {
         updateRemoveButtonsIndexes();
     } else if (clones.length <= 1) {
         // Não permite remover o último clone
-        Toast.fire({
+        ToastBottomEnd.fire({
             icon: 'warning',
             title: 'Você não pode remover a última solicitação!'
         });
@@ -127,6 +143,22 @@ export async function preencherModalEdicao(data) {
     const firstForm = cloneContainer.querySelector('.clone-form-3');
     
     if (firstForm) {
+        if (data.padrao.funcionarios.length > 0) {
+            const primeiroFunc = data.padrao.funcionarios[0];
+
+            console.log(data.padrao.funcionarios)
+
+            firstForm.dataset.equipamento = primeiroFunc.equipamentos[0].nome;
+            firstForm.dataset.matricula = primeiroFunc.matricula;
+            firstForm.dataset.nome = primeiroFunc.nome;
+            
+            // Atualizar o texto do request
+            const requestText = firstForm.querySelector('.request');
+            if (requestText) {
+                requestText.textContent = `1ª - ${primeiroFunc.equipamentos[0].nome} | ${primeiroFunc.matricula} - ${primeiroFunc.nome}`;
+            }
+        }
+
         // Preencher selects básicos
         const itemSelect = firstForm.querySelector('select[name="item"]');
         const funcionarioSelect = firstForm.querySelector('select[name="operator"]');
@@ -157,10 +189,11 @@ export async function preencherModalEdicao(data) {
         // Para cada funcionário
         data.padrao.funcionarios.forEach((func, funcIndex) => {
             // Para cada equipamento do funcionário
+            console.log(func.equipamentos)
             func.equipamentos.forEach((equip, equipIndex) => {
                 // Se não for o primeiro formulário (já existe), adicionar clone
                 if (formIndex > 0) {
-                    addCloneForm();
+                    addCloneForm(equip.nome, func.matricula, func.nome);
                 }
                 
                 // Pegar o formulário atual
@@ -214,6 +247,24 @@ export async function preencherModalEdicao(data) {
                     const formFields = currentForm.querySelector('.collapse');
                     if (formFields) {
                         formFields.setAttribute('id', `formFields-${formIndex}`);
+                        
+                        // Verificar se algum campo obrigatório está vazio
+                        const hasEmptyField = 
+                            (!funcSelect?.value) || 
+                            (!equipSelect?.value) || 
+                            (!qtyInput?.value) || 
+                            (!reasonSelect?.value);
+                        
+                        // Se algum campo estiver vazio, aplicar estilo
+                        if (hasEmptyField) {
+                            currentForm.classList.add('bg-danger');
+                            currentForm.classList.add('bg-opacity-10');
+                            currentForm.classList.add('text-dark');                            
+                        } else {
+                            currentForm.classList.remove('bg-danger');
+                            currentForm.classList.remove('bg-opacity-10');
+                            currentForm.classList.remove('text-dark');
+                        }
                     }
 
                     const toggleCollapse = currentForm.querySelector('.toggle-collapse');

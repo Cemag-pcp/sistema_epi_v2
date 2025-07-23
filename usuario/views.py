@@ -290,7 +290,6 @@ def editar_funcionario(request, id):
 @master_solicit
 def api_setores(request):
     if request.method == 'GET':
-
         setor_id = request.GET.get('setor_id')
         
         query = Setor.objects.select_related('responsavel')
@@ -298,13 +297,13 @@ def api_setores(request):
         if setor_id:
             query = query.filter(id=setor_id)
         
-        setores = list(query.values(
+        setores = query.values(
             'id',
             'nome',
             'responsavel_id',
             'responsavel__nome',
             'responsavel__matricula'
-        ))
+        )
 
         setores_list = [
             {
