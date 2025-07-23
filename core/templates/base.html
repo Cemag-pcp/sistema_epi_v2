@@ -12,9 +12,7 @@
     <link rel="icon" href="{% static 'favicon.ico' %}">
     <link href="{% static 'css/styles.css' %}" rel="stylesheet" />
     <link href="{% static 'css/crud.css' %}" rel="stylesheet" />
-    <link href="{% static 'css/funcionario.css' %}" rel="stylesheet" />
-    <link href="{% static 'css/devolucao.css' %}" rel="stylesheet" >
-    <link href="{% static 'css/historico.css' %}" rel="stylesheet" >
+    <link href="{% static 'css/funcionario.css' %}" rel="stylesheet"   />
 
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"/>
 
@@ -65,6 +63,7 @@
                                         <a class="nav-link" href="{% url 'devolucao:devolucao' %}">Devolução EPI</a>
                                         <a class="nav-link" href="{% url 'core:historico' %}">Histórico EPI</a>
                                         <a class="nav-link" href="{% url 'ficha:ficha' %}">Ficha EPI</a>
+
                                     {% elif request.user.funcionario.tipo_acesso == 'solicitante' %}  
                                         <a class="nav-link" href="{% url 'solicitacao:solicitacao' %}">Solicitar EPI</a>
                                     {% endif %}       

@@ -666,6 +666,7 @@ def api_historico(request):
         }
     }, status=200)
 
+        
 def dashboard_template(request):
     return render(request, 'dashboard.html') 
 
