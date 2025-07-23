@@ -5,7 +5,6 @@ import { getOldestDuplicateItems,
         updateConditionCell, 
         updateQuantidadeDevolvidaCell, 
         updateSelectionUI, 
-        handleSelectAll, 
         showErrorNotification 
        } from "/static/js/utils.js";
 
@@ -18,10 +17,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const formAssinatura = document.getElementById("form-assinatura");
     const campoQualidade = document.getElementById("campo-tabela-qualidade");
     const radiosDevolucao = formAssinatura.querySelectorAll('input[name="is_devolucao"]');
-
-    document.getElementById('selectAll').addEventListener('change', () => {
-        selectedItems = handleSelectAll(itensFiltrados, selectedItems);
-    });
 
     // Função para controlar a exibição e obrigatoriedade dos campos de qualidade
     function toggleCamposQualidade() {
@@ -38,8 +33,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.addEventListener('hidden.bs.modal', function () {
         console.log('Modal fechado');
-        const selectAllCheckbox = document.getElementById('selectAll');
-        selectAllCheckbox.checked = false; // Desmarca o checkbox de selecionar todos
         selectedItems = []; // Reseta a lista de itens selecionados
     })
 
@@ -71,114 +64,119 @@ document.addEventListener("DOMContentLoaded", function () {
 
             console.log(itensSubstituicao);
 
-            // Verificar quais itens estão ativos para o funcionário
-            // Comparar os itens ativos com os itens de substituição
-            // Mostrar apenas os itens que estão ativos e são de substituição
-
             // Limpa completamente a tabela antes de preencher
             const tbody = tabelaQualidade.querySelector('tbody');
             tbody.innerHTML = '';
 
-            if (itensSubstituicao.length === 0) {
-                // Oculta a seção de devolução e qualidade
+            // Verificar itens ativos do funcionário
+            let itensAtivos = [];
+            const botaoAssinaturaPendente = document.querySelector(`button.button-assinatura[data-solicitacao="${idDadosSolicitacao}"]`);
+            
+            // Desabilita todos os botões com assinatura pendente para evitar cliques indesejados
+            const botoesAssinaturaPendente = document.querySelectorAll('.button-assinatura');
+            botoesAssinaturaPendente.forEach(button => {
+                button.disabled = true;
+            });
+            botaoAssinaturaPendente.textContent = 'Carregando...';
+
+            try {
+                itensAtivos = await itensAtivosFuncionario(rowData.funcionario_id);
+                console.log('Itens ativos do funcionário:', itensAtivos);
+
+                // Verifica se há itens de substituição E se há itens ativos correspondentes
+                const hasSubstitutionItems = itensSubstituicao.length > 0;
+                const hasActiveItemsForSubstitution = itensSubstituicao.some(subItem => 
+                    itensAtivos.some(activeItem => activeItem.equipamento_id === subItem.equipamento_id)
+                );
+
+                if (!hasSubstitutionItems || !hasActiveItemsForSubstitution) {
+                    // Oculta a seção de devolução e qualidade
+                    devolucaoSection.style.display = 'none';
+                    tabelaQualidade.style.display = 'none';
+                    campoQualidade.style.display = 'none';
+
+                    // Remove qualquer mensagem anterior
+                    const existingMessage = tbody.querySelector('tr.text-center');
+                    if (existingMessage) {
+                        tbody.removeChild(existingMessage);
+                    }
+                } else {
+                    // Mostra a seção de devolução e qualidade
+                    devolucaoSection.style.display = 'block';
+                    tabelaQualidade.style.display = 'table';
+
+                    // Preenche o texto do funcionário no modal
+                    funcionarioText.textContent = `O funcionário ${rowData.funcionario_nome} devolverá o item substituído agora?`;
+
+                    // Marca "Não" como selecionado
+                    document.getElementById('nao').checked = true;
+
+                    // Filtra apenas os itens ativos que correspondem aos itens de substituição
+                    itensFiltrados = itensAtivos.filter(activeItem => 
+                        itensSubstituicao.some(subItem => subItem.equipamento_id === activeItem.equipamento_id)
+                    );
+                    console.log('Itens filtrados:', itensFiltrados);
+
+                    // Verificando itens mais antigos
+                    const oldestDuplicateIds = getOldestDuplicateItems(itensFiltrados);
+
+                    // Preenche a tabela de equipamentos
+                    itensFiltrados.forEach((item, index) => {
+                        const isOldest = oldestDuplicateIds.has(item.id);
+                        const tr = document.createElement('tr');
+                        tr.id = `equipamento-${index}`;
+                        tr.setAttribute('data-equipamento-id', item.equipamento_id);
+                        tr.className = isOldest ? 'oldest-item' : '';
+
+                        tr.innerHTML = `
+                            <td>
+                                <input class="form-check-input item-checkbox" type="checkbox" value="${item.id}" name="itemDevolver" data-item-id="${item.id}">
+                            </td>
+                            <td class="${isOldest ? 'text-danger fw-medium' : 'fw-medium'}">
+                                ${item.equipamento_nome}
+                                ${isOldest ? '<span class="badge bg-danger ms-2" style="font-size: 0.7rem;">Mais antigo</span>' : ''}
+                            </td>
+                            <td>
+                                <i class="bi bi-calendar3 me-1 text-muted"></i>
+                                ${item.data_recebimento}
+                            </td>
+                            <td class="text-center">
+                                ${item.quantidade_disponivel}
+                            </td>
+                            <td class="text-center quantidade-devolvida-cell" data-item-id="${item.id}">
+                                <span class="text-muted">Selecione para alterar</span>
+                            </td>
+                            <td class="condition-cell" data-item-id="${item.id}">
+                                <span class="text-muted">Selecione para ver</span>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Atualiza os listeners para os radio buttons de devolução
+                    radiosDevolucao.forEach(radio => {
+                        radio.addEventListener('change', toggleCamposQualidade);
+                    });
+
+                    // Add event listeners to checkboxes
+                    document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                        console.log(checkbox);
+                        checkbox.addEventListener('change', handleItemToggle);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar itens ativos:', error);
+                // Em caso de erro, oculta as seções
                 devolucaoSection.style.display = 'none';
                 tabelaQualidade.style.display = 'none';
                 campoQualidade.style.display = 'none';
-
-                // Remove qualquer mensagem anterior
-                const existingMessage = tbody.querySelector('tr.text-center');
-                if (existingMessage) {
-                    tbody.removeChild(existingMessage);
-                }
-            } else {
-                // Mostra a seção de devolução e qualidade
-                devolucaoSection.style.display = 'block';
-                tabelaQualidade.style.display = 'table';
-
-                // Preenche o texto do funcionário no modal
-                funcionarioText.textContent = `O funcionário ${rowData.funcionario_nome} devolverá o item substituído agora?`;
-
-                // Marca "Não" como selecionado
-                document.getElementById('nao').checked = true;
-
-                let itensAtivosUso;
-
-                const botaoAssinaturaPendente = document.querySelector(`button.button-assinatura[data-solicitacao="${idDadosSolicitacao}"]`);
-                botaoAssinaturaPendente.disabled = true; // Desabilita o botão de assinatura enquanto carrega os itens
-                botaoAssinaturaPendente.textContent = 'Carregando...';
-
-                // Desabilita todos os botões com assinatura pendente para evitar cliques indesejados
-                const botoesAssinaturaPendente = document.querySelectorAll('.button-assinatura');
+            } finally {
+                // Habilita os botões novamente
+                botaoAssinaturaPendente.disabled = false;
+                botaoAssinaturaPendente.textContent = 'Assinatura Pendente';
                 botoesAssinaturaPendente.forEach(button => {
-                    button.disabled = true; // Desabilita todos os botões de assinatura enquanto carrega
+                    button.disabled = false;
                 });
-
-                await itensAtivosFuncionario(rowData.funcionario_id).then(itensAtivos => {
-                    console.log('Itens ativos do funcionário:', itensAtivos);
-                    itensAtivosUso = itensAtivos;
-                }).finally(() => {
-                    botaoAssinaturaPendente.disabled = false; // Habilita o botão de assinatura
-                    botaoAssinaturaPendente.textContent = 'Assinatura Pendente';
-
-                    botoesAssinaturaPendente.forEach(button => {
-                        button.disabled = false; // Habilita todos os botões de assinatura após o carregamento dos itens ativos
-                    });
-                });
-
-                itensFiltrados = itensAtivosUso.filter(item => {
-                    return itensSubstituicao.some(ativo => ativo.equipamento_id === item.equipamento_id);
-                });
-                console.log('Itens filtrados:');
-                console.log(itensFiltrados);
-
-                // Verificando itens mais antigos
-
-                const oldestDuplicateIds = getOldestDuplicateItems(itensFiltrados);
-
-                // Preenche a tabela de equipamentos
-                itensFiltrados.forEach((item, index) => {
-                    const isOldest = oldestDuplicateIds.has(item.id);
-                    const tr = document.createElement('tr');
-                    tr.id = `equipamento-${index}`;
-                    tr.setAttribute('data-equipamento-id', item.equipamento_id);
-                    tr.className = isOldest ? 'oldest-item' : '';
-
-                    tr.innerHTML = `
-                        <td>
-                            <input class="form-check-input item-checkbox" type="checkbox" value="${item.id}" name="itemDevolver" data-item-id="${item.id}">
-                        </td>
-                        <td class="${isOldest ? 'text-danger fw-medium' : 'fw-medium'}">
-                            ${item.equipamento_nome}
-                            ${isOldest ? '<span class="badge bg-danger ms-2" style="font-size: 0.7rem;">Mais antigo</span>' : ''}
-                        </td>
-                        <td>
-                            <i class="bi bi-calendar3 me-1 text-muted"></i>
-                            ${item.data_recebimento}
-                        </td>
-                        <td class="text-center">
-                            ${item.quantidade_disponivel}
-                        </td>
-                        <td class="text-center quantidade-devolvida-cell" data-item-id="${item.id}">
-                            <span class="text-muted">Selecione para alterar</span>
-                        </td>
-                        <td class="condition-cell" data-item-id="${item.id}">
-                            <span class="text-muted">Selecione para ver</span>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-
-                // Atualiza os listeners para os radio buttons de devolução
-                radiosDevolucao.forEach(radio => {
-                    radio.addEventListener('change', toggleCamposQualidade);
-                });
-
-                // Add event listeners to checkboxes
-                document.querySelectorAll('.item-checkbox').forEach(checkbox => {
-                    checkbox.addEventListener('change', handleItemToggle);
-                });
-
             }
 
             // Inicializa ou reinicializa a assinatura
@@ -202,8 +200,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Inicializa o estado dos campos
             toggleCamposQualidade();
-
-
         }
     });
 
@@ -348,7 +344,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Fecha o modal e recarrega a tabela
                         const modal = bootstrap.Modal.getInstance(document.getElementById('modal-assinatura'));
                         modal.hide();
-                        solicitacoesTable.ajax.reload();
+                        solicitacoesTable.ajax.reload(null, false);
                     } else {
                         throw new Error(data.message || 'Erro ao processar assinatura');
                     }
