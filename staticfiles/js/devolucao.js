@@ -3,6 +3,7 @@ import { getCookie } from "/static/js/scripts.js";
 let operators = [];
 let currentOperatorPPEItems = [];
 let itemConditions = {};
+let itemQtdsDevolvidas = {};
 
 // State variables
 let selectedOperator = "";
@@ -105,6 +106,10 @@ function getCurrentCondition(item) {
     return itemConditions[item.id] || item.condition;
 }
 
+function getQuantidadeDevolvida(item){
+    return itemQtdsDevolvidas[item.id];
+}
+
 // Initialize page
 async function initializePage() {
     await fetchOperators();
@@ -144,10 +149,14 @@ function populateOperatorSelect() {
         option.textContent = `${operator.matricula} - ${operator.nome}`;
         select.appendChild(option);
     });
+
+    const optionPadrao = select.querySelector('option[value=""]');
+    optionPadrao.textContent = 'Selecione um funcionário...';
 }
 
 function setupEventListeners() {
-    document.getElementById('operatorSelect').addEventListener('change', handleOperatorChange);
+    $('#operatorSelect').select2();
+    $('#operatorSelect').on('change', handleOperatorChange);
     document.getElementById('selectAll').addEventListener('change', handleSelectAll);
     document.getElementById('processObservationBtn').addEventListener('click', handleSubmit);
     document.getElementById('confirmObservationBtn').addEventListener('click', handleConfirmObservation);
@@ -214,6 +223,12 @@ function populatePPETable(items) {
                 <i class="bi bi-calendar3 me-1 text-muted"></i>
                 ${item.data_recebimento}
             </td>
+            <td class="text-center">
+                ${item.quantidade_disponivel}
+            </td>
+            <td class="text-center quantidade-devolvida-cell" data-item-id="${item.id}">
+                <span class="text-muted">Selecione para alterar</span>
+            </td>
             <td class="condition-cell" data-item-id="${item.id}">
                 <span class="text-muted">Selecione para ver</span>
             </td>
@@ -239,17 +254,19 @@ async function handleConfirmObservation() {
         const item = currentOperatorPPEItems.find(i => i.id === itemId);
         const finalCondition = itemConditions[itemId] || item.condition;
         const observation = document.getElementById(`obsDevolucao-${itemId}`).value || "";
+        const qtdDevolvida = itemQtdsDevolvidas[itemId];
         
         return {
             ...item,
             condicao: finalCondition,
-            observacao: observation
+            observacao: observation,
+            qtdDevolvida: qtdDevolvida,
         };
     });
 
     const confirmBtn = document.getElementById('confirmObservationBtn');
     const originalText = confirmBtn.innerHTML;
-    
+    console.log(originalText);
     
     try {
         // Show loading state on the confirm button
@@ -284,7 +301,11 @@ async function handleConfirmObservation() {
         // Reset form
         selectedItems = [];
         itemConditions = {};
-        
+        itemQtdsDevolvidas = {};
+
+        // Colocando o botão de confirmação de volta ao estado original
+        confirmBtn.innerHTML = originalText;
+        confirmBtn.disabled = false;
         // Hide modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
         modal.hide();
@@ -338,8 +359,27 @@ function handleItemToggle(event) {
         selectedItems = selectedItems.filter(id => id !== itemId);
     }
     
+    updateQuantidadeDevolvidaCell(itemId, isChecked);
     updateConditionCell(itemId, isChecked);
     updateSelectionUI();
+}
+
+function updateQuantidadeDevolvidaCell(itemId, isSelected) {
+    const cell = document.querySelector(`[data-item-id="${itemId}"].quantidade-devolvida-cell`);
+    const item = currentOperatorPPEItems.find(i => i.id === itemId);
+
+    if (!item) return;
+
+    if (isSelected) {
+        cell.innerHTML = `<input type="number" data-item-id="${item.id}" 
+                            class="form-control form-control-sm" value="${item.quantidade_disponivel}" 
+                            min="1" max="${item.quantidade_disponivel}" 
+                            style="width: 80px;">
+                          </input>`
+
+    } else {
+        cell.innerHTML = '<span class="text-muted">Selecione para alterar</span>';
+    }
 }
 
 function updateConditionCell(itemId, isSelected) {
@@ -391,6 +431,7 @@ function handleSelectAll() {
     document.querySelectorAll('.item-checkbox').forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
         updateConditionCell(parseInt(checkbox.value), checkbox.checked);
+        updateQuantidadeDevolvidaCell(parseInt(checkbox.value), checkbox.checked);
     });
     
     updateSelectionUI();
@@ -424,6 +465,39 @@ function handleSubmit() {
         alert("Por favor, selecione pelo menos um item para devolver.");
         return;
     }
+
+    let qtdDevolvidaInvalida = false;
+    let erroText = '';
+    
+    for (const itemId of selectedItems){
+        const items = currentOperatorPPEItems;
+
+        const item = items.find(i => i.id === itemId);
+        const cell = document.querySelector(`[data-item-id="${itemId}"].quantidade-devolvida-cell`);
+        let inputValue = cell.querySelector('input').value;
+
+        if (parseInt(inputValue) <= 0){
+            erroText = `Quantidade devolvida para o EPI ${item.equipamento_codigo}-${item.equipamento_nome} inválida.`;
+            qtdDevolvidaInvalida = true;
+            break;
+        }
+
+        if (parseInt(inputValue) > parseInt(item.quantidade_disponivel)){
+            erroText = `Quantidade devolvida para o EPI ${item.equipamento_codigo}-${item.equipamento_nome} é maior que a disponível.`;
+            qtdDevolvidaInvalida = true;
+            break;
+        }
+
+        //Se tudo estiver ok, será passada a quantidade devolvida para uma lista de dicionario de quantidades devolvidas.
+        itemQtdsDevolvidas[item.id] = parseInt(inputValue);
+
+    }
+    //Verificar se a flag foi modificada
+    if (qtdDevolvidaInvalida){
+        showErrorNotification(erroText);
+        return;
+    }
+
     
     showConfirmModal();
 }
@@ -447,6 +521,7 @@ function showConfirmModal() {
         const item = items.find(i => i.id === itemId);
         if (!item) return;
         
+        const qtdDevolvida = getQuantidadeDevolvida(item);
         const currentCondition = getCurrentCondition(item);
         const isOldest = oldestDuplicateIds.has(item.id);       
         const itemDiv = document.createElement('div');
@@ -465,6 +540,8 @@ function showConfirmModal() {
                         <div class="col-6">
                             <strong>Condição:</strong> ${getConditionBadge(currentCondition)}
                         </div>
+                        <div class="col-6"><strong>Qtd. Disponível:</strong> ${item.quantidade_disponivel}</div>
+                        <div class="col-6"><strong>Qtd. a ser devolvida:</strong> ${qtdDevolvida}</div>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -492,15 +569,24 @@ function handleReturnDateChange(event) {
     const date = event.target.value;
 }
 
+let fetchOperatorPPEItemsController = null;  // controller da última requisição ativa
 async function fetchOperatorPPEItems(operatorId) {
     try {
+        
+        // Aborta requisição anterior se existir
+        if (fetchOperatorPPEItemsController) {
+            fetchOperatorPPEItemsController.abort();
+        }
         showPPELoadingState();
 
+        // Cria um novo controller para a requisição atual
+        fetchOperatorPPEItemsController = new AbortController();
         const response = await fetch(`/api_itens_ativos/${operatorId}/`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
             },
+            signal: fetchOperatorPPEItemsController.signal
         });
 
         if (!response.ok) {
@@ -525,7 +611,13 @@ async function fetchOperatorPPEItems(operatorId) {
         return data;
 
     } catch (error) {
-        console.error('Error fetching PPE items:', error);
+        if (error.name === 'AbortError'){
+            console
+            console.warn('Requisição abortada pelo usuário.');
+            // hidePPELoadingState();
+            return [];
+        }
+        console.error('Erro ao carregar EPIs:', error);
         hidePPELoadingState();
         showPPEErrorState(error);
         return [];

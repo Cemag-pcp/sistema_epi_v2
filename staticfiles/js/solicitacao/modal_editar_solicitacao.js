@@ -5,6 +5,14 @@ export function addSolicitacaoClone(equipamento= '', matricula='', nome='', func
     const cloneContainer = document.getElementById('clone-container-solicitacao');
     const originals = cloneContainer.querySelectorAll('.clone-form-solicitacao');
     const lastOriginal = originals[originals.length - 1];
+
+    // Destroy Select2 on the original before cloning
+    $(lastOriginal).find('select.select2-modal').each(function() {
+        if ($(this).hasClass("select2-hidden-accessible")) {
+            $(this).select2('destroy');
+        }
+    });
+
     const clone = lastOriginal.cloneNode(true);
 
     // Armazena os dados do funcionário no clone
@@ -45,6 +53,29 @@ export function addSolicitacaoClone(equipamento= '', matricula='', nome='', func
 
     // Adiciona o clone ao container
     cloneContainer.appendChild(clone);
+
+    // Reinitialize Select2 on both original and clone
+    $(lastOriginal).find('select.select2-modal').each(function() {
+        const $select = $(this);
+        const $modal = $select.closest('.modal');
+        
+        $select.select2({
+            dropdownParent: $modal.length ? $modal : $(document.body),
+            width: '100%',
+            placeholder: 'Selecione um equipamento'
+        });
+    });
+    
+    $(clone).find('select.select2-modal').each(function() {
+        const $select = $(this);
+        const $modal = $select.closest('.modal');
+        
+        $select.select2({
+            dropdownParent: $modal.length ? $modal : $(document.body),
+            width: '100%',
+            placeholder: 'Selecione um equipamento'
+        });
+    });
 
     // Atualiza TODOS os data-index após adicionar o novo clone
     updateSolicitacaoRemoveButtonsIndexes();
@@ -223,8 +254,10 @@ export async function preencherModalEdicaoSolicitacao(data) {
                 if (currentForm) {
                     // Preencher selects
                     const currentItemSelect = currentForm.querySelector('select[name="item"]');
+                    console.log(currentItemSelect)
                     if (currentItemSelect) {
                         currentItemSelect.value = item.equipamento_id;
+                        $(currentItemSelect).trigger('change');
                     }
                     
                     const currentFuncSelect = currentForm.querySelector('select[name="operator"]');

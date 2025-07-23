@@ -4,13 +4,14 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Prefetch
 from usuario.decorators import somente_master
 from usuario.models import Funcionario
 from solicitacao.models import Solicitacao, DadosSolicitacao, Assinatura
 from equipamento.models import Equipamento
 from devolucao.models import Devolucao
 from django.core.files.base import ContentFile
+from datetime import datetime
 import json
 import base64
 import uuid
@@ -379,7 +380,292 @@ def alter_signature(request, id):
                 'success': False,
                 'message': f'Ocorreu um erro ao excluir a assinatura e as devoluções: {str(e)}'
             }, status=500)
+
+def historico(request):
+    return render(request, 'historico.html')
+
+def api_historico(request):
+    # Paginação
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 25))
+    
+    # Parâmetros de busca e filtro
+    search = request.GET.get('search', '')
+    status = request.GET.get('status', '')
+    data_inicio = request.GET.get('data_inicio', '')
+    data_fim = request.GET.get('data_fim', '')
+    ordering = request.GET.get('ordering', '-data_atualizacao')
+    action_type = request.GET.get('action_type', '')  # New parameter for action type
+    
+    # --- Solicitacoes ---
+    solicitacoes = Solicitacao.objects.select_related(
+        'funcionario', 'solicitante'
+    ).prefetch_related(
+        'dados_solicitacao__equipamento'
+    )
+    
+    if search:
+        solicitacoes = solicitacoes.filter(
+            Q(funcionario__nome__icontains=search) |
+            Q(dados_solicitacao__equipamento__nome__icontains=search) |
+            Q(solicitante__nome__icontains=search) |
+            Q(id__icontains=search)  # Allow search by ID
+        )
+
+    
+    if status and status != 'devolvido':  # Don't filter solicitacoes by 'devolvido'
+        solicitacoes = solicitacoes.filter(status=status)
+    
+    if data_inicio:
+        try:
+            data_inicio_formatada = datetime.strptime(data_inicio, "%Y-%m-%d")
+            solicitacoes = solicitacoes.filter(data_atualizacao__gte=data_inicio_formatada)
+        except ValueError:
+            pass
+    
+    if data_fim:
+        try:
+            data_fim_formatada = datetime.strptime(data_fim, "%Y-%m-%d")
+            solicitacoes = solicitacoes.filter(data_atualizacao__lte=data_fim_formatada)
+        except ValueError:
+            pass
+    
+    solicitacoes = solicitacoes.order_by(ordering)
+    
+    # --- Devolucoes ---
+    devolucoes = Devolucao.objects.select_related(
+        'dados_solicitacao__solicitacao__funcionario',
+        'dados_solicitacao__equipamento',
+        'responsavel_recebimento'
+    )
+    
+    if search:
+        devolucoes = devolucoes.filter(
+            Q(dados_solicitacao__equipamento__nome__icontains=search) |
+            Q(dados_solicitacao__solicitacao__funcionario__nome__icontains=search) |
+            Q(responsavel_recebimento__nome__icontains=search)
+        )
+    
+    # Only include devolucoes if status is 'devolvido' or no status filter
+    if status and status != 'devolvido':
+        devolucoes = devolucoes.none()  # Exclude all devolucoes
+    
+    if data_inicio:
+        try:
+            data_inicio_formatada = datetime.strptime(data_inicio, "%Y-%m-%d")
+            devolucoes = devolucoes.filter(data_devolucao__gte=data_inicio_formatada)
+        except ValueError:
+            pass
+    
+    if data_fim:
+        try:
+            data_fim_formatada = datetime.strptime(data_fim, "%Y-%m-%d")
+            devolucoes = devolucoes.filter(data_devolucao__lte=data_fim_formatada)
+        except ValueError:
+            pass
+    
+    # Ordenar devoluções pela data também
+    if ordering.startswith('-'):
+        devolucoes = devolucoes.order_by('-data_devolucao')
+    else:
+        devolucoes = devolucoes.order_by('data_devolucao')
+    
+    # --- Transform to Historical Entries (BEFORE pagination) ---
+    def transform_to_historical_entries():
+        historical_entries = []
+        entry_id = 1
         
+        # Process solicitacoes
+        for solicitacao in solicitacoes:
+            for dado in solicitacao.dados_solicitacao.all():
+                base_data = {
+                    'solicitacao_id': solicitacao.id,
+                    'funcionario_id': solicitacao.funcionario.id,
+                    'funcionario_matricula': solicitacao.funcionario.matricula,
+                    'funcionario_nome': solicitacao.funcionario.nome,
+                    'solicitante_matricula': solicitacao.solicitante.matricula,
+                    'solicitante_nome': solicitacao.solicitante.nome,
+                    'observacoes_gerais': solicitacao.observacoes or '',
+                    'equipamento_id': dado.equipamento.id,
+                    'equipamento_codigo': dado.equipamento.codigo,
+                    'equipamento_nome': dado.equipamento.nome,
+                    'quantidade': dado.quantidade,
+                    'motivo': dado.motivo,
+                }
+                
+                if (not action_type or action_type == 'request_created'):
+                    # 1. Request Created Entry
+                    historical_entries.append({
+                        'id': f"SOL_{solicitacao.id}_{dado.equipamento.id}_created_{entry_id}",
+                        'data_atualizacao': solicitacao.data_solicitacao.isoformat(),
+                        'action_type': 'request_created',
+                        'status': solicitacao.status,
+                        'tipo': 'solicitacao',
+                        **base_data
+                    })
+                    entry_id += 1
+                
+                # 2. Status Update Entry (if approved)
+                # if solicitacao.status.lower() == 'aprovado':
+                #     historical_entries.append({
+                #         'id': f"SOL_{solicitacao.id}_{dado.equipamento.id}_approved_{entry_id}",
+                #         'data_atualizacao': solicitacao.data_atualizacao.isoformat(),
+                #         'action_type': 'status_updated',
+                #         'status': 'aprovado',
+                #         'tipo': 'solicitacao',
+                #         **base_data
+                #     })
+                #     entry_id += 1
+                
+                # 3. Delivery Entry (if delivered)
+                if solicitacao.status.lower() == 'entregue':
+                    # Add approval first if not already added
+                    # if solicitacao.status.lower() == 'entregue':
+                    #     historical_entries.append({
+                    #         'id': f"SOL_{solicitacao.id}_{dado.equipamento.id}_approved_{entry_id}",
+                    #         'data_atualizacao': solicitacao.data_atualizacao.isoformat(),
+                    #         'action_type': 'status_updated',
+                    #         'status': 'aprovado',
+                    #         'tipo': 'solicitacao',
+                    #         **base_data
+                    #     })
+                    #     entry_id += 1
+                    
+                    # Add delivery
+                    if not action_type or action_type == 'item_delivered':
+                        historical_entries.append({
+                            'id': f"SOL_{solicitacao.id}_{dado.equipamento.id}_delivered_{entry_id}",
+                            'data_atualizacao': solicitacao.data_atualizacao.isoformat(),
+                            'action_type': 'item_delivered',
+                            'status': 'entregue',
+                            'tipo': 'solicitacao',
+                            **base_data
+                        })
+                        entry_id += 1
+                    
+                    if not action_type or action_type == 'signature_added':
+                    # Add signature
+                        historical_entries.append({
+                            'id': f"SOL_{solicitacao.id}_{dado.equipamento.id}_signed_{entry_id}",
+                            'data_atualizacao': solicitacao.data_atualizacao.isoformat(),
+                            'action_type': 'signature_added',
+                            'status': 'entregue',
+                            'tipo': 'solicitacao',
+                            **base_data
+                        })
+                        entry_id += 1
+                
+                # 4. Cancellation Entry (if canceled)
+                if solicitacao.status.lower() == 'cancelado':
+
+                    if not action_type or action_type == 'request_canceled':
+                        historical_entries.append({
+                            'id': f"SOL_{solicitacao.id}_{dado.equipamento.id}_canceled_{entry_id}",
+                            'data_atualizacao': solicitacao.data_atualizacao.isoformat(),
+                            'action_type': 'request_canceled',
+                            'status': 'cancelado',
+                            'tipo': 'solicitacao',
+                            **base_data
+                        })
+                        entry_id += 1
+        
+        # Process devolucoes
+        for devolucao in devolucoes:
+            if not action_type or action_type == 'item_returned':
+                historical_entries.append({
+                    'id': f"DEV_{devolucao.id}_returned_{entry_id}",
+                    'solicitacao_id': devolucao.dados_solicitacao.solicitacao.id,
+                    'data_atualizacao': devolucao.data_devolucao.isoformat(),
+                    'funcionario_id': devolucao.dados_solicitacao.solicitacao.funcionario.id,
+                    'funcionario_matricula': devolucao.dados_solicitacao.solicitacao.funcionario.matricula,
+                    'funcionario_nome': devolucao.dados_solicitacao.solicitacao.funcionario.nome,
+                    'responsavel_recebimento_id': devolucao.responsavel_recebimento.id if devolucao.responsavel_recebimento else None,
+                    'responsavel_recebimento_nome': devolucao.responsavel_recebimento.nome if devolucao.responsavel_recebimento else None,
+                    'equipamento_id': devolucao.dados_solicitacao.equipamento.id,
+                    'equipamento_codigo': devolucao.dados_solicitacao.equipamento.codigo,
+                    'equipamento_nome': devolucao.dados_solicitacao.equipamento.nome,
+                    'quantidade': devolucao.quantidade_devolvida,
+                    'estado_item': devolucao.estado_item,
+                    'action_type': 'item_returned',
+                    'status': 'Devolvido',
+                    'observacoes_gerais': '',
+                    'tipo': 'devolucao'
+                })
+                entry_id += 1
+        
+        return historical_entries
+    
+    # Generate all historical entries
+    all_historical_entries = transform_to_historical_entries()
+    
+    # Sort all entries by date
+    all_historical_entries.sort(key=lambda x: x['data_atualizacao'], reverse=ordering.startswith('-'))
+    
+    # NOW apply pagination to the historical entries (not the original solicitacoes)
+    total_historical_count = len(all_historical_entries)
+    start = (page - 1) * page_size
+    end = start + page_size
+    paginated_historical_entries = all_historical_entries[start:end]
+    
+    # Convert back to the format expected by frontend
+    dados_formatados = []
+    for entry in paginated_historical_entries:
+        # Group by solicitacao to create the itens array
+        existing_item = None
+        for item in dados_formatados:
+            if (item['solicitacao_id'] == entry['solicitacao_id'] and 
+                item.get('id') == entry['id']):
+                existing_item = item
+                break
+        
+        if not existing_item:
+            dados_formatados.append({
+                'id': entry['id'],
+                'solicitacao_id': entry['solicitacao_id'],
+                'data_atualizacao': entry['data_atualizacao'],
+                'funcionario_id': entry['funcionario_id'],
+                'funcionario_matricula': entry['funcionario_matricula'],
+                'funcionario_nome': entry['funcionario_nome'],
+                'status': entry['status'],
+                'solicitante_matricula': entry.get('solicitante_matricula', ''),
+                'solicitante_nome': entry.get('solicitante_nome', ''),
+                'responsavel_recebimento_id': entry.get('responsavel_recebimento_id'),
+                'responsavel_recebimento_nome': entry.get('responsavel_recebimento_nome'),
+                'observacoes_gerais': entry['observacoes_gerais'],
+                'tipo': entry['tipo'],
+                'action_type': entry['action_type'],  # Add this for frontend
+                'itens': [{
+                    'quantidade': entry['quantidade'],
+                    'motivo': entry.get('motivo', ''),
+                    'equipamento_id': entry['equipamento_id'],
+                    'equipamento_codigo': entry['equipamento_codigo'],
+                    'equipamento_nome': entry['equipamento_nome'],
+                    'estado_item': entry.get('estado_item'),
+                }]
+            })
+    
+    # Calculate pagination info based on historical entries count
+    total_pages = (total_historical_count + page_size - 1) // page_size
+    has_next = page < total_pages
+    has_previous = page > 1
+    
+    return JsonResponse({
+        'dados_solicitados': dados_formatados,
+        'total_itens': total_historical_count,  # CORRECT: Total historical entries, not solicitacoes
+        'current_page': page,
+        'total_pages': total_pages,
+        'page_size': page_size,
+        'has_next': has_next,
+        'has_previous': has_previous,
+        'count': total_historical_count,
+        'debug_info': {
+            'solicitacoes_count': solicitacoes.count(),
+            'devolucoes_count': devolucoes.count(),
+            'historical_entries_generated': total_historical_count,
+            'paginated_entries_returned': len(dados_formatados)
+        }
+    }, status=200)
+
 def dashboard_template(request):
     return render(request, 'dashboard.html') 
 

@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-hard-hat text-primary me-2"></i>
+                        Histórico Completo de EPIs
+                    </h1>
+                    <p class="text-muted mb-0">Auditoria completa de todas as ações relacionadas aos equipamentos de proteção individual</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="refreshData()">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        Atualizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter me-2"></i>
+                        Filtros
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label">Buscar</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="searchInput" placeholder="Buscar por usuário, equipamento...">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Tipo de Ação</label>
+                            <select class="form-select" id="actionTypeFilter">
+                                <option value="">Todos</option>
+                                <option value="request_created">Solicitação Criada</option>
+                                <option value="item_delivered">Item Entregue</option>
+                                <option value="item_returned">Item Devolvido</option>
+                                <option value="signature_added">Assinatura Adicionada</option>
+                                <option value="request_canceled">Solicitação Cancelada</option>
+                            </select>
+                        </div>
+                        <!-- <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">Todos</option>
+                                <option value="pendente">Pendente</option>
+                                <option value="aprovado">Aprovado</option>
+                                <option value="entregue">Entregue</option>
+                                <option value="devolvido">Devolvido</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div> -->
+                        <div class="col-md-2">
+                            <label class="form-label">Data Inicial</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Data Final</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;Remover Filtros</label>
+                            <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-clipboard-list fa-2x text-primary mb-2"></i>
+                    <h4 class="mb-0" id="totalRequests">0</h4>
+                    <small class="text-muted">Total de Ações</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-plus-circle fa-2x text-success mb-2"></i>
+                    <h4 class="mb-0" id="createdRequests">0</h4>
+                    <small class="text-muted">Solicitações</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-hand-holding fa-2x text-info mb-2"></i>
+                    <h4 class="mb-0" id="deliveredItems">0</h4>
+                    <small class="text-muted">Entregas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-undo fa-2x text-warning mb-2"></i>
+                    <h4 class="mb-0" id="returnedItems">0</h4>
+                    <small class="text-muted">Devoluções</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-signature fa-2x text-purple mb-2"></i>
+                    <h4 class="mb-0" id="signatures">0</h4>
+                    <small class="text-muted">Assinaturas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center stats-card">
+                <div class="card-body">
+                    <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                    <h4 class="mb-0" id="canceledRequests">0</h4>
+                    <small class="text-muted">Cancelamentos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historical Log Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Histórico de Ações
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="text-muted">
+                            Mostrando <span id="showingCount">0</span> de <span id="totalCount">0</span> registros
+                        </span>
+                        <select class="form-select form-select-sm" id="pageSize" style="width: auto;">
+                            <option value="25">25 por página</option>
+                            <option value="50">50 por página</option>
+                            <option value="100">100 por página</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="sortable" data-sort="id">
+                                        <i class="fas fa-flag me-1"></i>
+                                        ID
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="timestamp">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Data
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="action_type">
+                                        <i class="fas fa-cog me-1"></i>
+                                        Ação
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="user">
+                                        <i class="fas fa-user me-1"></i>
+                                        Usuário
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="equipment">
+                                        <i class="fas fa-hard-hat me-1"></i>
+                                        Equipamento
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" data-sort="quantity">
+                                        <i class="fas fa-hashtag me-1"></i>
+                                        Qtd
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th>
+                                        <i class="fas fa-comment me-1"></i>
+                                        Observações
+                                    </th>
+                                    <!-- <th class="sortable" data-sort="status">
+                                        <i class="fas fa-flag me-1"></i>
+                                        Status
+                                        <i class="fas fa-sort sort-icon"></i>
+                                    </th> -->
+                                    <th>
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Detalhes
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="logTableBody">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="emptyState" class="text-center py-5 d-none">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum registro encontrado</h5>
+                        <p class="text-muted">Tente ajustar os filtros para encontrar os dados desejados</p>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <nav aria-label="Navegação da tabela">
+                        <ul class="pagination justify-content-center mb-0" id="pagination">
+                            <!-- Pagination will be populated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Detalhes da Ação
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Details will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loadingSpinner" class="d-none">
+    <div class="spinner-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/historico.js' %}"></script>
+{% endblock %}
