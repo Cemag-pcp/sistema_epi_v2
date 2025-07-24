@@ -205,49 +205,49 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.addEventListener('submit', function (event) {
         event.preventDefault();
+        
+        if (event.target.id === 'form-assinatura') {
+            //Verifica se o checkbox de devolução está marcado
+            if (toggleCamposQualidade()) {
+                console.log(selectedItems);
+                if (selectedItems.length == 0) {
+                    // Se não houver nenhum item selecionado, exibe uma mensagem de erro
+                    showErrorNotification('Por favor, selecione pelo menos um item para devolução.');
+                    return;
+                }
+                // Se passar pra essa parte, quer dizer que algum item foi selecionado
+            }
 
-        //Verifica se o checkbox de devolução está marcado
-        if (toggleCamposQualidade()) {
-            console.log(selectedItems);
-            if (selectedItems.length == 0) {
-                // Se não houver nenhum item selecionado, exibe uma mensagem de erro
-                showErrorNotification('Por favor, selecione pelo menos um item para devolução.');
+            let qtdDevolvidaInvalida = false;
+            let erroText = '';
+
+            for (const itemId of selectedItems) {
+                const items = itensFiltrados;
+
+                const item = items.find(i => i.id === itemId);
+                const cell = document.querySelector(`[data-item-id="${itemId}"].quantidade-devolvida-cell`);
+                let inputValue = cell.querySelector('input').value;
+
+                if (parseInt(inputValue) <= 0) {
+                    erroText = `Quantidade devolvida para o EPI ${item.equipamento_codigo}-${item.equipamento_nome} inválida.`;
+                    qtdDevolvidaInvalida = true;
+                    break;
+                }
+
+                if (parseInt(inputValue) > parseInt(item.quantidade_disponivel)) {
+                    erroText = `Quantidade devolvida para o EPI ${item.equipamento_codigo}-${item.equipamento_nome} é maior que a disponível.`;
+                    qtdDevolvidaInvalida = true;
+                    break;
+                }
+
+            }
+            //Verificar se a flag foi modificada
+            if (qtdDevolvidaInvalida) {
+                showErrorNotification(erroText);
                 return;
             }
-            // Se passar pra essa parte, quer dizer que algum item foi selecionado
-        }
-
-        let qtdDevolvidaInvalida = false;
-        let erroText = '';
-
-        for (const itemId of selectedItems) {
-            const items = itensFiltrados;
-
-            const item = items.find(i => i.id === itemId);
-            const cell = document.querySelector(`[data-item-id="${itemId}"].quantidade-devolvida-cell`);
-            let inputValue = cell.querySelector('input').value;
-
-            if (parseInt(inputValue) <= 0) {
-                erroText = `Quantidade devolvida para o EPI ${item.equipamento_codigo}-${item.equipamento_nome} inválida.`;
-                qtdDevolvidaInvalida = true;
-                break;
-            }
-
-            if (parseInt(inputValue) > parseInt(item.quantidade_disponivel)) {
-                erroText = `Quantidade devolvida para o EPI ${item.equipamento_codigo}-${item.equipamento_nome} é maior que a disponível.`;
-                qtdDevolvidaInvalida = true;
-                break;
-            }
-
-        }
-        //Verificar se a flag foi modificada
-        if (qtdDevolvidaInvalida) {
-            showErrorNotification(erroText);
-            return;
-        }
 
 
-        if (event.target.id === 'form-assinatura') {
             const form = event.target;
             const submitButton = form.querySelector('.verificar-assinatura');
             const spinner = submitButton.querySelector('.spinner-border');
