@@ -1,4 +1,4 @@
-import { getCookie } from "/static/js/scripts.js";
+import { getCookie, ToastBottomEnd } from "/static/js/scripts.js";
 
 let operators = [];
 let currentOperatorPPEItems = [];
@@ -295,8 +295,10 @@ async function handleConfirmObservation() {
 
         const result = await response.json();
         
-        // Show success message
-        showSuccessNotification(`Devoluções de ${selectedItems.length} item(s) para ${operator.nome} concluídas com sucesso!`);
+        ToastBottomEnd.fire({
+            icon: 'success',
+            title: `Devoluções de ${selectedItems.length} item(s) para ${operator.nome} concluídas com sucesso!`
+        });
         
         // Reset form
         selectedItems = [];
@@ -318,33 +320,16 @@ async function handleConfirmObservation() {
     } catch (error) {
         console.error('Erro ao finalizar devolução:', error);
         
-        // Show error message
-        showErrorNotification(error.message || 'Erro desconhecido ao processar devolução.');
+        ToastBottomEnd.fire({
+            icon: 'warning',
+            title: error.message || 'Erro desconhecido ao processar devolução.'
+        });
         
         // Re-enable button
         const confirmBtn = document.getElementById('confirmObservationBtn');
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = originalText;
     }
-}
-
-// ✅ ADD: Success notification function
-function showSuccessNotification(message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
-    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-    alertDiv.innerHTML = `
-        <i class="bi bi-check-circle me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(alertDiv);
-    
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
-        }
-    }, 5000);
 }
 
 function handleItemToggle(event) {
@@ -493,8 +478,11 @@ function handleSubmit() {
 
     }
     //Verificar se a flag foi modificada
-    if (qtdDevolvidaInvalida){
-        showErrorNotification(erroText);
+    if (qtdDevolvidaInvalida) {
+        ToastBottomEnd.fire({
+            icon: 'warning',
+            title: erroText
+        });
         return;
     }
 
