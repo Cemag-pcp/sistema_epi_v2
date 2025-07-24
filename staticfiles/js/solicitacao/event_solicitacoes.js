@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Fechar o modal e recarregar a página ou tabela
             bootstrap.Modal.getInstance(document.getElementById('modal-editar-solicitacao')).hide();
 
-            solicitacoesTable.ajax.reload();
+            solicitacoesTable.ajax.reload(null, false);
             
         } catch (error) {
             ToastBottomEnd.fire({
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Fechar o modal e recarregar a página ou tabela
             bootstrap.Modal.getInstance(document.getElementById('modal-cancelar-solicitacao')).hide();
 
-            solicitacoesTable.ajax.reload();
+            solicitacoesTable.ajax.reload(null, false);
             
         } catch (error) {
             ToastBottomEnd.fire({
