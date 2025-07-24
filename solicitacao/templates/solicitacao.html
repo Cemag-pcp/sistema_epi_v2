@@ -28,7 +28,7 @@
             <div class="col-md-4">
                 <label for="" class="text-modal">Padrões</label>
                 <select class="form-control" name="" id="padrao-select">
-                   <option value="" {% if not query_value %}selected{% endif %}></option>
+                   <option value="" {% if not query_value %}selected{% endif %}>Adicionar Manualmente</option>
                     {% for padrao in padroes %}
                     <option value="{{ padrao.id }}" 
                             {% if query_value == padrao.id %}selected{% endif %}>
