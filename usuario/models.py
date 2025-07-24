@@ -54,7 +54,7 @@ class Funcionario(models.Model):
     setor = models.ForeignKey(Setor, on_delete=models.CASCADE, related_name='setor_funcionario')
     tipo_acesso = models.CharField(max_length=20, choices=TYPE_CHOICES, default='operador')
     cargo = models.ForeignKey(Cargo, on_delete=models.SET_NULL, related_name='cargo_funcionario', null=True, blank=True, default=None)
-    data_admissao = models.DateField(null=True)
+    data_admissao = models.DateField(null=True, blank=True)
     ativo = models.BooleanField(default=True)
 
 
