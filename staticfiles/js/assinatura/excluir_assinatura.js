@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Fechar o modal e recarregar a página ou tabela
                 bootstrap.Modal.getInstance(document.getElementById('modal-excluir-assinatura')).hide();
     
-                solicitacoesTable.ajax.reload();
+                solicitacoesTable.ajax.reload(null, false);
                 
             } catch (error) {
                 ToastBottomEnd.fire({

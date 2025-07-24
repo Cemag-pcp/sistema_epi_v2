@@ -62,7 +62,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                                 '<span class="item-count fw-bold">' + data.length + ' item(s)</span>' +
                                 '<i class="bi bi-chevron-down"></i>' +
                             '</button>' +
-                            '<div class="itens-list mt-2" id="itens-' + row.id + '" style="display: none;">' +
+                            '<div class="itens-list mt-2" id="itens-' + row.id + '" style="width:28rem; display: none;">' +
                                 '<div class="d-flex flex-column gap-2">';
                 
                 data.forEach(function(item) {
