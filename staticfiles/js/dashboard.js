@@ -1,26 +1,25 @@
 import { getCookie, ToastBottomEnd } from "../../../static/js/scripts.js";
 
 document.addEventListener('DOMContentLoaded', function() {
-    let currentPage = 1;
-    const itemsPerPage = 10;
     const container = document.getElementById('container-dashboard');
-    const paginationContainer = document.createElement('div');
-    paginationContainer.className = 'pagination-container mt-4';
-    container.after(paginationContainer);
+    let refreshInterval;
+    let isFirstLoad = true; // Flag para controlar a primeira carga
 
     // Função para carregar o dashboard
-    function loadDashboard(page = 1) {
-        currentPage = page;
-        container.innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
-                    <span class="visually-hidden">Loading...</span>
+    function loadDashboard() {
+        // Mostra spinner apenas na primeira carga
+        if (isFirstLoad) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Carregando solicitações...</p>
                 </div>
-                <p class="mt-2">Carregando solicitações...</p>
-            </div>
-        `;
+            `;
+        }
 
-        fetch(`/core/dashboard/cards/?page=${page}`, {
+        fetch('/core/dashboard/cards/', {
             headers: {
                 'Accept': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
@@ -38,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.status === 'success') {
                 renderDashboard(data.solicitacoes);
-                renderPagination(data.pagination);
+                isFirstLoad = false; // Marca que a primeira carga já foi feita
             } else {
                 throw new Error(data.message || 'Erro ao carregar os dados');
             }
@@ -56,10 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'Erro ao carregar o dashboard',
                 text: error.message || error
             });
+            // Tenta recarregar novamente após 10 segundos mesmo em caso de erro
+            setTimeout(loadDashboard, 10000);
         });
     }
 
-    // Função para renderizar os cards
+    // Função para renderizar os cards (mantida igual)
     function renderDashboard(solicitacoes) {
         if (!solicitacoes || solicitacoes.length === 0) {
             container.innerHTML = `
@@ -95,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="card p-3 card-solicitacao">
                         <div>
                             <h5>Solicitação #${solicitacao.id}</h5>
-                            <span class="badge badge-secondary badge-status">
+                            <span class="badge badge-primary badge-status status-peding">
                                 ${solicitacao.status}
                             </span>
                             <div class="tempo-aberto mt-2 mb-2">
@@ -129,78 +130,36 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Inicia a atualização dos timers
         iniciarAtualizacaoTempo();
+        
+        // Agenda a próxima atualização do dashboard em 10 segundos
+        clearInterval(refreshInterval);
+        refreshInterval = setInterval(loadDashboard, 10000);
     }
 
-    // Função para renderizar a paginação
-    function renderPagination(pagination) {
-        paginationContainer.innerHTML = '';
-        
-        if (pagination.total_pages <= 1) return;
-
-        const paginationEl = document.createElement('nav');
-        paginationEl.setAttribute('aria-label', 'Page navigation');
-        
-        let paginationHtml = `
-            <ul class="pagination justify-content-center">
-        `;
-
-        // Botão Anterior
-        paginationHtml += `
-            <li class="page-item ${!pagination.has_previous ? 'disabled' : ''}" style="color: #6c757d;">
-                <button class="page-link" ${!pagination.has_previous ? 'disabled' : ''} 
-                    onclick="loadDashboard(${pagination.current_page - 1})">
-                    &laquo; Anterior
-                </button>
-            </li>
-        `;
-
-        // Páginas
-        const startPage = Math.max(1, pagination.current_page - 2);
-        const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
-        
-        for (let i = startPage; i <= endPage; i++) {
-            paginationHtml += `
-                <li class="page-item ${i === pagination.current_page ? 'active' : ''}">
-                    <button class="page-link" onclick="loadDashboard(${i})">
-                        ${i}
-                    </button>
-                </li>
-            `;
-        }
-
-        // Botão Próximo
-        paginationHtml += `
-            <li class="page-item ${!pagination.has_next ? 'disabled' : ''}">
-                <button class="page-link" ${!pagination.has_next ? 'disabled' : ''} 
-                    onclick="loadDashboard(${pagination.current_page + 1})">
-                    Próxima &raquo;
-                </button>
-            </li>
-        `;
-
-        paginationHtml += `</ul>`;
-        paginationEl.innerHTML = paginationHtml;
-        paginationContainer.appendChild(paginationEl);
-    }
-
-        // Função para formatar o tempo decorrido
+    // Funções auxiliares (mantidas iguais)
     function formatarTempo(segundos) {
-        const minutos = Math.floor(segundos / 60);
-        const horas = Math.floor(minutos / 60);
-        const dias = Math.floor(horas / 24);
-        
+        const dias = Math.floor(segundos / (60 * 60 * 24));
+        const horas = Math.floor((segundos % (60 * 60 * 24)) / 3600);
+        const minutos = Math.floor((segundos % 3600) / 60);
+        const segundosRestantes = segundos % 60;
+
+        let resultado = '';
+
         if (dias > 0) {
-            return `${dias}d ${horas % 24}h`;
-        } else if (horas > 0) {
-            return `${horas}h ${minutos % 60}m`;
-        } else if (minutos > 0) {
-            return `${minutos}m ${segundos % 60}s`;
-        } else {
-            return `${segundos}s`;
+            resultado += `${dias}d `;
         }
+        if (horas > 0 || dias > 0) {
+            resultado += `${horas}h `;
+        }
+        if (minutos > 0 || horas > 0 || dias > 0) {
+            resultado += `${minutos}m `;
+        }
+
+        resultado += `${segundosRestantes}s`;
+
+        return resultado.trim();
     }
 
-    // Função para atualizar os tempos decorridos
     function atualizarTempos() {
         const timestampAtual = Math.floor(Date.now() / 1000);
         document.querySelectorAll('.tempo-decorrido').forEach(elemento => {
@@ -210,22 +169,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Inicia a atualização periódica dos timers
     let intervaloAtualizacao;
     function iniciarAtualizacaoTempo() {
-        // Limpa qualquer intervalo existente
         if (intervaloAtualizacao) {
             clearInterval(intervaloAtualizacao);
         }
-        
-        // Atualiza imediatamente e depois a cada segundo
         atualizarTempos();
         intervaloAtualizacao = setInterval(atualizarTempos, 1000);
     }
 
-    // Torna a função loadDashboard acessível globalmente para os botões de paginação
-    window.loadDashboard = loadDashboard;
-
     // Inicia o carregamento do dashboard
     loadDashboard();
+
+    // Limpa o intervalo quando a página é descarregada
+    window.addEventListener('beforeunload', function() {
+        clearInterval(refreshInterval);
+        clearInterval(intervaloAtualizacao);
+    });
 });
