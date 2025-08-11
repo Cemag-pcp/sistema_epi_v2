@@ -11,6 +11,7 @@ from solicitacao.models import Solicitacao, DadosSolicitacao, Assinatura
 from equipamento.models import Equipamento
 from devolucao.models import Devolucao
 from django.core.files.base import ContentFile
+from django.core.serializers.json import DjangoJSONEncoder
 from datetime import datetime
 import json
 import base64
@@ -678,26 +679,24 @@ def dashboard(request):
         }, status=401)
 
     try:
-        page_number = request.GET.get('page', 1)
-        items_per_page = 10
-
-        solicitacoes_pendentes = Solicitacao.objects.filter(status='Pendente').prefetch_related('dados_solicitacao').order_by('-data_solicitacao')
+        # Otimização 1: Prefetch relacionamentos com select_related e Prefetch otimizado
+        solicitacoes_pendentes = Solicitacao.objects.filter(
+            status='Pendente'
+        ).select_related(
+            'solicitante', 'funcionario'
+        ).prefetch_related(
+            Prefetch(
+                'dados_solicitacao',
+                queryset=DadosSolicitacao.objects.select_related('equipamento')
+            )
+        ).order_by('-data_solicitacao').only(
+            'id', 'data_solicitacao', 'observacoes', 'status',
+            'solicitante__nome', 'funcionario__nome'
+        )
         
-        paginator = Paginator(solicitacoes_pendentes, items_per_page)
-        page_obj = paginator.get_page(page_number)
-        
-        dados = []
-        for solicitacao in page_obj:
-            itens = []
-            for dado in solicitacao.dados_solicitacao.all():
-                itens.append({
-                    'equipamento': dado.equipamento.nome,
-                    'quantidade': dado.quantidade,
-                    'motivo': dado.get_motivo_display(),
-                    'observacoes': dado.observacoes or ''
-                })
-            
-            dados.append({
+        # Otimização 2: Pré-processar os dados em uma lista de compreensão
+        dados = [
+            {
                 'id': solicitacao.id,
                 'solicitante': solicitacao.solicitante.nome,
                 'funcionario': solicitacao.funcionario.nome,
@@ -705,20 +704,24 @@ def dashboard(request):
                 'timestamp_solicitacao': int(solicitacao.data_solicitacao.timestamp()),
                 'status': solicitacao.get_status_display(),
                 'observacoes': solicitacao.observacoes or '',
-                'itens': itens
-            })
+                'itens': [
+                    {
+                        'equipamento': dado.equipamento.nome,
+                        'quantidade': dado.quantidade,
+                        'motivo': dado.get_motivo_display(),
+                        'observacoes': dado.observacoes or ''
+                    }
+                    for dado in solicitacao.dados_solicitacao.all()
+                ]
+            }
+            for solicitacao in solicitacoes_pendentes
+        ]
         
+        # Otimização 3: Usar DjangoJSONEncoder para serialização eficiente
         return JsonResponse({
             'status': 'success',
-            'solicitacoes': dados,
-            'pagination': {
-                'has_next': page_obj.has_next(),
-                'has_previous': page_obj.has_previous(),
-                'current_page': page_obj.number,
-                'total_pages': paginator.num_pages,
-                'total_items': paginator.count
-            }
-        })
+            'solicitacoes': dados
+        }, encoder=DjangoJSONEncoder)
 
     except Exception as e:
         return JsonResponse({
