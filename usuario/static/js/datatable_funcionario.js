@@ -36,19 +36,20 @@ export function initializeDataTable(data) {
             { data: 'setor' },
             { data: 'cargo' ,
                 createdCell: function(td, cellData, rowData, row, col) {
-                        td.className = 'd-none';
-                    },
+                    td.className = 'd-none';
+                },
             },
             { data: 'responsavel',
+              searchable: false,
               createdCell: function(td, cellData, rowData, row, col) {
-                        td.className = 'text-center';
-                    }
-             },
+                    td.className = 'text-center';
+                }
+            },
             { 
                 data: 'dataAdmissao',
                 createdCell: function(td, cellData, rowData, row, col) {
-                        td.className = 'd-none';
-                    },
+                    td.className = 'd-none';
+                },
                 render: function(data, type, row) {
                     if (type === 'display' || type === 'filter') {
                         return formatDateForDisplay(data);
@@ -61,6 +62,19 @@ export function initializeDataTable(data) {
                 render: function(data, type, row) {
                     if (type === 'display') {
                         return `<span class="badge rounded-pill ${getStatusBadgeClass(data)}">${data}</span>`;
+                    }
+                    return data;
+                }
+            },
+            // Nova coluna para indicar se tem usuário
+            {
+                data: 'hasUsuario',
+                className: 'text-center',
+                render: function(data, type, row) {
+                    if (type === 'display') {
+                        return data ? 
+                            '<i class="bi bi-check-circle-fill text-success" title="Possui usuário"></i>' :
+                            '<i class="bi bi-x-circle-fill text-danger" title="Não possui usuário"></i>';
                     }
                     return data;
                 }
@@ -94,7 +108,6 @@ export function initializeDataTable(data) {
                         </div>
                     `;
                     }
-                    
                 }
             }
         ],
