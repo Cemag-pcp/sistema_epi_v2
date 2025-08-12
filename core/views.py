@@ -410,7 +410,9 @@ def api_historico(request):
             Q(funcionario__nome__icontains=search) |
             Q(dados_solicitacao__equipamento__nome__icontains=search) |
             Q(solicitante__nome__icontains=search) |
-            Q(id__icontains=search)  # Allow search by ID
+            Q(id__icontains=search) |  # Allow search by ID
+            Q(funcionario__matricula__icontains=search) |
+            Q(dados_solicitacao__equipamento__codigo__icontains=search)
         )
 
     
@@ -444,7 +446,10 @@ def api_historico(request):
         devolucoes = devolucoes.filter(
             Q(dados_solicitacao__equipamento__nome__icontains=search) |
             Q(dados_solicitacao__solicitacao__funcionario__nome__icontains=search) |
-            Q(responsavel_recebimento__nome__icontains=search)
+            Q(responsavel_recebimento__nome__icontains=search) |
+            Q(dados_solicitacao__solicitacao__id__icontains=search) |  # Allow search by Solicitacao ID
+            Q(dados_solicitacao__solicitacao__funcionario__matricula__icontains=search) |
+            Q(dados_solicitacao__equipamento__codigo__icontains=search)
         )
     
     # Only include devolucoes if status is 'devolvido' or no status filter
@@ -479,6 +484,16 @@ def api_historico(request):
         # Process solicitacoes
         for solicitacao in solicitacoes:
             for dado in solicitacao.dados_solicitacao.all():
+                
+                if search:
+                    # If search is applied, we only want to include entries that match the search criteria
+                    if not (search.lower() in solicitacao.funcionario.nome.lower() or
+                            search.lower() in dado.equipamento.nome.lower() or
+                            search.lower() in solicitacao.solicitante.nome.lower() or
+                            search.lower() in str(solicitacao.id) or
+                            search.lower() in str(solicitacao.funcionario.matricula) or
+                            search.lower() in dado.equipamento.codigo):
+                        continue
                 base_data = {
                     'solicitacao_id': solicitacao.id,
                     'funcionario_id': solicitacao.funcionario.id,
@@ -572,6 +587,15 @@ def api_historico(request):
         
         # Process devolucoes
         for devolucao in devolucoes:
+            # if search:
+            #     # If search is applied, we only want to include entries that match the search criteria
+            #     if not (search.lower() in solicitacao.funcionario.nome.lower() or
+            #             search.lower() in dado.equipamento.nome.lower() or
+            #             search.lower() in solicitacao.solicitante.nome.lower() or
+            #             search.lower() in str(solicitacao.id) or
+            #             search.lower() in str(solicitacao.funcionario.matricula) or
+            #             search.lower() in dado.equipamento.codigo):
+            #         continue
             if not action_type or action_type == 'item_returned':
                 historical_entries.append({
                     'id': f"DEV_{devolucao.id}_returned_{entry_id}",
