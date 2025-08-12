@@ -27,12 +27,6 @@ class Setor(models.Model):
     nome = models.CharField(max_length=150)
     responsavel = models.OneToOneField('Funcionario', on_delete=models.SET_NULL, null=True, blank=True, related_name='responsavel')
 
-    def save(self, *args, **kwargs):
-        if self.responsavel and not hasattr(self.responsavel, 'funcionario'):
-            # Verifica se o funcionário não tem um usuário associado
-            raise ValueError("O responsável pelo setor deve ser um usuário do sistema")
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return f'{self.nome}'
     

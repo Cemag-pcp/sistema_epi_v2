@@ -82,6 +82,7 @@ def api_funcionarios(request):
                 'status': 'Ativo' if f['ativo'] else 'Desativado',
                 'setorId': f['setor__id'] if f['setor__id'] else '',
                 'usuario': f['usuario'] if f['usuario'] else '', 
+                'hasUsuario': bool(f['usuario']),
                 'tipoAcesso': f['tipo_acesso'],
                 'cargoId': f['cargo_id'] if f['cargo_id'] else '',
             }
@@ -325,35 +326,30 @@ def usuario(request):
     if request.method == 'GET':
         tipo_acesso = request.GET.get('tipoAcesso')
 
-        if tipo_acesso == "solicitante":
-            usuarios = list(Usuario.objects.filter(funcionario__tipo_acesso='solicitante').select_related('funcionario').values(
-                'id',
-                'nome',
-                'funcionario__tipo_acesso',
-                'funcionario__id',
-                'funcionario__nome',
-                'funcionario__matricula'
-            ))
-        elif tipo_acesso == "operador":
-            usuarios = list(Usuario.objects.filter(funcionario__tipo_acesso='operador').select_related('funcionario').values(
-                'id',
-                'nome',
-                'funcionario__tipo_acesso',
-                'funcionario__id',
-                'funcionario__nome',
-                'funcionario__matricula'
-            ))
-        else:
-            usuarios = list(Usuario.objects.select_related('funcionario').values(
-                'id',
-                'nome',
-                'funcionario__tipo_acesso',
-                'funcionario__id',
-                'funcionario__nome',
-                'funcionario__matricula'
-            ))
+        # Filtra diretamente os funcionários
+        funcionarios = Funcionario.objects.filter(ativo=True)
+        
+        if tipo_acesso in ["solicitante", "operador"]:
+            funcionarios = funcionarios.filter(tipo_acesso=tipo_acesso)
 
-        return JsonResponse(usuarios, safe=False)
+        # Converte para o formato desejado (similar ao anterior)
+        dados = list(funcionarios.values(
+            'id',
+            'nome',
+            'matricula',
+            'tipo_acesso'
+        ))
+
+        # Adiciona campos vazios para manter compatibilidade com o formato anterior
+        for item in dados:
+            item['funcionario__id'] = item['id']
+            item['funcionario__nome'] = item['nome']
+            item['funcionario__matricula'] = item['matricula']
+            item['funcionario__tipo_acesso'] = item['tipo_acesso']
+            item['id'] = None  # ID do usuário (não existe mais)
+            item['nome'] = None  # Nome do usuário (não existe mais)
+
+        return JsonResponse(dados, safe=False)
     if request.method == 'POST':
         try:
             data = json.loads(request.body)

@@ -49,6 +49,7 @@
                     <th class="text-center">Responsável</th>
                     <th style="display: none;">Data Admissão</th>
                     <th>Status</th>
+                    <th>Usuário Cadastrado?</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -72,14 +73,6 @@
 </div>
 
     {% include 'usuario/modal/modal_funcionario.html' %}
-
-    <script>
-        const URL_CADASTRAR_FUNCIONARIO = "{% url 'usuario:funcionario' %}";
-        const URL_EDITAR_FUNCIONARIO = "{% url 'usuario:editar_funcionario' 0 %}".replace('0/', '');
-        const URL_DESATIVAR_FUNCIONARIO = URL_EDITAR_FUNCIONARIO;
-        const URL_LISTAR_FUNCIONARIOS = "{% url 'usuario:api_funcionarios' %}";
-        const URL_CADASTRAR_USUARIO = "{% url 'usuario:usuario' %}";
-    </script>
     
     <script type="module" src="{% static 'js/datatable_funcionario.js'%}"></script>
     <script type="module" src="{% static 'js/crud_funcionario.js'%}"></script>
