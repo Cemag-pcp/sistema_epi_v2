@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initializeEventListeners() {
   // Search input with longer debounce for server requests
-  document.getElementById("searchInput").addEventListener("input", debounce(applyFilters, 800))
+  document.getElementById("searchIcon").addEventListener("click", debounce(applyFilters, 10))
 
   // Filter selects
   document.getElementById("actionTypeFilter").addEventListener("change", applyFilters)
@@ -238,13 +238,13 @@ async function loadData() {
       currentPage = result.data.current_page || currentPage
 
       // Debug info
-      if (result.data.debug_info) {
-        console.log("🔍 Debug Info:", result.data.debug_info)
-      }
+      // if (result.data.debug_info) {
+      //   console.log("🔍 Debug Info:", result.data.debug_info)
+      // }
 
-      console.log(
-        `📊 API Response: ${apiData.length} items, Total Historical Entries: ${totalCount}, Page: ${currentPage}/${totalPages}`,
-      )
+      // console.log(
+      //   `📊 API Response: ${apiData.length} items, Total Historical Entries: ${totalCount}, Page: ${currentPage}/${totalPages}`,
+      // )
 
       // Transform API data to historical log format
       const transformedData = transformApiDataToHistoricalLog(apiData)
@@ -256,7 +256,7 @@ async function loadData() {
       updateStatistics()
       updateRecordCount()
 
-      console.log(`✅ Transformed to ${transformedData.length} historical entries for display`)
+      // console.log(`✅ Transformed to ${transformedData.length} historical entries for display`)
     } else {
       handleAPIError(result.error)
     }
@@ -756,7 +756,7 @@ function hideErrorState() {
 async function makeAPIRequest(endpoint, params = new URLSearchParams()) {
   try {
     const url = `${API_CONFIG.baseURL}${endpoint}?${params.toString()}`
-    console.log("Making API request to:", url)
+    // console.log("Making API request to:", url)
 
     const response = await fetch(url, {
       method: "GET",
@@ -772,7 +772,7 @@ async function makeAPIRequest(endpoint, params = new URLSearchParams()) {
     }
 
     const data = await response.json()
-    console.log("API Response:", data)
+    // console.log("API Response:", data)
     return { success: true, data: data }
   } catch (error) {
     console.error("Erro ao fazer a requisição:", error)
