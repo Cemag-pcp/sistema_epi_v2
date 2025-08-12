@@ -118,7 +118,7 @@ def gerar_ficha_epi(request, id):
                     img_linha.height = 130
                     img_linha.width = 150
                     ws.add_image(img_linha)
-                    
+
                     # Adicionar em B22 apenas na primeira vez (com NOVA instância)
                     if not assinatura_adicionada_b22:
                         img_b22 = ExcelImage(temp_filename)  # Nova instância
@@ -127,6 +127,18 @@ def gerar_ficha_epi(request, id):
                         img_b22.width = 150
                         ws.add_image(img_b22)
                         assinatura_adicionada_b22 = True
+                
+            elif item['tipo'] == 'devolucao':
+                devolucao = item['objeto']
+                dado = item['dado']
+                
+                data_formatada = devolucao.data_devolucao.strftime("%d/%m/%Y %H:%M")
+                ws.cell(row=linha_destino, column=2).value = devolucao.quantidade_devolvida
+                ws.cell(row=linha_destino, column=3).value = f"{dado.equipamento.codigo} - {dado.equipamento.nome}"
+                ws.cell(row=linha_destino, column=4).value = dado.equipamento.ca
+                ws.cell(row=linha_destino, column=5).value = data_formatada
+                ws.cell(row=linha_destino, column=6).value = 'Devolução'
+                
 
         # 5. Salvar e retornar o arquivo
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
