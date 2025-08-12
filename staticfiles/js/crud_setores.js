@@ -1,4 +1,4 @@
-import { getCookie } from "/static/js/scripts.js";
+import { getCookie, ToastBottomEnd } from "/static/js/scripts.js";
 
 
 // DOM Elements
@@ -7,9 +7,6 @@ const editSetorModalElement = document.getElementById('editSetorModal'); // Get 
 const editSetorModal = new bootstrap.Modal(editSetorModalElement); // Initialize Bootstrap modal
 const editSetorForm = document.getElementById('editSetorForm');
 const saveSetorBtn = document.getElementById('saveSetorBtn');
-const alertContainer = document.getElementById('alertContainer');
-const alertMessage = document.getElementById('alertMessage');
-const alertText = document.getElementById('alertText');
 const saveButtonText = document.getElementById('saveButtonText');
 const saveSpinner = document.getElementById('saveSpinner');
 const erroMessage = document.getElementById('erro-modal');
@@ -26,14 +23,10 @@ let usuariosData;
 
 // Function to show alert
 function showAlert(message, type = 'success') {
-    alertText.textContent = message;
-    alertMessage.className = `alert alert-${type} alert-dismissible fade show`;
-    alertContainer.classList.remove('d-none');
-    
-    // Auto hide after 5 seconds
-    setTimeout(() => {
-        alertContainer.classList.add('d-none');
-    }, 5000);
+    ToastBottomEnd.fire({
+        icon: type,
+        title: message
+    });
 }
 
 // Function to handle API errors
@@ -48,7 +41,7 @@ function handleApiError(error, defaultMessage) {
         errorMessage = error.message;
     }
     
-    showAlert(errorMessage, 'danger');
+    showAlert(errorMessage, 'error');
 }
 
 // Function to initialize DataTable
@@ -134,7 +127,7 @@ async function fetchSetores() {
         loadingSpinner.classList.remove('d-none');
         
         // In a real application, you would fetch from the API
-        const response = await fetch(URL_API_SETORES);
+        const response = await fetch('/api_setores/');
         if (!response.ok) throw new Error('Failed to fetch setores');
         const data = await response.json();
         setorDataLocal = data;
@@ -142,7 +135,7 @@ async function fetchSetores() {
         initializeSetorDataTable(data);
     } catch (error) {
         console.error('Error fetching setores:', error);
-        showAlert('Erro ao carregar setores. Por favor, tente novamente.', 'danger');
+        showAlert('Erro ao carregar setores. Por favor, tente novamente.', 'error');
     } finally {
         loadingSpinner.classList.add('d-none');
     }
@@ -157,7 +150,7 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
         saveSetorBtn.disabled = true;
         
         // In a real application, you would send PUT request to the API
-        const response = await fetch(`${URL_EDITAR_SETOR}${id}/`, {
+        const response = await fetch(`/setores/${id}/`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -208,18 +201,12 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
             setorDataTable.row(indexSetorVazio).data(setorDataLocal[indexSetorVazio]).draw(false);
         }
         
-        
-        // Altera a linha do setor editado
-        // setorDataTable.clear().rows.add(setorDataLocal).draw();
-        
-        
         editSetorModal.hide();
         showAlert('Responsável do setor atualizado com sucesso!');
         
         return id;
     } catch (error) {
         handleApiError(error, `${error.message}`);
-        mostrarErroModal(`${error.message}`);
         throw error;
     } finally {
         // Hide loading spinner
@@ -233,20 +220,14 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
 function handleEditClick(e) {
     e.preventDefault();
 
-    esconderErroModal();
-
     const button = e.currentTarget;
     const id = button.dataset.id;
     const setor = button.dataset.setor;
     const responsavelId = button.dataset.responsavelId;
-    // const responsavelNome = button.dataset.responsavelNome;
-    // const responsavelMatricula = button.dataset.responsavelMatricula;
-    
     
     responsavelSetorInput.innerHTML = "<option value=''>Selecione o responsável</option>";
 
     // Fill the form with current data
-
     usuariosData.forEach(usuario => {
         const optionResponsavel = document.createElement('option');
 
@@ -308,31 +289,16 @@ editSetorForm.addEventListener('submit', function(e) {
 // Function to fetch setores from API
 async function fetchUsuarios() {
     try {
-        // loadingSpinner.classList.remove('d-none');
-        // In a real application, you would fetch from the API
-        const response = await fetch(URL_API_USUARIOS);
+        const response = await fetch('/usuario/?tipoAcesso=solicitante');
         if (!response.ok) throw new Error('Failed to fetch usuarios');
         const data =  await response.json();
         usuariosData = data;
-        
-        // initializeSetorDataTable(data);
     } catch (error) {
         console.error('Error fetching usuarios:', error);
-        showAlert('Erro ao carregar usuarios. Por favor, tente novamente.', 'danger');
+        showAlert('Erro ao carregar usuarios. Por favor, tente novamente.', 'error');
     } finally {
         console.log('Carregando usuarios');
-        // loadingSpinner.classList.add('d-none');
     }
-}
-
-function mostrarErroModal(mensagem) {
-    erroMessage.classList.remove('d-none'); // mostra a div
-    erroMessage.innerText = mensagem;       // insere o texto
-}
-
-function esconderErroModal() {
-    erroMessage.classList.add('d-none'); // mostra a div
-    erroMessage.innerText = ''; 
 }
 
 // Initial fetch when document is ready

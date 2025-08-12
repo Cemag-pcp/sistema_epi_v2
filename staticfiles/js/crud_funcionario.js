@@ -1,5 +1,5 @@
 // API URL - Replace with your actual API endpoint
-import { getCookie } from "/static/js/scripts.js";
+import { getCookie, ToastBottomEnd } from "/static/js/scripts.js";
 import { initializeDataTable, dataTable } from "./datatable_funcionario.js";
 
 export let employees = [];
@@ -29,7 +29,6 @@ const deleteButtonText = document.getElementById('deleteButtonText');
 const deleteSpinner = document.getElementById('deleteSpinner');
 const criarUsuarioCheckbox = document.getElementById('criarUsuario');
 const closeUserModal = document.getElementById('closeUserModal');
-const erroMessages = document.querySelectorAll('.erro-modal');
 
 // Form fields
 const employeeIdInput = document.getElementById('employeeId');
@@ -51,14 +50,10 @@ let isEditMode = false;
 
 // Function to show alert
 export function showAlert(message, type = 'success') {
-    alertText.textContent = message;
-    alertMessage.className = `alert alert-${type} alert-dismissible fade show`;
-    alertContainer.classList.remove('d-none');
-    
-    // Auto hide after 5 seconds
-    setTimeout(() => {
-        alertContainer.classList.add('d-none');
-    }, 5000);
+    ToastBottomEnd.fire({
+        icon: type,
+        title: message
+    });
 }
 
 
@@ -71,7 +66,7 @@ async function addEmployee(employeeData) {
         saveEmployeeBtn.disabled = true;
         
         // In a real application, you would post to the API
-        const response = await fetch(URL_CADASTRAR_FUNCIONARIO, {
+        const response = await fetch('/funcionario/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -99,8 +94,7 @@ async function addEmployee(employeeData) {
         return newId;
     } catch (error) {
         console.error('Erro ao adicionar funcionário:', error);
-        showAlert(`Erro ao adicionar funcionário.${error.message}`, 'danger');
-        mostrarErroModal(`${error.message}`);
+        showAlert(`Erro ao adicionar funcionário.${error.message}`, 'error');
         throw error;
     } finally {
         // Hide loading spinner
@@ -119,7 +113,7 @@ async function updateEmployee(id, employeeData) {
         saveEmployeeBtn.disabled = true;
         
         // In a real application, you would put to the API
-        const response = await fetch(`${URL_EDITAR_FUNCIONARIO}${id}/`, {
+        const response = await fetch(`/editar_funcionario/${id}/`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -137,25 +131,18 @@ async function updateEmployee(id, employeeData) {
         // o que muda o campo de vários funcionarios ao mesmo tempo
         await fetchEmployees();
         
-        // const index = employees.findIndex(emp => emp.id == id);
-        // if (index !== -1) {
-        //     employees[index] = { ...employees[index], ...employeeData };
-        // }
-        // dataTable.row(index).data(employees[index]).draw(false);
         employeeModal.hide();
         
         return id;
     } catch (error) {
         console.error('Erro ao atualizar funcionário:', error);
-        showAlert(`${error.message}`, 'danger');
-        mostrarErroModal(`${error.message}`);
+        showAlert(`${error.message}`, 'error');
         throw error;
     } finally {
         // Hide loading spinner
         saveButtonText.classList.remove('d-none');
         saveSpinner.classList.add('d-none');
         saveEmployeeBtn.disabled = false;
-
     }
 }
 
@@ -168,7 +155,7 @@ async function createUser(userData) {
         saveUserBtn.disabled = true;
         
         // In a real application, you would post to the API
-        const response = await fetch(URL_CADASTRAR_USUARIO, {
+        const response = await fetch('/usuario/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -189,19 +176,18 @@ async function createUser(userData) {
 
         userModal.hide();
         showAlert('Usuário criado com sucesso!');
+        await fetchEmployees();
         
         return true;
     } catch (error) {
         console.error('Error creating user:', error);
-        showAlert(`${error.message}`, 'danger');
-        mostrarErroModal(`${error.message}`);
+        showAlert(`${error.message}`, 'error');
         throw error;
     } finally {
         // Hide loading spinner
         saveUserButtonText.classList.remove('d-none');
         saveUserSpinner.classList.add('d-none');
         saveUserBtn.disabled = false;
-
     }
 }
 
@@ -213,7 +199,7 @@ async function deactivateEmployee(id) {
         deleteSpinner.classList.remove('d-none');
         
         // In a real application, you would patch to the API
-        const response = await fetch(`${URL_DESATIVAR_FUNCIONARIO}${id}/`, {
+        const response = await fetch(`/editar_funcionario/${id}/`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -227,7 +213,6 @@ async function deactivateEmployee(id) {
             errorValidacao(data, 'Falha ao desativar funcionário');
         }
         
-        
         // Atualizar o datatable sem reinicializar
         const index = employees.findIndex(emp => emp.id == id);
         if (index !== -1) {
@@ -239,7 +224,7 @@ async function deactivateEmployee(id) {
         showAlert('Funcionário desativado com sucesso!');
     } catch (error) {
         console.error('Error deactivating employee:', error);
-        showAlert('Erro ao desativar funcionário. Por favor, tente novamente.', 'danger');
+        showAlert('Erro ao desativar funcionário. Por favor, tente novamente.', 'error');
     } finally {
         // Hide loading spinner
         deleteButtonText.classList.remove('d-none');
@@ -260,14 +245,12 @@ function validatePasswordMatch() {
     
     if (senha === confirmarSenha) {
         confirmarSenhaInput.classList.remove('is-invalid');
-
         return true;
     } else {
         confirmarSenhaInput.classList.add('is-invalid');
         senhaFeedback.innerText = 'As senhas não correspondem';
         return false;
     }
-
 }
 
 // Add New Employee button click
@@ -279,12 +262,7 @@ addEmployeeBtn.addEventListener('click', function() {
 });
 
 document.getElementById('employeeModal').addEventListener('show.bs.modal', function() {
-
-    // Limpa a mensagem de erro do modal
-    esconderErroModal();
-
-
-    const setorSelect = setorInput; // setorInput já é o select
+    const setorSelect = setorInput;
     const cargoSelect = cargoInput;
 
     let setorPreSelecionado;
@@ -294,8 +272,6 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
     nomeInput.disabled = false;
     dataAdmissaoInput.disabled = false;
 
-    
-    // Limpa o select antes de preencher
     if (isEditMode){
         cargoPreSelecionado = cargoInput.value;
         setorPreSelecionado = setorInput.value;
@@ -318,12 +294,10 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
         }else{
             cargoSelect.innerHTML = '<option value="">Selecione o cargo</option>';
         }
-        
     }else{
         setorSelect.innerHTML = '<option value="">Carregando setores...</option>';
         cargoSelect.innerHTML = '<option value="">Carregando cargos...</option>';
     }
-    
 
     fetch('/api_setores/')
         .then(response => {
@@ -336,9 +310,8 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
             }
             
             data.forEach(setor => {
-                //Setando os setores
                 const optionSetor = document.createElement('option');
-                optionSetor.value = setor.id || setor.nome ||  setor; // ajuste conforme o retorno da sua API
+                optionSetor.value = setor.id || setor.nome ||  setor;
                 if (optionSetor.value !== setorPreSelecionado) {
                     optionSetor.textContent = setor.nome || setor.id || setor;
                     setorSelect.appendChild(optionSetor);
@@ -349,7 +322,7 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
         })
         .catch(error => {
             console.error('Erro ao carregar setores:', error.response.status);
-            showAlert('Erro ao carregar setores.', 'danger');
+            showAlert('Erro ao carregar setores.', 'error');
         });
 
     fetch('/api_cargos/')
@@ -373,7 +346,6 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
 });
 
 setorInput.addEventListener('change', function(){
-
     const setorSelect = setorInput;
     const idSetor = setorSelect.value;
 
@@ -397,7 +369,6 @@ setorInput.addEventListener('change', function(){
             }else{
                 responsavelInput.value = 'Nenhum responsável encontrado para este setor';
             }
-            
         })
         .catch(error =>{
             console.error(error);
@@ -406,8 +377,6 @@ setorInput.addEventListener('change', function(){
     }else{
         responsavelInput.value = 'Nenhum responsável encontrado para este setor';
     }
-    
-
 })
 
 // Save Employee button click
@@ -435,17 +404,13 @@ saveEmployeeBtn.addEventListener('click', async function() {
                 // Edit existing employee
                 employeeId = await updateEmployee(id, employeeData);
                 if (criarUsuarioCheckbox.checked) {
-                    // Store employee data temporarily
                     tempEmployeeData = {
                         id: employeeId,
                         matricula: employeeData.matricula,
                         nome: employeeData.nome
                     };
                     
-                    // Reset user form
                     userForm.reset();
-                    
-                    // Show user creation modal
                     userModal.show();
                 } else {
                     showAlert('Funcionário editado com sucesso!');
@@ -454,19 +419,14 @@ saveEmployeeBtn.addEventListener('click', async function() {
                 // Add new employee
                 employeeId = await addEmployee(employeeData);
                 
-                // Check if user creation is requested
                 if (criarUsuarioCheckbox.checked) {
-                    // Store employee data temporarily
                     tempEmployeeData = {
                         id: employeeId,
                         matricula: employeeData.matricula,
                         nome: employeeData.nome
                     };
                     
-                    // Reset user form
                     userForm.reset();
-                    
-                    // Show user creation modal
                     userModal.show();
                 } else {
                     showAlert('Funcionário adicionado com sucesso!');
@@ -490,7 +450,6 @@ senhaInput.addEventListener('input', function() {
 
 // Save User button click
 saveUserBtn.addEventListener('click', async function() {
-    // First check if passwords match
     const passwordsMatch = validatePasswordMatch();
     
     if (!passwordsMatch) {
@@ -518,31 +477,10 @@ saveUserBtn.addEventListener('click', async function() {
     }
 });
 
-function mostrarErroModal(mensagem) {
-    erroMessages.forEach(em => {
-        em.classList.remove('d-none'); // mostra a div
-        em.innerText = mensagem;       // insere o texto
-
-        setTimeout(() => {
-            em.classList.add('d-none');
-            em.innerText = ''; 
-        }, 5000);
-    })
-}
-
-function esconderErroModal() {
-    erroMessages.forEach(em => {
-        em.classList.add('d-none');
-        em.innerText = ''; 
-    })
-}
-
 // Reset form
 function resetForm() {
     employeeForm.reset();
     employeeIdInput.value = '';
-    
-    // Show the "Criar Usuário" checkbox for new employees
     criarUsuarioCheckbox.parentElement.classList.remove('d-none');
 }
 
@@ -558,7 +496,7 @@ function handleApiError(error, defaultMessage) {
         errorMessage = error.message;
     }
     
-    showAlert(errorMessage, 'danger');
+    showAlert(errorMessage, 'error');
 }
 
 // Confirm Delete button click
@@ -596,7 +534,6 @@ cancelUserBtn.addEventListener('click', async function() {
         }
         tempEmployeeData = null;
     }
-    
 });
 
 // Custom search functionality for DataTable
@@ -615,7 +552,6 @@ export function handleEditClick(e) {
     const id = e.target.dataset.id;
     const employee = employees.find(emp => emp.id == id);
 
-    // Iniciar a edição, mostrando o checkbox depois remover caso já exista usuário
     criarUsuarioCheckbox.parentElement.classList.remove('d-none');
     criarUsuarioCheckbox.checked = false;
     
@@ -623,18 +559,15 @@ export function handleEditClick(e) {
         employeeIdInput.value = employee.id;
         matriculaInput.value = employee.matricula;
         nomeInput.value = employee.nome;
-        // cargoInput.value = employee.cargo;
         responsavelInput.value = employee.responsavel;
         dataAdmissaoInput.value = employee.dataAdmissao;
         tipoAcessoInput.value = employee.tipoAcesso;
 
-        //criando option do setor do funcionario
         setorInput.innerHTML="<option value=''>Selecione o Setor</option>";
         const option = document.createElement('option');
-        option.value = employee.setorId; // Use setorId if available, otherwise fallback to setor
-        option.textContent = employee.setor; // Fallback to setorNome or a default text
+        option.value = employee.setorId;
+        option.textContent = employee.setor;
         setorInput.appendChild(option);
-
         setorInput.value = employee.setorId;
 
         cargoInput.innerHTML="<option value=''>Selecione o Cargo</option>";
@@ -642,11 +575,8 @@ export function handleEditClick(e) {
         optionCargo.value = employee.cargoId;
         optionCargo.textContent = employee.cargo;
         cargoInput.appendChild(optionCargo);
-
         cargoInput.value = employee.cargoId;
-        
 
-        // Hide the "Criar Usuário" checkbox in edit mode if usuario exists
         if (employee.usuario){
             criarUsuarioCheckbox.checked = false;
             criarUsuarioCheckbox.parentElement.classList.add('d-none');
@@ -673,17 +603,15 @@ export async function fetchEmployees() {
         loadingSpinner.classList.remove('d-none');
         noResults.classList.add('d-none');
 
-        // Fetch employees from the API
-        const response = await fetch(URL_LISTAR_FUNCIONARIOS);
+        const response = await fetch('/api/funcionarios/');
         if (!response.ok) throw new Error('Failed to fetch employees');
         const data = await response.json();
-        // Armazenar os dados localmente
         employees = data;
 
         initializeDataTable(data);
     } catch (error) {
         console.error('Error fetching employees:', error);
-        showAlert('Erro ao carregar funcionários. Por favor, tente novamente.', 'danger');
+        showAlert('Erro ao carregar funcionários. Por favor, tente novamente.', 'error');
     } finally {
         loadingSpinner.classList.add('d-none');
     }
@@ -691,15 +619,13 @@ export async function fetchEmployees() {
 
 // Function to handle validation errors
 function errorValidacao(data, error) {
-        if (data.errors) {
-            let errorMessage;
-            for (const erro in data.errors){
-                errorMessage = data.errors[erro];
-            }
-            throw new Error(`${errorMessage}`);
-        } else{
-            throw new Error(error);
+    if (data.errors) {
+        let errorMessage;
+        for (const erro in data.errors){
+            errorMessage = data.errors[erro];
         }
+        throw new Error(`${errorMessage}`);
+    } else{
+        throw new Error(error);
+    }
 }
-
-
