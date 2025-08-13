@@ -131,8 +131,8 @@ def gerar_ficha_epi(request, id):
             elif item['tipo'] == 'devolucao':
                 devolucao = item['objeto']
                 dado = item['dado']
-                
-                data_formatada = devolucao.data_devolucao.strftime("%d/%m/%Y %H:%M")
+                data_ajustada = devolucao.data_devolucao - timedelta(hours=3)
+                data_formatada = data_ajustada.strftime("%d/%m/%Y %H:%M")
                 ws.cell(row=linha_destino, column=2).value = devolucao.quantidade_devolvida
                 ws.cell(row=linha_destino, column=3).value = f"{dado.equipamento.codigo} - {dado.equipamento.nome}"
                 ws.cell(row=linha_destino, column=4).value = dado.equipamento.ca
