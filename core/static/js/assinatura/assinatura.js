@@ -4,8 +4,7 @@ import { getCookie, ToastBottomEnd } from "../../../../static/js/scripts.js";
 import { getOldestDuplicateItems, 
         updateConditionCell, 
         updateQuantidadeDevolvidaCell, 
-        updateSelectionUI, 
-        showErrorNotification 
+        updateSelectionUI,
        } from "/static/js/utils.js";
 
 // Variaveis para armazenar dados de devolução
@@ -212,7 +211,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log(selectedItems);
                 if (selectedItems.length == 0) {
                     // Se não houver nenhum item selecionado, exibe uma mensagem de erro
-                    showErrorNotification('Por favor, selecione pelo menos um item para devolução.');
+                    ToastBottomEnd.fire({
+                        icon: 'error',
+                        title: 'Por favor, selecione pelo menos um item para devolução.'
+                    });
                     return;
                 }
                 // Se passar pra essa parte, quer dizer que algum item foi selecionado
@@ -243,7 +245,10 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             //Verificar se a flag foi modificada
             if (qtdDevolvidaInvalida) {
-                showErrorNotification(erroText);
+                ToastBottomEnd.fire({
+                    icon: 'error',
+                    title: erroText
+                });
                 return;
             }
 
@@ -401,12 +406,11 @@ async function itensAtivosFuncionario(funcionarioId) {
     try {
         const response = await fetch(`/api_itens_ativos/${funcionarioId}/`);
         if (!response.ok) {
-            throw new Error('Erro ao buscar itens ativos do funcionário');
+            throw new Error('Não encontrou itens ativos do funcionário');
         }
         const data = await response.json();
         return data;
     } catch (error) {
-        console.error('Erro:', error);
         return [];
     }
 }
