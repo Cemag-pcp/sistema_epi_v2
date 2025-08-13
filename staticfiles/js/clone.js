@@ -24,6 +24,15 @@ export function setupCloneForms(config) {
     addBtn.addEventListener("click", function () {
         const originals = cloneContainer.querySelectorAll(`.${config.formClass}`);
         const lastOriginal = originals[originals.length - 1];
+
+        $(lastOriginal)
+        .find('select.select2')
+        .each(function () {
+            if ($(this).hasClass("select2-hidden-accessible")) {
+                $(this).select2('destroy');
+            }
+        });
+
         const clone = lastOriginal.cloneNode(true);
 
         // Atualiza o número da solicitação
@@ -70,6 +79,26 @@ export function setupCloneForms(config) {
         }
 
         cloneContainer.appendChild(clone);
+
+        $(lastOriginal).find('select.select2').each(function () {
+            const $select = $(this);
+            const $modal = $select.closest('#modal-criar-padrao');
+            
+            $select.select2({
+                dropdownParent: $modal.length ? $modal : $(document.body),
+                width: '100%'
+            });
+        });
+        
+        $(clone).find('select.select2').each(function () {
+            const $select = $(this);
+            const $modal = $select.closest('.modal');
+            
+            $select.select2({
+                dropdownParent: $modal.length ? $modal : $(document.body),
+                width: '100%'
+            });
+        });
     });
 
     // Configura os botões de remoção dos formulários existentes
