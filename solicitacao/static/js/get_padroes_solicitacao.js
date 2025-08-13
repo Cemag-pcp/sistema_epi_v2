@@ -1,40 +1,41 @@
 import { loadFormDataRequest, verificarMultiplosEquipamentos, setupChangeListeners } from "./get_solicitacoes.js";
 import { updateRequestNumbers } from "../../../static/js/clone.js";
+import { ToastBottomEnd } from "../../../static/js/scripts.js";
 
 let abortController = null;
 let activeRequests = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
     const selectElement = document.getElementById('padrao-select');
-
-    $(selectElement).select2();
-    
-    // 1. Lógica inicial para tratar query da URL
     const urlParams = new URLSearchParams(window.location.search);
     const queryValue = urlParams.get('padrao');
-    
-    console.log(queryValue)
 
+    // Initialize Select2 after setting the initial value
     if (queryValue) {
         const optionToSelect = selectElement.querySelector(`option[value="${queryValue}"]`);
         if (optionToSelect) {
             optionToSelect.selected = true;
-            getPadroes(queryValue);
-        } else {
-            loadFormDataRequest();
         }
+    } else {
+        // Explicitly select the empty value option
+        selectElement.querySelector('option[value=""]').selected = true;
+    }
+
+    // Now initialize Select2
+    $(selectElement).select2();
+    
+    // Rest of your logic...
+    if (queryValue) {
+        getPadroes(queryValue);
     } else {
         loadFormDataRequest();
     }
     
-    // 2. Listener para mudanças manuais
     $(selectElement).on('change', function() {
         const selectedValue = this.value;
-
         if (abortController) {
             abortController.abort();
         }
-
         if (selectedValue) {
             getPadroes(selectedValue);
         } else {
@@ -77,14 +78,20 @@ function getPadroes(value) {
             updateAvailableOptions(data.equipamentos, data.funcionarios_disponiveis);
             await fillPadraoData(data.padrao);
         } else {
-            alert(data.message || 'Erro ao carregar padrão');
+            ToastBottomEnd.fire({
+                icon: 'error',
+                title: data.message || 'Erro ao carregar padrão',
+            });
         }
     })
     .catch(error => {
         // Ignora erros causados pelo abort
         if (error.name !== 'AbortError') {
             console.error('Erro na requisição:', error);
-            alert('Erro ao carregar dados do padrão');
+            ToastBottomEnd.fire({
+                icon: 'error',
+                title: 'Erro ao carregar dados do padrão',
+            });
         }
     })
     .finally(() => {
