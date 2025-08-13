@@ -226,8 +226,45 @@ def alter_solicitacao(request, id):
                 solicitacao = Solicitacao.objects.get(id=id)
                 data = json.loads(request.body)
                 
+                funcionario = solicitacao.funcionario
+                
                 # Processar dados_solicitacao se existir no payload
                 if 'dados_solicitacao' in data:
+                    # Primeiro validar todos os dados antes de fazer qualquer alteração
+                    for dado in data['dados_solicitacao']:
+                        equipamento_id = dado['equipamento_id']
+                        motivo = dado['motivo']
+                        
+                        try:
+                            equipamento = Equipamento.objects.get(id=equipamento_id)
+                        except Equipamento.DoesNotExist:
+                            return JsonResponse({
+                                'success': False,
+                                'message': f'Equipamento com ID {equipamento_id} não encontrado'
+                            }, status=404)
+                        
+                        # Verifica se o funcionário já solicitou este equipamento antes (excluindo a própria solicitação atual)
+                        ja_solicitou = DadosSolicitacao.objects.filter(
+                            solicitacao__funcionario=funcionario,
+                            equipamento=equipamento
+                        ).exclude(
+                            solicitacao=solicitacao
+                        ).exists()
+                        
+                        # Primeira condição de erro
+                        if ja_solicitou and motivo.lower() == 'primeira entrega':
+                            return JsonResponse({
+                                'success': False,
+                                'message': f'Erro: O funcionário {funcionario.nome} já solicitou o equipamento {equipamento.nome} anteriormente e o motivo não pode ser "primeira entrega".'
+                            }, status=400)
+                        
+                        # Segunda condição de erro
+                        if not ja_solicitou and motivo.lower() != 'primeira entrega':
+                            return JsonResponse({
+                                'success': False,
+                                'message': f'Erro: O funcionário {funcionario.nome} nunca solicitou o equipamento {equipamento.nome} antes e o motivo deve ser "primeira entrega".'
+                            }, status=400)
+                    
                     # Obter IDs dos equipamentos que serão mantidos/atualizados
                     novos_equipamentos_ids = [dado['equipamento_id'] for dado in data['dados_solicitacao']]
                     
