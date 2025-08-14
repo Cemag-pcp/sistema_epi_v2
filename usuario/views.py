@@ -132,9 +132,11 @@ def funcionario(request):
                 'funcionario': {
                     'id': funcionario.id,
                     'nome': funcionario.nome,
-                    'matricula': funcionario.matricula,
+                    'matricula': int(funcionario.matricula),
                     'setor': funcionario.setor.nome,
                     'cargo': funcionario.cargo.nome,
+                    'usuario': False, 
+                    'hasUsuario': False,
                     'data_admissao': funcionario.data_admissao,
                     'tipo_acesso': funcionario.tipo_acesso,
                     'status': 'Ativo' if funcionario.ativo else 'Desativado',
