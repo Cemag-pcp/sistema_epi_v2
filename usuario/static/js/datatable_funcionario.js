@@ -72,7 +72,7 @@ export function initializeDataTable(data) {
                 className: 'text-center',
                 render: function(data, type, row) {
                     // Verifica se tem usuário (ajuste conforme sua lógica)
-                    const hasUser = row.usuario !== null || row.usuario !== undefined;
+                    const hasUser = row.hasUsuario;
                     if (type === 'display') {
                         return hasUser ? 
                             '<i class="bi bi-check-circle-fill text-success" title="Possui usuário"></i>' :
