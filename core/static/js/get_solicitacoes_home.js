@@ -12,6 +12,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                 search: d.search.value,
                 id_solicitacao: filtrosSolicitacoes.idSolicitacao,
                 funcionario: filtrosSolicitacoes.funcionario,
+                solicitante: filtrosSolicitacoes.solicitante,
                 equipamento: filtrosSolicitacoes.equipamento,
                 data_inicio: filtrosSolicitacoes.dataInicio,
                 data_fim: filtrosSolicitacoes.dataFim,
@@ -50,6 +51,13 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
             name: 'funcionario__nome',
             render: function(data) {
                 return data.funcionario_matricula + ' - ' + data.funcionario_nome;
+            }
+        },
+        { 
+            data: null,
+            name: 'solicitante__nome',
+            render: function(data) {
+                return data.solicitante_matricula + ' - ' + data.solicitante_nome;
             }
         },
         { 
@@ -186,7 +194,8 @@ let filtrosSolicitacoes = {
     equipamento: '',
     dataInicio: '',
     dataFim: '',
-    status: ['Pendente', 'Entregue', 'Cancelado']
+    status: ['Pendente', 'Entregue', 'Cancelado'],
+    solicitante: ''
 };
 
 // Função para aplicar os filtros
@@ -214,6 +223,13 @@ function atualizarFiltrosAplicados() {
         document.getElementById('itens-filtrados-solicitacoes-funcionario').textContent = `Funcionário: ${filtrosSolicitacoes.funcionario}`;
     } else {
         document.getElementById('itens-filtrados-solicitacoes-funcionario').style.display = 'none';
+    }
+
+    if (filtrosSolicitacoes.solicitante) {
+        document.getElementById('itens-filtrados-solicitacoes-solicitante').style.display = 'inline-block';
+        document.getElementById('itens-filtrados-solicitacoes-solicitante').textContent = `Solicitante: ${filtrosSolicitacoes.solicitante}`;
+    } else {
+        document.getElementById('itens-filtrados-solicitacoes-solicitante').style.display = 'none';
     }
     
     // Equipamento
@@ -254,6 +270,7 @@ document.getElementById('btn-filtrar-solicitacoes').addEventListener('click', fu
     // Atualiza os filtros
     filtrosSolicitacoes.idSolicitacao = document.getElementById('pesquisar-id-solicitacao').value;
     filtrosSolicitacoes.funcionario = document.getElementById('pesquisar-funcionario').value;
+    filtrosSolicitacoes.solicitante = document.getElementById('pesquisar-solicitante').value; 
     filtrosSolicitacoes.equipamento = document.getElementById('pesquisar-equipamento').value;
     filtrosSolicitacoes.dataInicio = document.getElementById('data-solicitacao-inicio').value;
     filtrosSolicitacoes.dataFim = document.getElementById('data-solicitacao-fim').value;
@@ -278,6 +295,7 @@ document.getElementById('btn-limpar-solicitacoes').addEventListener('click', fun
     // Limpa os campos
     document.getElementById('pesquisar-id-solicitacao').value = '';
     document.getElementById('pesquisar-funcionario').value = '';
+    document.getElementById('pesquisar-solicitante').value = '';
     document.getElementById('pesquisar-equipamento').value = '';
     document.getElementById('data-solicitacao-inicio').value = '';
     document.getElementById('data-solicitacao-fim').value = '';
@@ -293,7 +311,8 @@ document.getElementById('btn-limpar-solicitacoes').addEventListener('click', fun
         equipamento: '',
         dataInicio: '',
         dataFim: '',
-        status: ['Pendente', 'Entregue', 'Cancelado']
+        status: ['Pendente', 'Entregue', 'Cancelado'],
+        solicitante: ''
     };
     
     aplicarFiltrosSolicitacoes();
