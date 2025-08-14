@@ -35,6 +35,7 @@ def home_solicitacoes(request):
     search = request.GET.get('search', '')
     id_solicitacao = request.GET.get('id_solicitacao', '')
     funcionario = request.GET.get('funcionario', '')
+    solicitante = request.GET.get('solicitante', '')
     equipamento = request.GET.get('equipamento', '')
     data_inicio = request.GET.get('data_inicio', '')
     data_fim = request.GET.get('data_fim', '')
@@ -65,6 +66,12 @@ def home_solicitacoes(request):
         query = query.filter(
             Q(funcionario__nome__icontains=funcionario) |
             Q(funcionario__matricula__icontains=funcionario)
+        ).distinct()
+    
+    if solicitante:
+        query = query.filter(
+            Q(solicitante__nome__icontains=solicitante) |
+            Q(solicitante__matricula__icontains=solicitante)
         ).distinct()
 
     if equipamento:
