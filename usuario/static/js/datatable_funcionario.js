@@ -68,15 +68,17 @@ export function initializeDataTable(data) {
             },
             // Nova coluna para indicar se tem usuário
             {
-                data: 'hasUsuario',
+                data: null, // Não usa um campo específico
                 className: 'text-center',
                 render: function(data, type, row) {
+                    // Verifica se tem usuário (ajuste conforme sua lógica)
+                    const hasUser = row.usuario !== null || row.usuario !== undefined;
                     if (type === 'display') {
-                        return data ? 
+                        return hasUser ? 
                             '<i class="bi bi-check-circle-fill text-success" title="Possui usuário"></i>' :
                             '<i class="bi bi-x-circle-fill text-danger" title="Não possui usuário"></i>';
                     }
-                    return data;
+                    return hasUser;
                 }
             },
             { 
