@@ -20,6 +20,7 @@ INSTALLED_APPS = [
 
     'storages',
     'core',
+    'checklist',
     'devolucao',
     'usuario',
     'equipamento',
@@ -109,6 +110,7 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static/'),
     os.path.join(BASE_DIR, 'core/static'),
+    os.path.join(BASE_DIR, 'checklist/static'),
     os.path.join(BASE_DIR, 'devolucao/static'),
     os.path.join(BASE_DIR, 'equipamento/static'),
     os.path.join(BASE_DIR, 'ficha/static'),
