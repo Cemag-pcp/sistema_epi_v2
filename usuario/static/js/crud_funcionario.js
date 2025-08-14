@@ -394,6 +394,8 @@ saveEmployeeBtn.addEventListener('click', async function() {
             setor: setorInput.options[setorInput.selectedIndex].textContent,
             cargo: cargoInput.options[cargoInput.selectedIndex].textContent,
             tipoAcesso: tipoAcessoInput.value,
+            usuario: "",
+            hasUsuario: false,
             status: 'Ativo',
         };
         
@@ -606,9 +608,11 @@ export async function fetchEmployees() {
         const response = await fetch('/api/funcionarios/');
         if (!response.ok) throw new Error('Failed to fetch employees');
         const data = await response.json();
-        employees = data;
-
-        initializeDataTable(data);
+        employees = data.map(employee => ({
+            ...employee,
+            hasUsuario: employee.hasUsuario
+        }));
+        initializeDataTable(employees);
     } catch (error) {
         console.error('Error fetching employees:', error);
         showAlert('Erro ao carregar funcionários. Por favor, tente novamente.', 'error');
