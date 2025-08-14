@@ -606,7 +606,10 @@ export async function fetchEmployees() {
         const response = await fetch('/api/funcionarios/');
         if (!response.ok) throw new Error('Failed to fetch employees');
         const data = await response.json();
-        employees = data;
+        employees = data.map(employee => ({
+            ...employee,
+            hasUsuario: employee.usuario !== null // ou qualquer lógica que determine se tem usuário
+        }));
 
         initializeDataTable(data);
     } catch (error) {
