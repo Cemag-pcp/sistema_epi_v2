@@ -67,7 +67,7 @@ def home_solicitacoes(request):
             Q(funcionario__nome__icontains=funcionario) |
             Q(funcionario__matricula__icontains=funcionario)
         ).distinct()
-    
+
     if solicitante:
         query = query.filter(
             Q(solicitante__nome__icontains=solicitante) |
@@ -425,10 +425,14 @@ def alter_signature(request, id):
                 'success': False,
                 'message': f'Ocorreu um erro ao excluir a assinatura e as devoluções: {str(e)}'
             }, status=500)
-
+        
+@login_required
+@somente_master
 def historico(request):
     return render(request, 'historico.html')
 
+@login_required
+@somente_master
 def api_historico(request):
     # Paginação
     page = int(request.GET.get('page', 1))
@@ -735,10 +739,13 @@ def api_historico(request):
         }
     }, status=200)
 
-        
+@login_required
+@somente_master   
 def dashboard_template(request):
     return render(request, 'dashboard.html') 
 
+@login_required
+@somente_master
 def dashboard(request):
     if not request.user.is_authenticated:
         return JsonResponse({
