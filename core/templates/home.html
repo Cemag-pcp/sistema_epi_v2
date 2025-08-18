@@ -81,22 +81,24 @@
     <span id="itens-filtrados-solicitacoes-status" class="rounded-pill py-1 px-2" style="background-color: #ebebeb; color: #3d3d3d; font-weight: 600; font-size: 0.75rem; display: none;"></span>
 </div>
 
-<table id="tabela-solicitacoes"  class="table table-hover w-100">
-    <thead class="table-light">
-        <tr>
-            <th class="text-center">#</th>
-            <th style="max-width: 300px;">Data da Solicitação</th>
-            <th>Funcionário</th>
-            <th>Solicitante</th>
-            <th>Itens</th>
-            <th>Assinatura</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Os dados serão carregados dinamicamente -->
-    </tbody>
-</table>
+<div class="table-responsive">
+    <table id="tabela-solicitacoes"  class="table table-hover w-100">
+        <thead class="table-light">
+            <tr>
+                <th class="text-center">#</th>
+                <th style="max-width: 300px;">Data da Solicitação</th>
+                <th>Funcionário</th>
+                <th>Solicitante</th>
+                <th>Itens</th>
+                <th>Assinatura</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Os dados serão carregados dinamicamente -->
+        </tbody>
+    </table>
+</div>
 
 {% include 'modal/modal_assinatura.html' %}
 {% include 'modal/modal_editar_solicitacao.html' %}
