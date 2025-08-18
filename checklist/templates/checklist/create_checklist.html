@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block links %}
+<link rel="stylesheet" href="/static/css/select2.css">
+<link rel="stylesheet" href="/static/css/checklist.css">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="d-flex align-items-center gap-4 mb-5">
+      <a href="/" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Voltar para Checklists
+      </a>
+      <div>
+        <h1 class="h2 fw-bold text-dark">Criar Novo Checklist</h1>
+        <p class="text-muted mt-2">Crie um checklist personalizado com suas próprias perguntas</p>
+      </div>
+    </div>
+
+    <!-- Error Messages -->
+    {% if errors %}
+    <div class="alert alert-danger mb-5">
+      <ul class="mb-0 ps-3">
+        {% for error in errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- Checklist Details -->
+    <div class="card mb-5">
+      <div class="card-header bg-white">
+        <h2 class="h5 fw-bold mb-0">Detalhes do Checklist</h2>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="title" class="form-label">Título do Checklist *</label>
+          <input type="text" class="form-control" id="title" placeholder="Digite o título do checklist..." value="{{ title }}">
+        </div>
+        <div class="mb-3">
+          <label for="description" class="form-label">Descrição *</label>
+          <textarea class="form-control" id="description" rows="3" placeholder="Descreva o que este checklist abrange...">{{ description }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add New Question -->
+    <div class="card mb-5">
+      <div class="card-header bg-white">
+        <h2 class="h5 fw-bold mb-0">
+          <i class="bi bi-plus me-2"></i>Adicionar Pergunta
+        </h2>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="question-text" class="form-label">Texto da Pergunta *</label>
+          <input type="text" class="form-control" id="question-text" placeholder="Digite sua pergunta...">
+        </div>
+        <div class="mb-3">
+          <label for="question-description" class="form-label">Descrição (Opcional)</label>
+          <textarea class="form-control" id="question-description" rows="3" placeholder="Adicione contexto ou instruções adicionais..."></textarea>
+        </div>
+        <button class="btn btn-primary w-100" id="add-question-btn">
+          <i class="bi bi-plus me-2"></i>Adicionar Pergunta
+        </button>
+      </div>
+    </div>
+
+    <!-- Questions List -->
+    <div class="mb-5">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h5 fw-bold mb-0">Perguntas (<span id="questions-count">0</span>)</h2>
+      </div>
+
+      <div id="questions-container">
+        <div class="card mb-3" id="no-questions-message">
+          <div class="card-body text-center py-5">
+            <p class="text-muted mb-2">Nenhuma pergunta adicionada ainda</p>
+            <p class="text-muted small">Adicione sua primeira pergunta acima para começar</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Actions -->
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="fw-bold mb-1">Pronto para salvar seu checklist?</p>
+            <p class="text-muted small mb-0"><span id="total-questions">0</span> perguntas</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" id="save-checklist-btn">
+              <i class="bi bi-save me-2"></i>Salvar Checklist
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- Question Template (Hidden) -->
+<div class="d-none">
+  <div class="card mb-3 question-card" id="question-template">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge bg-light text-dark">#<span class="question-number">1</span></span>
+          </div>
+          <h3 class="h6 fw-bold mb-1 question-text">Texto da pergunta</h3>
+          <p class="small text-muted question-description d-none">Descrição da pergunta</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary edit-question-btn">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger delete-question-btn">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Question Modal -->
+<div class="modal fade" id="editQuestionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Pergunta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Texto da Pergunta *</label>
+          <input type="text" class="form-control" id="edit-question-text">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Descrição</label>
+          <textarea class="form-control" id="edit-question-description" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="save-edited-question-btn">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+   <script src="{% static 'js\create.js' %}"></script>
+
+{% endblock %}

@@ -1,0 +1,36 @@
+.hover-shadow:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.2s ease;
+  }
+  
+.fs-xxsmall {
+  font-size: 0.65rem;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.position-absolute {
+  position: absolute;
+}
+
+.top-0 {
+  top: 0;
+}
+
+.end-0 {
+  right: 0;
+}
+
+.bg-gray {
+  background-color: #ebebeb;
+}
+
+.question-card {
+  transition: all 0.2s ease;
+}
+
+.question-card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
