@@ -373,12 +373,12 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Redimensiona quando a janela muda de tamanho
-    window.addEventListener('resize', function () {
-        const canvas = document.getElementById("signature-canvas");
-        if (canvas && assinatura) {
-            resizeCanvas(canvas, assinatura);
-        }
-    });
+    // window.addEventListener('resize', function () {
+    //     const canvas = document.getElementById("signature-canvas");
+    //     if (canvas && assinatura) {
+    //         resizeCanvas(canvas, assinatura);
+    //     }
+    // });
 });
 
 function handleItemToggle(event) {
