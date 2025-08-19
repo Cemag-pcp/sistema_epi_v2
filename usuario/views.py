@@ -17,6 +17,7 @@ from usuario.decorators import somente_master, master_solicit
 
 import traceback
 import json
+import numpy as np
 
 def login_view(request):
     if request.method == 'POST':
@@ -37,7 +38,7 @@ def login_view(request):
                 # Enquanto ainda não existe uma página de solicitação EPI, vamos redirecionar para a home
             else:
                 print('Redirecionando para a página padrão')
-                next_url = request.POST.get('next') or 'solicitacao:solicitacao'
+                next_url = request.POST.get('next') or 'usuario:inventario'
                 #Enquanto ainda não existe uma página de (inventário??) vamos redirecionar para a home
             print(request.POST.get('next'))
             return redirect(next_url)
@@ -57,11 +58,36 @@ def redirecionar(request):
     return redirect('usuario:login_view')
 
 @login_required
-@somente_master
 def api_funcionarios(request):
     if request.method == 'GET':
+        funcionario_id = request.GET.get('func_id',None)
+        
+        # Converter para float de forma segura
+        try:
+            func_id = int(funcionario_id)
+        except (TypeError, ValueError):
+            func_id = None  # Se não for um número válido
+        
         # Aqui você pode adicionar a lógica para listar os funcionários
-
+        if func_id is None and not request.user.is_superuser and not request.user.funcionario.tipo_acesso == 'master':
+                return JsonResponse({'error': 'Acesso negado'}, status=403)
+        if func_id:
+            try:
+                funcionario = Funcionario.objects.get(id=func_id)
+                return JsonResponse([{
+                    'id': funcionario.id,
+                    'nome': funcionario.nome,
+                    'matricula': funcionario.matricula,
+                    'setor': funcionario.setor.nome if funcionario.setor else '',
+                    'cargo': funcionario.cargo.nome if funcionario.cargo else '',
+                    'data_admissao': funcionario.data_admissao,
+                    'ativo': funcionario.ativo,
+                    'usuario': funcionario.usuario.id if funcionario.usuario else '',
+                    'tipo_acesso': funcionario.tipo_acesso,
+                }], safe=False,status=200)
+            except Funcionario.DoesNotExist:
+                return JsonResponse({'error': 'Funcionário não encontrado'}, status=404)
+        # Se não houver id, retorna todos os funcionários
         funcionarios = Funcionario.objects.select_related('setor','setor__responsavel','cargo').values(
             'id', 'nome', 'matricula', 'setor__nome', 'setor__id',
                 'setor__responsavel__nome', 'setor__responsavel__matricula','cargo_id',
@@ -528,10 +554,12 @@ def api_cargos(request):
         return JsonResponse(cargos, safe=False)
     
 @login_required
-@somente_master
 def itens_ativos_funcionario(request,id):
     if request.method == 'GET':
         try:
+            if not request.user.is_superuser: 
+                if request.user.funcionario.id != id and not request.user.funcionario.tipo_acesso == 'master':
+                    return JsonResponse({'error': 'Acesso negado'}, status=403)
             # itens_ativos = DadosSolicitacao.objects.filter(solicitacao__status='Entregue',solicitacao__funcionario=id,dados_solicitacao_devolucao=None).order_by("-solicitacao__data_atualizacao")
 
             itens_ativos = ( DadosSolicitacao.objects
@@ -579,3 +607,7 @@ def itens_ativos_funcionario(request,id):
             traceback.print_exc()
             return JsonResponse({'error': 'Erro inesperado: ' + str(e)}, status=500)
     
+@login_required
+def inventario(request):
+    if request.method == 'GET':
+        return render(request, 'usuario/inventario.html', {"funcionario":request.user.funcionario})
