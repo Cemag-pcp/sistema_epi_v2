@@ -143,7 +143,6 @@ document.addEventListener('DOMContentLoaded', function() {
       id: checklistId,
       title: title,
       description: description,
-      category: 'custom',
       questions: questions,
       createdAt: new Date().toISOString()
     };

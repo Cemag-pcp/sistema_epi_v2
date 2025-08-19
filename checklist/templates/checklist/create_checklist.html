@@ -10,11 +10,11 @@
 {% block content %}
 <div class="container">
     <!-- Header -->
-    <div class="d-flex align-items-center gap-4 mb-5">
-      <a href="/" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-2"></i>Voltar para Checklists
-      </a>
+    <div class="d-flex align-items-center gap-4 mb-3">
       <div>
+        <a href="{% url 'checklist:checklist' %}" class="btn btn-white mb-3">
+          <i class="bi bi-arrow-left me-2"></i>Voltar para Checklists
+        </a>
         <h1 class="h2 fw-bold text-dark">Criar Novo Checklist</h1>
         <p class="text-muted mt-2">Crie um checklist personalizado com suas próprias perguntas</p>
       </div>

@@ -23,6 +23,10 @@
   right: 0;
 }
 
+.bottom-0 {
+  bottom: 0;
+}
+
 .bg-gray {
   background-color: #ebebeb;
 }
