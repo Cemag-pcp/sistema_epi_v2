@@ -17,7 +17,6 @@ from usuario.decorators import somente_master, master_solicit
 
 import traceback
 import json
-import numpy as np
 
 def login_view(request):
     if request.method == 'POST':
