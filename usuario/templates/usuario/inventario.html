@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block links %}
+<link rel="stylesheet" href="{% static 'css/devolucao.css' %}" >
+<link rel="stylesheet" href="/static/css/select2.css">
+
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="mb-4">
+        <h1 class="display-5 fw-bold mb-2">Inventário EPI</h1>
+        <p class="text-muted">Selecione um funcionário para visualizar os seus itens ativos.</p>
+    </div>
+
+    <!-- Operator Selection Card -->
+    <div class="card mb-4">
+        <span class="d-none" id="funcionario-id">{{ funcionario.id }}</span>
+        <span class="d-none" id="funcionario-tipo-acesso">{{ funcionario.tipo_acesso }}</span>
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-person me-2"></i>
+                Selecione um funcionário
+            </h5>
+            <small class="text-muted">Escolha um funcionário para visualizar os seus itens ativos.</small>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="operatorSelect" class="form-label">Funcionário</label>
+                <select class="form-control select2" id="operatorSelect">
+                    <option value="">Carregando funcionários...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- PPE Items Card -->
+    <div class="card mb-4" id="ppeItemsCard" style="display: none;">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-box me-2"></i>
+                EPIs atribuídos
+                <span class="loading-spinner ms-2" id="ppeLoadingSpinner" style="display: none;"></span>
+            </h5>
+            <small class="text-muted" id="operatorInfo">EPIs atualmente atribuídos à funcionário</small>
+        </div>
+        <div class="card-body">            
+            <div class="table-container" id="ppeTableContainer" style="display: none;">
+                <table class="table table-hover mb-0" id="ppeTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th>Equipamento</th>
+                            <th>Código</th>
+                            <th>Data de Atribuição</th>
+                            <th>Qtd. Atual</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ppeTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Loading State -->
+            <div class="text-center py-4" id="ppeLoadingState" style="display: none;">
+                <div class="loading-spinner mb-2"></div>
+                <p class="text-muted">Carregando EPIs ativos do funcionário...</p>
+            </div>
+
+            <!-- Error State -->
+            <div class="alert alert-danger" id="ppeErrorState" style="display: none;">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <span id="ppeErrorMessage">Falha em carregar EPIs</span>
+                <button class="btn btn-outline-danger btn-sm ms-2" id="retryPpeBtn">Tentar novamente</button>
+            </div>
+
+            <!-- No Items State -->
+            <div class="text-center py-4 text-muted" id="noItemsState" style="display: none;">
+                <i class="bi bi-box" style="font-size: 3rem; opacity: 0.5;"></i>
+                <p>Sem EPIs atribuídos a este funcionário.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State Card -->
+    <div class="card" id="emptyStateCard">
+        <div class="card-body">
+            <div class="empty-state">
+                <i class="bi bi-box"></i>
+                <p>Selecione um funcionário e veja os EPIs atribuídos à ele.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+
+    <script type="module" src="{% static 'js/inventario.js' %}"></script>
+    
+{% endblock %}
