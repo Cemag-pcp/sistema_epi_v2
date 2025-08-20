@@ -1,4 +1,4 @@
-import { getCookie, ToastBottomEnd } from "../../../static/js/scripts.js";
+import { getCookie, ToastBottomEnd, toggleSpinner } from "../../../static/js/scripts.js";
 import { carregarCardsChecklist, mostrarPlaceholdersCards } from "./cards-checklist.js";
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -127,6 +127,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // 6. Função para duplicar checklist
   function duplicarChecklist(originalId, novoNome, setorId) {
+
+    toggleSpinner('confirmDuplicate', true);
     mostrarPlaceholdersCards();
 
     fetch('/api/checklists/duplicate/', {
@@ -168,6 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }).finally(f => {
         carregarCardsChecklist();
+        toggleSpinner('confirmDuplicate', false);
     })
   }
 });

@@ -247,3 +247,26 @@ def edit_checklist_api(request, id):
         return JsonResponse(
             {"error": f"Erro ao atualizar checklist: {str(e)}"}, status=500
         )
+
+
+def delete_checklist_api(request, id):
+
+    """
+    Endpoint para Excluir um checklist existente
+    """
+    try:
+        # Buscar o checklist
+        checklist = Checklist.objects.get(id=id)
+
+        checklist.delete()
+
+        return JsonResponse({"success":True, "message":"Checklist excluído com sucesso!"}, status=200)
+
+    except Checklist.DoesNotExist:
+        return JsonResponse({"error": "Checklist não encontrado"}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Dados JSON inválidos"}, status=400)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Erro ao atualizar checklist: {str(e)}"}, status=500
+        )

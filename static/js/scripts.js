@@ -52,6 +52,24 @@ export const ToastBottomEnd = Swal.mixin({
     }
 });
 
+export function toggleSpinner(buttonId, isLoading) {
+    const button = document.getElementById(buttonId);
+    if (button) {
+        const spinner = button.querySelector('.spinner-border');
+        const text = button.querySelector('.button-text');
+        
+        if (isLoading) {
+            spinner.classList.remove('d-none');
+            text.classList.add('d-none');
+            button.disabled = true;
+        } else {
+            spinner.classList.add('d-none');
+            text.classList.remove('d-none');
+            button.disabled = false;
+        }
+    }
+}
+
 // Função para inicializar Select2 em elementos padrão
 $('.select2').select2({
     width: '100%'

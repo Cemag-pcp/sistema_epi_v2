@@ -19,4 +19,5 @@ urlpatterns += [
     path('api/checklists/inspection/', views.inspection_send_checklist_api, name='inspection-send-checklist-api'),
     path('api/checklists/inspection/<int:id>/', views.inspection_checklist_api, name='inspection-checklist-api'),
     path('api/checklists/edit/<int:id>/', views.edit_checklist_api, name='edit-checklist-api'),
+    path('api/checklists/delete/<int:id>/', views.delete_checklist_api, name='delete-checklist-api'),
 ]

@@ -3,19 +3,306 @@
 {% load static %}
 
 {% block links %}
-
 <link rel="stylesheet" href="/static/css/select2.css">
-
+<style>
+    .progress {
+        height: 4px;
+        width: 80px;
+    }
+    .badge {
+        font-size: 0.75rem;
+    }
+    .checklist-card:hover {
+        box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important;
+        transition: box-shadow 0.15s ease-in-out;
+    }
+    .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-baseline">
-  <h3 class="mb-4 fw-bold">Histórico dos Checklist's</h3>
+<div class="container-lg">
+    <!-- Header -->
+    <div class="mb-4 mb-md-5">
+        <a href="{% url 'checklist:checklist' %}" class="btn btn-white mb-3">
+          <i class="bi bi-arrow-left me-2"></i>Voltar para Checklists
+        </a>
+        <h1 class="h2 fw-bold text-dark">Checklist History</h1>
+        <p class="text-muted mb-0">View and manage all completed compliance checklists</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body p-3 p-md-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-secondary">Search</label>
+                    <div class="position-relative">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" class="form-control form-control-sm ps-4" placeholder="Search checklists..." id="searchInput">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-secondary">Compliance</label>
+                    <select class="form-select form-select-sm" id="complianceFilter">
+                        <option value="all" selected>All Statuses</option>
+                        <option value="compliant">Fully Compliant</option>
+                        <option value="non-compliant">Has Issues</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-secondary">Results</label>
+                    <div class="small text-muted pt-1" id="resultsCount">10 of 10 checklists</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="checklistResults">
+        <!-- Checklist items will be populated here by JavaScript -->
+    </div>
+
+    <!-- Empty State (hidden by default) -->
+    <div class="card d-none" id="emptyState">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-calendar text-muted fs-1 mb-3"></i>
+            <h3 class="h5 fw-medium text-dark mb-2">No completed checklists found</h3>
+            <p class="text-muted mb-4" id="emptyStateMessage">Complete your first checklist to see it here</p>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
 
 {% block scripts %}
+<script>
+    // Sample data
+    const completedChecklists = [
+        {
+            id: "1",
+            checklistId: "sample-1",
+            title: "Office Safety Inspection",
+            category: "Safety",
+            completedAt: "2024-01-20T10:00:00.000Z",
+            stats: { total: 10, compliant: 8, nonCompliant: 2 },
+            responses: [],
+        },
+        {
+            id: "2",
+            checklistId: "sample-2",
+            title: "Security Protocol Review",
+            category: "Security",
+            completedAt: "2024-02-15T14:30:00.000Z",
+            stats: { total: 15, compliant: 12, nonCompliant: 3 },
+            responses: [],
+        },
+        {
+            id: "3",
+            checklistId: "sample-3",
+            title: "Fire Safety Compliance",
+            category: "Safety",
+            completedAt: "2024-03-01T09:15:00.000Z",
+            stats: { total: 8, compliant: 8, nonCompliant: 0 },
+            responses: [],
+        },
+        {
+            id: "4",
+            checklistId: "sample-4",
+            title: "Data Protection Assessment",
+            category: "Privacy",
+            completedAt: "2024-03-10T16:00:00.000Z",
+            stats: { total: 20, compliant: 18, nonCompliant: 2 },
+            responses: [],
+        },
+        {
+            id: "5",
+            checklistId: "sample-5",
+            title: "Emergency Response Plan",
+            category: "Security",
+            completedAt: "2024-03-22T11:45:00.000Z",
+            stats: { total: 12, compliant: 9, nonCompliant: 3 },
+            responses: [],
+        },
+        {
+            id: "6",
+            checklistId: "sample-6",
+            title: "Environmental Impact Review",
+            category: "Environment",
+            completedAt: "2024-04-05T13:00:00.000Z",
+            stats: { total: 10, compliant: 5, nonCompliant: 5 },
+            responses: [],
+        },
+        {
+            id: "7",
+            checklistId: "sample-7",
+            title: "IT Security Assessment",
+            category: "Security",
+            completedAt: "2024-04-10T14:20:00.000Z",
+            stats: { total: 25, compliant: 20, nonCompliant: 5 },
+            responses: [],
+        },
+        {
+            id: "8",
+            checklistId: "sample-8",
+            title: "Workplace Ergonomics Check",
+            category: "Safety",
+            completedAt: "2024-04-12T09:30:00.000Z",
+            stats: { total: 12, compliant: 11, nonCompliant: 1 },
+            responses: [],
+        },
+        {
+            id: "9",
+            checklistId: "sample-9",
+            title: "Financial Controls Audit",
+            category: "Finance",
+            completedAt: "2024-04-15T16:45:00.000Z",
+            stats: { total: 18, compliant: 15, nonCompliant: 3 },
+            responses: [],
+        },
+        {
+            id: "10",
+            checklistId: "sample-10",
+            title: "Customer Data Privacy Review",
+            category: "Privacy",
+            completedAt: "2024-04-18T11:15:00.000Z",
+            stats: { total: 14, compliant: 12, nonCompliant: 2 },
+            responses: [],
+        },
+    ];
 
+    // Format date function
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    // Get compliance percentage
+    function getCompliancePercentage(stats) {
+        return Math.round((stats.compliant / stats.total) * 100);
+    }
+
+    // Get compliance status
+    function getComplianceStatus(stats) {
+        const percentage = getCompliancePercentage(stats);
+        if (percentage === 100) return { label: "Compliant", color: "bg-success" };
+        if (percentage >= 80) return { label: "Mostly", color: "bg-warning" };
+        return { label: "Issues", color: "bg-danger" };
+    }
+
+    // Render checklists
+    function renderChecklists(checklists) {
+        const container = document.getElementById('checklistResults');
+        const emptyState = document.getElementById('emptyState');
+        const resultsCount = document.getElementById('resultsCount');
+        
+        // Update results count
+        resultsCount.textContent = `${checklists.length} of ${completedChecklists.length} checklists`;
+        
+        if (checklists.length === 0) {
+            container.innerHTML = '';
+            emptyState.classList.remove('d-none');
+            const emptyStateMessage = document.getElementById('emptyStateMessage');
+            emptyStateMessage.textContent = completedChecklists.length === 0 
+                ? "Complete your first checklist to see it here" 
+                : "Try adjusting your filters to see more results";
+            return;
+        }
+        
+        emptyState.classList.add('d-none');
+        
+        let html = '';
+        checklists.forEach(checklist => {
+            const complianceStatus = getComplianceStatus(checklist.stats);
+            const compliancePercentage = getCompliancePercentage(checklist.stats);
+            
+            html += `
+            <div class="card mb-2 checklist-card">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1 me-3" style="min-width: 0;">
+                            <div class="d-flex align-items-center mb-1">
+                                <h3 class="h6 fw-medium text-truncate mb-0 me-2">${checklist.title}</h3>
+                                <span class="badge ${complianceStatus.color === 'bg-success' ? 'bg-success' : complianceStatus.color === 'bg-warning' ? 'bg-warning' : 'bg-danger'}">${complianceStatus.label}</span>
+                                <button class="btn btn-sm btn-link text-muted ms-auto p-0" title="Edit checklist">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="d-flex align-items-center text-xs text-muted flex-wrap">
+                                <div class="d-flex align-items-center me-3">
+                                    <i class="bi bi-calendar me-1"></i>
+                                    <span>${formatDate(checklist.completedAt)}</span>
+                                </div>
+                                <div class="d-flex align-items-center me-3">
+                                    <i class="bi bi-check-circle text-success me-1"></i>
+                                    <span>${checklist.stats.compliant}</span>
+                                </div>
+                                <div class="d-flex align-items-center me-3">
+                                    <i class="bi bi-x-circle text-danger me-1"></i>
+                                    <span>${checklist.stats.nonCompliant}</span>
+                                </div>
+                                <div class="fw-medium me-3">${compliancePercentage}%</div>
+                                
+                                <!-- Progress Bar -->
+                                <div class="progress me-3">
+                                    <div class="progress-bar ${complianceStatus.color}" role="progressbar" style="width: ${compliancePercentage}%" aria-valuenow="${compliancePercentage}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+
+    // Filter checklists based on search and compliance filters
+    function filterChecklists() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const complianceFilter = document.getElementById('complianceFilter').value;
+        
+        let filtered = completedChecklists;
+        
+        // Search filter
+        if (searchTerm) {
+            filtered = filtered.filter(checklist => 
+                checklist.title.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        // Compliance filter
+        if (complianceFilter !== "all") {
+            if (complianceFilter === "compliant") {
+                filtered = filtered.filter(checklist => checklist.stats.nonCompliant === 0);
+            } else if (complianceFilter === "non-compliant") {
+                filtered = filtered.filter(checklist => checklist.stats.nonCompliant > 0);
+            }
+        }
+        
+        // Sort by completion date (newest first)
+        filtered.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+        
+        renderChecklists(filtered);
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initial render
+        renderChecklists(completedChecklists);
+        
+        // Add event listeners for filtering
+        document.getElementById('searchInput').addEventListener('input', filterChecklists);
+        document.getElementById('complianceFilter').addEventListener('change', filterChecklists);
+    });
+</script>
 {% endblock %}

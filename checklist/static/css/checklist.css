@@ -38,3 +38,12 @@
 .question-card:hover {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
 }
+
+.question-actions {
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.question-card:hover .question-actions {
+    opacity: 1;
+}

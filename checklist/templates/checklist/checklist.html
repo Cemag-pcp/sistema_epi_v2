@@ -9,9 +9,9 @@
 {% block content %}
 <div class="container">
   <div class="text-center mb-5">
-    <h1 class="display-4 fw-bold text-dark mb-3">Listas de Checklist's</h1>
-    <p class="lead text-muted mx-auto" style="max-width: 800px;">
-      Selecione uma lista de verificação abaixo para iniciar sua avaliação de conformidade. Cada lista de verificação contém perguntas pré-construídas
+    <h1 class="display-4 fw-bold text-dark mb-3">Checklist's</h1>
+    <p class="lead text-muted mx-auto" style="max-width: 800px; font-size: 14px;">
+      Selecione um checklist abaixo para iniciar sua avaliação de conformidade. Cada checklist contém perguntas pré-construídas
       adaptados a requisitos de conformidade específicos.
     </p>
   </div>
@@ -118,7 +118,7 @@
 </div>
 
 <!-- Modal de duplicação -->
-<div class="modal fade" id="duplicateModal" tabindex="-1" aria-labelledby="duplicateModalLabel" aria-hidden="true">
+<div class="modal fade" id="duplicateModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="duplicateModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -141,7 +141,10 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="confirmDuplicate">Confirmar duplicação</button>
+        <button type="button" id="confirmDuplicate" class="btn btn-primary">
+          <span class="button-text">Confirmar duplicação</span>
+          <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+        </button>
       </div>
     </div>
   </div>
