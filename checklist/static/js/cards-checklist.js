@@ -1,3 +1,9 @@
+// Variáveis para armazenar os filtros atuais
+let filtrosAtuais = {
+    nome: '',
+    setor: ''
+};
+
 // Função para mapear setores para ícones (lógica no frontend)
 function getIconePorSetor(setorNome) {
     const iconesPorSetor = [
@@ -6,10 +12,12 @@ function getIconePorSetor(setorNome) {
         'bi-file-text',
         'bi-shield-check',
         'bi-bar-chart',
-        'bi-check-square'
+        'bi-check-square',
+        'bi bi-archive',
+        'bi bi-backpack',
+        'bi bi-building-fill',
+        'bi bi-clipboard-check',
     ];
-
-    console.log(Math.floor(Math.random() * iconesPorSetor.length));
     
     return iconesPorSetor[Math.floor(Math.random() * iconesPorSetor.length)];
 }
@@ -22,9 +30,36 @@ function formatarDescricao(descricao) {
     return descricao.length > 100 ? descricao.substring(0, 100) + '...' : descricao;
 }
 
-export function carregarCardsChecklist(){
-    // Carregar cards dinamicamente
-    fetch('/api/checklists/cards/')
+// Função para carregar os cards com os filtros aplicados
+export function carregarCardsChecklist() {
+    mostrarPlaceholdersCards();
+    
+    // Construir a URL com os parâmetros de filtro
+    let url = '/api/checklists/cards/';
+    const params = new URLSearchParams();
+    
+    if (filtrosAtuais.nome) {
+        params.append('nome', filtrosAtuais.nome);
+        document.getElementById('itens-filtrados-nome-checklist').style.display = 'inline-block';
+        document.getElementById('itens-filtrados-nome-checklist').textContent = `Checklist: ${filtrosAtuais.nome}`;
+    } else {
+        document.getElementById('itens-filtrados-nome-checklist').style.display = 'none';
+    }
+    
+    if (filtrosAtuais.setor) {
+        params.append('setor', filtrosAtuais.setor);
+        document.getElementById('itens-filtrados-setor-checklist').style.display = 'inline-block';
+        document.getElementById('itens-filtrados-setor-checklist').textContent = `Setor: ${filtrosAtuais.setor}`;
+    } else {
+        document.getElementById('itens-filtrados-setor-checklist').style.display = 'none';
+    }
+    
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    
+    // Fazer a requisição com os filtros
+    fetch(url)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Erro ao carregar dados');
@@ -45,7 +80,7 @@ export function carregarCardsChecklist(){
                     const descricaoFormatada = formatarDescricao(checklist.descricao);
                     
                     const cardHtml = `
-                        <div class="col-md-4">
+                        <div class="col-md-4 mb-4">
                             <div class="card h-100 hover-shadow">
                                 <div class="card-header bg-white p-3 position-relative">
                                     <button class="btn btn-sm btn-white position-absolute top-0 end-0 m-2 duplicate-btn" 
@@ -58,7 +93,7 @@ export function carregarCardsChecklist(){
                                     <a href="${checklist.url_edit}" class="btn btn-sm btn-white position-absolute bottom-0 end-0 m-2 edit-btn" 
                                             data-checklist-id="${checklist.id}" 
                                             data-checklist-name="${checklist.nome}" 
-                                            title="Duplicar">
+                                            title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <a href="${checklist.url_inspection}/${checklist.id}/" class="text-decoration-none text-dark inspection-btn"
@@ -119,14 +154,9 @@ export function carregarCardsChecklist(){
                 });
             } else {
                 // Mensagem caso não haja checklists
-                container.innerHTML += `
-                    <div class="col-12">
-                        <div class="alert alert-info text-center">
-                            <i class="bi bi-info-circle me-2"></i>
-                            Nenhum checklist disponível no momento.
-                        </div>
-                    </div>
-                `;
+                document.getElementById('itens-filtrados-nome-checklist').style.display = 'inline-block';
+                document.getElementById('itens-filtrados-nome-checklist').textContent = `Nenhum Checklist encontrado`;
+                document.getElementById('itens-filtrados-setor-checklist').style.display = 'none';
             }
         })
         .catch(error => {
@@ -146,7 +176,7 @@ export function carregarCardsChecklist(){
                     </div>
                 </div>
             `;
-    });
+        });
 }
 
 export function mostrarPlaceholdersCards() {
@@ -161,78 +191,100 @@ export function mostrarPlaceholdersCards() {
     mensagens.forEach(msg => msg.remove());
     
     // Adicionar placeholders
-    const placeholderHtml = `
-        <div class="col-md-4 placeholder-card">
-            <div class="card h-100 hover-shadow">
-                <div class="card-header bg-white p-3 position-relative">
-                    <div class="placeholder-glow">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="bg-gray rounded-circle placeholder" style="padding: 1rem 1.3rem; width: 60px; height: 60px;"></div>
+    for (let i = 0; i < 2; i++) {
+        const placeholderHtml = `
+            <div class="col-md-4 mb-4 placeholder-card">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-header bg-white p-3 position-relative">
+                        <div class="placeholder-glow">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-gray rounded-circle placeholder" style="padding: 1rem 1.3rem; width: 60px; height: 60px;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="card-body">
-                    <div class="placeholder-glow mb-4">
-                        <span class="placeholder col-12" style="height: 20px;"></span>
-                    </div>
-                    <div class="placeholder-glow">
-                        <div class="d-flex justify-content-between align-items-center small mb-3">
-                            <div class="d-flex align-items-center gap-1">
-                                <span class="placeholder" style="width: 16px; height: 16px;"></span>
-                                <span class="placeholder" style="width: 80px; height: 15px;"></span>
-                            </div>
-                            <div class="d-flex align-items-center gap-1">
-                                <span class="placeholder" style="width: 16px; height: 16px;"></span>
-                                <span class="placeholder" style="width: 70px; height: 15px;"></span>
-                            </div>
+                    <div class="card-body">
+                        <div class="placeholder-glow mb-4">
+                            <span class="placeholder col-12" style="height: 20px;"></span>
                         </div>
-                        <div class="pt-3 border-top border-light">
-                            <span class="placeholder" style="width: 150px; height: 15px;"></span>
+                        <div class="placeholder-glow">
+                            <div class="d-flex justify-content-between align-items-center small mb-3">
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="placeholder" style="width: 16px; height: 16px;"></span>
+                                    <span class="placeholder" style="width: 80px; height: 15px;"></span>
+                                </div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="placeholder" style="width: 16px; height: 16px;"></span>
+                                    <span class="placeholder" style="width: 70px; height: 15px;"></span>
+                                </div>
+                            </div>
+                            <div class="pt-3 border-top border-light">
+                                <span class="placeholder" style="width: 150px; height: 15px;"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-4 placeholder-card">
-            <div class="card h-100 hover-shadow">
-                <div class="card-header bg-white p-3 position-relative">
-                    <div class="placeholder-glow">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="bg-gray rounded-circle placeholder" style="padding: 1rem 1.3rem; width: 60px; height: 60px;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="placeholder-glow mb-4">
-                        <span class="placeholder col-12" style="height: 20px;"></span>
-                    </div>
-                    <div class="placeholder-glow">
-                        <div class="d-flex justify-content-between align-items-center small mb-3">
-                            <div class="d-flex align-items-center gap-1">
-                                <span class="placeholder" style="width: 16px; height: 16px;"></span>
-                                <span class="placeholder" style="width: 85px; height: 15px;"></span>
-                            </div>
-                            <div class="d-flex align-items-center gap-1">
-                                <span class="placeholder" style="width: 16px; height: 16px;"></span>
-                                <span class="placeholder" style="width: 75px; height: 15px;"></span>
-                            </div>
-                        </div>
-                        <div class="pt-3 border-top border-light">
-                            <span class="placeholder" style="width: 150px; height: 15px;"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    container.innerHTML += placeholderHtml;
+        `;
+        
+        container.innerHTML += placeholderHtml;
+    }
 }
 
+// Configurar eventos quando o documento estiver pronto
 document.addEventListener('DOMContentLoaded', function() {
+    // Carregar cards inicialmente
     carregarCardsChecklist();
+    
+    // Configurar evento do botão de filtrar
+    document.getElementById('btn-filtrar-checklists').addEventListener('click', function() {
+        // Obter valores dos campos de filtro
+        filtrosAtuais.nome = document.getElementById('pesquisar-nome').value;
+        filtrosAtuais.setor = document.getElementById('pesquisar-setor').value;
+        
+        // Fechar o dropdown
+        const dropdown = document.getElementById('dropdownMenuButton');
+        const bootstrapDropdown = bootstrap.Dropdown.getInstance(dropdown);
+        bootstrapDropdown.hide();
+        
+        // Recarregar os cards com os filtros aplicados
+        carregarCardsChecklist();
+    });
+    
+    // Configurar evento do botão de limpar
+    document.getElementById('btn-limpar-checklists').addEventListener('click', function() {
+        // Limpar campos de filtro
+        document.getElementById('pesquisar-nome').value = '';
+        document.getElementById('pesquisar-setor').value = '';
+        
+        // Limpar filtros atuais
+        filtrosAtuais = {
+            nome: '',
+            setor: ''
+        };
+        
+        // Fechar o dropdown
+        const dropdown = document.getElementById('dropdownMenuButton');
+        const bootstrapDropdown = bootstrap.Dropdown.getInstance(dropdown);
+        bootstrapDropdown.hide();
+        
+        // Recarregar os cards sem filtros
+        carregarCardsChecklist();
+    });
+    
+    // Permitir submissão do formulário com Enter
+    document.getElementById('pesquisar-nome').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('btn-filtrar-checklists').click();
+        }
+    });
+    
+    document.getElementById('pesquisar-setor').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('btn-filtrar-checklists').click();
+        }
+    });
 });

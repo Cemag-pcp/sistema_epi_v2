@@ -47,3 +47,23 @@
 .question-card:hover .question-actions {
     opacity: 1;
 }
+
+.progress {
+  height: 6px;
+}
+
+.badge {
+  font-size: 0.75rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+#loadingState {
+  display: none;
+}

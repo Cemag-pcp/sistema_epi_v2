@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
             await loadSetores();
             
             // Load checklist data if editing
-            if (checklistId && checklistId !== 'novo') {
+            if (checklistId) {
                 await loadChecklistData();
             } else {
                 // New checklist
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <span class="badge bg-light text-dark me-2">#${index + 1}</span>
+                            <span class="badge bg-dark me-2">#${index + 1}</span>
                             <h3 class="h6 fw-medium mb-1">${question.texto}</h3>
                         </div>
                         <div class="question-actions">
@@ -284,10 +284,6 @@ document.addEventListener('DOMContentLoaded', function() {
             errors.push('O título do template é obrigatório');
         }
         
-        if (!descriptionInput.value.trim()) {
-            errors.push('A descrição do template é obrigatória');
-        }
-        
         if (questions.length === 0) {
             errors.push('Pelo menos uma pergunta é necessária');
         }
@@ -303,6 +299,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Save template
     async function saveTemplate() {
+
+        toggleSpinner('saveTemplateBtn', true);
+
         const errors = validateForm();
         
         if (errors.length > 0) {
@@ -326,14 +325,10 @@ document.addEventListener('DOMContentLoaded', function() {
             let url;
             let method;
             
-            if (checklistId && checklistId !== 'novo') {
+            if (checklistId) {
                 // Update existing checklist using the specific edit endpoint
                 url = `/api/checklists/edit/${checklistId}/`;
                 method = 'PUT';
-            } else {
-                // Create new checklist
-                url = '/api/checklists/';
-                method = 'POST';
             }
             
             response = await fetch(url, {
@@ -353,20 +348,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const savedChecklist = await response.json();
             showSuccess('Checklist salvo com sucesso!');
             
-            // Se for um novo checklist, atualizar o ID e recarregar as perguntas com IDs corretos
-            if (checklistId === 'novo') {
-                checklistId = savedChecklist.id;
-                questions = savedChecklist.perguntas;
-                renderQuestions();
-            }
-            
-            // Redirecionar após sucesso
-            setTimeout(() => {
-                window.location.href = "{% url 'checklist:checklist' %}";
-            }, 2000);
+            // Redirecionar imediatamente para /checklists/ sem setTimeout
+            window.location.href = "/checklists/";
             
         } catch (error) {
             showError('Erro ao salvar checklist: ' + error.message);
+        } finally {
+            toggleSpinner('saveTemplateBtn', false);
         }
     }
     

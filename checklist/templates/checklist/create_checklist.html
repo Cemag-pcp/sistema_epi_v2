@@ -10,94 +10,109 @@
 {% block content %}
 <div class="container">
     <!-- Header -->
-    <div class="d-flex align-items-center gap-4 mb-3">
-      <div>
-        <a href="{% url 'checklist:checklist' %}" class="btn btn-white mb-3">
-          <i class="bi bi-arrow-left me-2"></i>Voltar para Checklists
-        </a>
-        <h1 class="h2 fw-bold text-dark">Criar Novo Checklist</h1>
-        <p class="text-muted mt-2">Crie um checklist personalizado com suas próprias perguntas</p>
-      </div>
-    </div>
-
-    <!-- Error Messages -->
-    {% if errors %}
-    <div class="alert alert-danger mb-5">
-      <ul class="mb-0 ps-3">
-        {% for error in errors %}
-        <li>{{ error }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-
-    <!-- Checklist Details -->
-    <div class="card mb-5">
-      <div class="card-header bg-white">
-        <h2 class="h5 fw-bold mb-0">Detalhes do Checklist</h2>
-      </div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label for="title" class="form-label">Título do Checklist *</label>
-          <input type="text" class="form-control" id="title" placeholder="Digite o título do checklist..." value="{{ title }}">
-        </div>
-        <div class="mb-3">
-          <label for="description" class="form-label">Descrição *</label>
-          <textarea class="form-control" id="description" rows="3" placeholder="Descreva o que este checklist abrange...">{{ description }}</textarea>
-        </div>
-      </div>
-    </div>
-
-    <!-- Add New Question -->
-    <div class="card mb-5">
-      <div class="card-header bg-white">
-        <h2 class="h5 fw-bold mb-0">
-          <i class="bi bi-plus me-2"></i>Adicionar Pergunta
-        </h2>
-      </div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label for="question-text" class="form-label">Texto da Pergunta *</label>
-          <input type="text" class="form-control" id="question-text" placeholder="Digite sua pergunta...">
-        </div>
-        <div class="mb-3">
-          <label for="question-description" class="form-label">Descrição (Opcional)</label>
-          <textarea class="form-control" id="question-description" rows="3" placeholder="Adicione contexto ou instruções adicionais..."></textarea>
-        </div>
-        <button class="btn btn-primary w-100" id="add-question-btn">
-          <i class="bi bi-plus me-2"></i>Adicionar Pergunta
-        </button>
-      </div>
-    </div>
-
-    <!-- Questions List -->
-    <div class="mb-5">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h5 fw-bold mb-0">Perguntas (<span id="questions-count">0</span>)</h2>
-      </div>
-
-      <div id="questions-container">
-        <div class="card mb-3" id="no-questions-message">
-          <div class="card-body text-center py-5">
-            <p class="text-muted mb-2">Nenhuma pergunta adicionada ainda</p>
-            <p class="text-muted small">Adicione sua primeira pergunta acima para começar</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Save Actions -->
-    <div class="card">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center">
+    <div class="row justify-content-center">
+      <div class="col-lg-8 col-md-10">
+        <div class="d-flex align-items-center gap-4 mb-3">
           <div>
-            <p class="fw-bold mb-1">Pronto para salvar seu checklist?</p>
-            <p class="text-muted small mb-0"><span id="total-questions">0</span> perguntas</p>
+            <a href="{% url 'checklist:checklist' %}" class="btn btn-white mb-3">
+              <i class="bi bi-arrow-left me-2"></i>Voltar para Checklists
+            </a>
+            <h1 class="h2 fw-bold text-dark">Criar Novo Checklist</h1>
+            <p class="text-muted mt-2">Crie um checklist personalizado com suas próprias perguntas</p>
           </div>
-          <div class="d-flex gap-2">
-            <button class="btn btn-primary" id="save-checklist-btn">
-              <i class="bi bi-save me-2"></i>Salvar Checklist
+        </div>
+
+        <!-- Error Messages -->
+        {% if errors %}
+        <div class="alert alert-danger mb-5">
+          <ul class="mb-0 ps-3">
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <!-- Checklist Details -->
+        <div class="card mb-5">
+          <div class="card-header bg-white">
+            <h2 class="h5 fw-bold mb-0">Detalhes do Checklist</h2>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="title" class="form-label">Título do Checklist *</label>
+              <input type="text" class="form-control" id="title" placeholder="Digite o título do checklist..." value="{{ title }}">
+            </div>
+            <!-- No formulário de criação de checklist -->
+            <div class="mb-3">
+                <label for="setor" class="form-label">Setor</label>
+                <select class="form-select" id="setor">
+                    <option value="">Selecione um setor</option>
+                    {% for setor in setores %}
+                    <option value="{{ setor.id }}">{{ setor.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Descrição</label>
+                <textarea class="form-control" id="description" rows="3" placeholder="Descrição do checklist (opcional)"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add New Question -->
+        <div class="card mb-5">
+          <div class="card-header bg-white">
+            <h2 class="h5 fw-bold mb-0">
+              <i class="bi bi-plus me-2"></i>Adicionar Pergunta
+            </h2>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="question-text" class="form-label">Texto da Pergunta *</label>
+              <input type="text" class="form-control" id="question-text" placeholder="Digite sua pergunta...">
+            </div>
+            <div class="mb-3">
+              <label for="question-description" class="form-label">Descrição (Opcional)</label>
+              <textarea class="form-control" id="question-description" rows="3" placeholder="Adicione contexto ou instruções adicionais..."></textarea>
+            </div>
+            <button class="btn btn-primary w-100" id="add-question-btn">
+              <i class="bi bi-plus me-2"></i>Adicionar Pergunta
             </button>
+          </div>
+        </div>
+
+        <!-- Questions List -->
+        <div class="mb-5">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h5 fw-bold mb-0">Perguntas (<span id="questions-count">0</span>)</h2>
+          </div>
+
+          <div id="questions-container">
+            <div class="card mb-3" id="no-questions-message">
+              <div class="card-body text-center py-5">
+                <p class="text-muted mb-2">Nenhuma pergunta adicionada ainda</p>
+                <p class="text-muted small">Adicione sua primeira pergunta acima para começar</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save Actions -->
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <p class="fw-bold mb-1">Pronto para salvar seu checklist?</p>
+                <p class="text-muted small mb-0"><span id="total-questions">0</span> perguntas</p>
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-primary" id="save-checklist-btn">
+                    <span class="button-text"><i class="bi bi-save me-2"></i>Salvar Checklist</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -159,6 +174,6 @@
 
 {% block scripts %}
 
-   <script src="{% static 'js\create.js' %}"></script>
+   <script type="module" src="{% static 'js\create.js' %}"></script>
 
 {% endblock %}

@@ -40,18 +40,6 @@ export function getCookie(name) {
     return cookieValue;
 }
 
-export const ToastBottomEnd = Swal.mixin({
-    toast: true,
-    position: "bottom-end",
-    showConfirmButton: false,
-    timer: 3000,
-    timerProgressBar: true,
-    didOpen: (toast) => {
-        toast.onmouseenter = Swal.stopTimer;
-        toast.onmouseleave = Swal.resumeTimer;
-    }
-});
-
 export function toggleSpinner(buttonId, isLoading) {
     const button = document.getElementById(buttonId);
     if (button) {
@@ -69,6 +57,18 @@ export function toggleSpinner(buttonId, isLoading) {
         }
     }
 }
+
+export const ToastBottomEnd = Swal.mixin({
+    toast: true,
+    position: "bottom-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+        toast.onmouseenter = Swal.stopTimer;
+        toast.onmouseleave = Swal.resumeTimer;
+    }
+});
 
 // Função para inicializar Select2 em elementos padrão
 $('.select2').select2({

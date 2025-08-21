@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block links %}
+    <link rel="stylesheet" href="/static/css/select2.css">
+    <link rel="stylesheet" href="/static/css/checklist.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Cabeçalho -->
+            <a href="{% url 'checklist:history-checklist' %}" class="btn btn-white mb-3">
+                <i class="bi bi-arrow-left me-2"></i>Voltar para Histórico
+            </a>
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="flex-grow-1">
+                    <h1 class="h2 fw-bold text-dark" id="checklist-title">Editando Inspeção</h1>
+                    <p class="text-muted mb-0" id="questions-info">0 questões</p>
+                    <p class="text-muted small" id="inspection-info">Data: Carregando... | Inspetor: Carregando...</p>
+                </div>
+            </div>
+
+            <!-- Alerta de erro -->
+            <div class="alert alert-danger d-none" id="error-alert" role="alert">
+                <i class="bi bi-exclamation-circle me-2"></i>
+                <span id="error-message"></span>
+            </div>
+
+            <!-- Lista de questões -->
+            <div id="questions-container">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-3">Carregando questões...</p>
+                </div>
+            </div>
+
+            <!-- Rodapé com estatísticas e botão de envio -->
+            <div class="card mt-4 d-none" id="footer-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="fw-medium text-dark mb-1" id="progress-text">0 de 0 questões respondidas</p>
+                            <p class="small text-muted mb-0">
+                                <span id="compliant-count">0</span> conformes • 
+                                <span id="non-compliant-count">0</span> não conformes
+                            </p>
+                        </div>
+                        <button class="btn btn-primary btn-lg" id="update-btn">
+                            Atualizar Inspeção
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de conclusão -->
+<div class="modal fade" id="completion-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-success">Inspeção Atualizada!</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="checklist-complete-title" class="text-muted"></p>
+                
+                <div class="row text-center my-4">
+                    <div class="col-4">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <div class="h4 fw-bold text-primary" id="total-answered">0</div>
+                            <div class="small text-primary">Total Respondido</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <div class="h4 fw-bold text-success" id="compliant-count-modal">0</div>
+                            <div class="small text-success">Conformes</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="bg-danger bg-opacity-10 p-3 rounded">
+                            <div class="h4 fw-bold text-danger" id="non-compliant-count-modal">0</div>
+                            <div class="small text-danger">Não Conformes</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'checklist:history-checklist' %}" class="btn btn-white">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar para Histórico
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+   <script type="module">
+        // Obter o ID da inspeção da URL
+        const pathParts = window.location.pathname.split('/');
+        const inspectionId = pathParts[pathParts.length - 2];
+        
+        // Carregar os dados da inspeção
+        async function loadInspectionData() {
+            try {
+                const response = await fetch(`/api/checklists/inspection/data/${inspectionId}/`);
+                if (!response.ok) throw new Error('Erro ao carregar dados da inspeção');
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Erro:', error);
+                showError('Falha ao carregar dados da inspeção');
+                return null;
+            }
+        }
+        
+        // Função para preencher o formulário com os dados existentes
+        function populateFormWithData(inspectionData) {
+            // Atualizar informações do cabeçalho
+            document.getElementById('checklist-title').textContent = `Editando: ${inspectionData.checklist.nome}`;
+            document.getElementById('questions-info').textContent = `${inspectionData.respostas.length} questões`;
+            document.getElementById('inspection-info').textContent = 
+                `Data: ${new Date(inspectionData.data_inspecao).toLocaleDateString('pt-BR')} | Inspetor: ${inspectionData.inspetor.nome}`;
+            
+            // Preencher as questões com as respostas existentes
+            const questionsContainer = document.getElementById('questions-container');
+            
+            let html = '';
+            inspectionData.respostas.forEach((resposta, index) => {
+                const conformeClass = resposta.conformidade ? 'btn-success' : 'btn-outline-success';
+                const naoConformeClass = !resposta.conformidade ? 'btn-danger' : 'btn-outline-danger';
+                
+                html += `
+                <div class="card mb-3 question-card" data-question-id="${resposta.pergunta_id}" data-index="${index}">
+                    <div class="card-body p-4">
+                        <h5 class="fw-medium mb-3">${index + 1}. ${resposta.texto_pergunta}</h5>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Conformidade:</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn ${conformeClass} flex-grow-1 conformity-btn" data-value="true" data-index="${index}">
+                                    <i class="bi bi-check-circle me-1"></i>Conforme
+                                </button>
+                                <button type="button" class="btn ${naoConformeClass} flex-grow-1 conformity-btn" data-value="false" data-index="${index}">
+                                    <i class="bi bi-x-circle me-1"></i>Não Conforme
+                                </button>
+                            </div>
+                            <input type="hidden" id="conformidade-${index}" value="${resposta.conformidade}">
+                        </div>
+                        
+                        <div class="mb-0">
+                            <label for="observacao-${index}" class="form-label">Observações:</label>
+                            <textarea class="form-control" id="observacao-${index}" rows="2" 
+                                placeholder="Adicione observações relevantes...">${resposta.observacao || ''}</textarea>
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+            
+            questionsContainer.innerHTML = html;
+            document.getElementById('footer-card').classList.remove('d-none');
+            setupConformityButtons();
+            updateProgress();
+        }
+        
+        // Configurar os botões de conformidade
+        function setupConformityButtons() {
+            document.querySelectorAll('.conformity-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const index = this.getAttribute('data-index');
+                    const value = this.getAttribute('data-value') === 'true';
+                    const card = document.querySelector(`.question-card[data-index="${index}"]`);
+                    
+                    // Atualizar o valor oculto
+                    document.getElementById(`conformidade-${index}`).value = value;
+                    
+                    // Atualizar a aparência dos botões
+                    const conformeBtn = card.querySelector('.conformity-btn[data-value="true"]');
+                    const naoConformeBtn = card.querySelector('.conformity-btn[data-value="false"]');
+                    
+                    if (value) {
+                        conformeBtn.classList.remove('btn-outline-success');
+                        conformeBtn.classList.add('btn-success');
+                        naoConformeBtn.classList.remove('btn-danger');
+                        naoConformeBtn.classList.add('btn-outline-danger');
+                    } else {
+                        conformeBtn.classList.remove('btn-success');
+                        conformeBtn.classList.add('btn-outline-success');
+                        naoConformeBtn.classList.remove('btn-outline-danger');
+                        naoConformeBtn.classList.add('btn-danger');
+                    }
+                    
+                    // Atualizar o progresso
+                    updateProgress();
+                });
+            });
+        }
+        
+        // Função para coletar os dados atualizados
+        function getUpdatedData() {
+            const questionCards = document.querySelectorAll('.question-card');
+            const updatedResponses = [];
+            
+            questionCards.forEach((card) => {
+                const index = card.getAttribute('data-index');
+                const questionId = card.getAttribute('data-question-id');
+                const conformity = document.getElementById(`conformidade-${index}`).value === 'true';
+                const observation = document.getElementById(`observacao-${index}`).value;
+                
+                updatedResponses.push({
+                    pergunta_id: questionId,
+                    conformidade: conformity,
+                    observacao: observation
+                });
+            });
+            
+            return {
+                inspection_id: inspectionId,
+                respostas: updatedResponses
+            };
+        }
+        
+        // Função para enviar as atualizações
+        async function submitUpdates() {
+            const updatedData = getUpdatedData();
+            
+            try {
+                const response = await fetch('/api/checklists/inspection/update/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                
+                if (response.ok) {
+                    // Mostrar modal de sucesso
+                    const modal = new bootstrap.Modal(document.getElementById('completion-modal'));
+                    
+                    // Atualizar estatísticas no modal
+                    const compliantCount = updatedData.respostas.filter(r => r.conformidade).length;
+                    const nonCompliantCount = updatedData.respostas.length - compliantCount;
+                    
+                    document.getElementById('total-answered').textContent = updatedData.respostas.length;
+                    document.getElementById('compliant-count-modal').textContent = compliantCount;
+                    document.getElementById('non-compliant-count-modal').textContent = nonCompliantCount;
+                    
+                    modal.show();
+                } else {
+                    throw new Error('Erro ao atualizar inspeção');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showError('Falha ao atualizar inspeção');
+            }
+        }
+        
+        // Função auxiliar para obter o token CSRF
+        function getCSRFToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+        
+        // Função para mostrar erro
+        function showError(message) {
+            const errorAlert = document.getElementById('error-alert');
+            const errorMessage = document.getElementById('error-message');
+            
+            errorMessage.textContent = message;
+            errorAlert.classList.remove('d-none');
+        }
+        
+        // Função para atualizar o progresso
+        function updateProgress() {
+            const questionCards = document.querySelectorAll('.question-card');
+            const answeredCount = questionCards.length; // Todas estão respondidas em modo de edição
+            
+            const compliantCount = Array.from(questionCards).filter(card => {
+                const index = card.getAttribute('data-index');
+                return document.getElementById(`conformidade-${index}`).value === 'true';
+            }).length;
+            
+            const nonCompliantCount = answeredCount - compliantCount;
+            
+            document.getElementById('progress-text').textContent = `${answeredCount} de ${questionCards.length} questões respondidas`;
+            document.getElementById('compliant-count').textContent = compliantCount;
+            document.getElementById('non-compliant-count').textContent = nonCompliantCount;
+        }
+        
+        // Configurar o botão de atualização
+        function setupUpdateButton() {
+            document.getElementById('update-btn').addEventListener('click', submitUpdates);
+        }
+        
+        // Carregar os dados quando a página for carregada
+        window.addEventListener('DOMContentLoaded', async () => {
+            const inspectionData = await loadInspectionData();
+            if (inspectionData) {
+                populateFormWithData(inspectionData);
+                setupUpdateButton();
+            }
+        });
+   </script>
+
+   <style>
+        .conformity-btn {
+            min-width: 120px;
+        }
+        .btn-outline-success:hover {
+            background-color: #198754;
+            border-color: #198754;
+            color: white;
+        }
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+   </style>
+{% endblock %}

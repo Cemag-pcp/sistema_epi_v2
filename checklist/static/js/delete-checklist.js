@@ -1,4 +1,4 @@
-import { getCookie, toggleSpinner } from "../../../static/js/scripts.js";
+import { getCookie, toggleSpinner, ToastBottomEnd } from "../../../static/js/scripts.js";
 
 document.addEventListener('DOMContentLoaded', function() {
     // Handler para exclusão de checklist
@@ -23,14 +23,19 @@ document.addEventListener('DOMContentLoaded', function() {
             return response.json();
         })
         .then(data => {
-            console.log('Checklist excluído com sucesso:', data);
-            alert('Checklist excluído com sucesso!');
+            ToastBottomEnd.fire({
+                icon: 'success',
+                title: 'Checklist excluído com sucesso!'
+            })
             window.location.href = '/checklists/';
         })
         .catch(error => {
             console.error('Erro ao excluir checklist:', error);
-            alert('Erro ao excluir checklist. Por favor, tente novamente.');
+            ToastBottomEnd.fire({
+                icon: 'error',
+                title: 'Erro ao excluir checklist. Por favor, tente novamente.'
+            })
             toggleSpinner('confirmChecklistDeleteBtn', false);
-        })
+        });
     });
 });

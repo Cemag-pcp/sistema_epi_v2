@@ -1,3 +1,5 @@
+import { getCookie, ToastBottomEnd, toggleSpinner } from "../../../static/js/scripts.js";
+
 document.addEventListener('DOMContentLoaded', function() {
   // Variáveis globais
   let questions = [];
@@ -118,40 +120,64 @@ document.addEventListener('DOMContentLoaded', function() {
     modal.hide();
   });
   
-  // Salvar checklist
-  document.getElementById('save-checklist-btn').addEventListener('click', function() {
+  // Salvar checklist via API
+  document.getElementById('save-checklist-btn').addEventListener('click', async function() {
     const title = document.getElementById('title').value.trim();
     const description = document.getElementById('description').value.trim();
+    const setorId = document.getElementById('setor').value;
+    
     const errors = [];
     
     if (!title) errors.push('O título do checklist é obrigatório');
-    if (!description) errors.push('A descrição do checklist é obrigatória');
     if (questions.length === 0) errors.push('Pelo menos uma pergunta é necessária');
     
     if (errors.length > 0) {
-      // Aqui você pode exibir os erros de validação
       alert(errors.join('\n'));
       return;
     }
     
-    // Criar objeto do checklist
-    const checklistId = title.toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
-    
-    const checklistData = {
-      id: checklistId,
-      title: title,
-      description: description,
-      questions: questions,
-      createdAt: new Date().toISOString()
-    };
-    
-    // Salvar no localStorage (simulação)
-    localStorage.setItem(`custom-checklist-${checklistId}`, JSON.stringify(checklistData));
-    
-    // Redirecionar para a página inicial
-    window.location.href = '/';
+    try {
+      toggleSpinner('save-checklist-btn', true);
+      
+      // Preparar dados para envio
+      const checklistData = {
+        nome: title,
+        descricao: description,
+        setor_id: setorId || null,
+        perguntas: questions.map(q => ({
+          texto: q.text,
+          descricao: q.description || ""
+        }))
+      };
+      
+      // Enviar para a API
+      const response = await fetch('/api/checklists/add/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(checklistData)
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao salvar checklist');
+      }
+      
+      // Mostrar mensagem de sucesso
+      alert('Checklist criado com sucesso!');
+      
+      // Redirecionar para a página de checklists
+      window.location.href = '/checklists/';
+      
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('Erro ao salvar checklist: ' + error.message);
+      
+      toggleSpinner('save-checklist-btn', false);
+    }
   });
   
   // Inicializar
