@@ -7,8 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Elementos da interface
     const questionsContainer = document.getElementById('questions-container');
-    const errorAlert = document.getElementById('error-alert');
-    const errorMessage = document.getElementById('error-message');
     const footerCard = document.getElementById('footer-card');
     const submitBtn = document.getElementById('submit-btn');
     const completionModal = new bootstrap.Modal(document.getElementById('completion-modal'));
@@ -67,6 +65,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </button>
                             </div>
                         </div>
+
+                        <div class="mb-3">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <label for="causes-${pergunta.id}" class="form-label">Causa(s) de reprovação</label>
+                                    <input class="form-control" id="causes-${pergunta.id}" data-question="${pergunta.id}">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="actions-${pergunta.id}" class="form-label">Ação(ões) corretiva(s)</label>
+                                    <input class="form-control" id="actions-${pergunta.id}" data-question="${pergunta.id}">
+                                </div>
+                            </div>
+                        </div>
                         
                         <!-- Notas -->
                         <div class="mb-3">
@@ -83,7 +94,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Inicializar resposta vazia para esta pergunta
             responses[pergunta.id] = {
                 conformidade: null,
-                observacao: ''
+                observacao: '',
+                causa: '',
+                acao: ''
             };
         });
         
@@ -98,6 +111,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.querySelectorAll('.notes-input').forEach(input => {
             input.addEventListener('input', handleNotesInput);
+        });
+        
+        // Adicionar event listeners aos campos de causa e ação
+        document.querySelectorAll('input[id^="causes-"], input[id^="actions-"]').forEach(input => {
+            input.addEventListener('input', handleCauseActionInput);
         });
     }
     
@@ -126,6 +144,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleNotesInput(e) {
         const questionId = e.target.dataset.question;
         responses[questionId].observacao = e.target.value;
+    }
+    
+    // Manipulador de entrada para causa e ação
+    function handleCauseActionInput(e) {
+        const questionId = e.target.dataset.question;
+        const fieldType = e.target.id.startsWith('causes-') ? 'causa' : 'acao';
+        responses[questionId][fieldType] = e.target.value;
     }
     
     // Atualizar barra de progresso
@@ -166,6 +191,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     pergunta: parseInt(perguntaId),
                     conformidade: resposta.conformidade,
                     observacao: resposta.observacao,
+                    causa: resposta.causa,
+                    acao: resposta.acao,
                     texto_pergunta_historico: questions.find(q => q.id == perguntaId).texto
                 }))
             };
@@ -198,13 +225,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Função para mostrar erro
     function showError(message) {
-        errorMessage.textContent = message;
-        errorAlert.classList.remove('d-none');
-        
-        // Esconder o alerta após 5 segundos
-        setTimeout(() => {
-            errorAlert.classList.add('d-none');
-        }, 5000);
+        ToastBottomEnd.fire({
+            icon: 'error',
+            title: message,
+        });
     }
     
     // Event listener para o botão de envio

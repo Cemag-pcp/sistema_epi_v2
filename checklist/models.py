@@ -14,6 +14,10 @@ class Checklist(models.Model):
 
     def __str__(self):
         return self.nome
+    
+    def delete(self, *args, **kwargs):
+        self.ativo = False
+        self.save()
 
     def get_stats(self, inspecao):
         """Método para calcular estatísticas de uma inspeção específica"""
@@ -83,8 +87,10 @@ class ItemResposta(models.Model):
         related_name="pergunta",
     )
     conformidade = models.BooleanField(default=True)
+    causas_reprovacao = models.TextField(null=True, blank=True)
+    acoes_corretivas = models.TextField(null=True, blank=True)
     texto_pergunta_historico = models.TextField()
     observacao = models.TextField(null=True, blank=True)
 
-    def __str__(self):
-        return f"{self.pergunta.texto} - {'Conforme' if self.conformidade else 'Não Conforme'}"
+    # def __str__(self):
+    #     return f"{self.pergunta.texto} - {'Conforme' if self.conformidade else 'Não Conforme'}"

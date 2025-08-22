@@ -4,10 +4,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
     const loadingSpinner = document.getElementById('loadingSpinner');
     const contentArea = document.getElementById('contentArea');
-    const errorAlert = document.getElementById('errorAlert');
-    const errorList = document.getElementById('errorList');
-    const successAlert = document.getElementById('successAlert');
-    const successMessage = document.getElementById('successMessage');
     const titleInput = document.getElementById('title');
     const descriptionInput = document.getElementById('description');
     const setorSelect = document.getElementById('setor');
@@ -197,14 +193,12 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             
             questions.push(newQuestion);
-            showSuccess('Pergunta adicionada');
             
             renderQuestions();
             updateQuestionsCount();
             
             // Clear input
             questionTextInput.value = '';
-            hideErrors();
             
         } catch (error) {
             showError('Erro ao adicionar pergunta: ' + error.message);
@@ -244,7 +238,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showSuccess('Pergunta atualizada');
             renderQuestions();
             editQuestionModal.hide();
-            hideErrors();
             
         } catch (error) {
             showError('Erro ao atualizar pergunta: ' + error.message);
@@ -357,49 +350,24 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleSpinner('saveTemplateBtn', false);
         }
     }
-    
-    // Show error messages
-    function showErrors(errorMessages) {
-        if (typeof errorMessages === 'string') {
-            errorMessages = [errorMessages];
-        }
-        
-        errorList.innerHTML = '';
-        errorMessages.forEach(error => {
-            const li = document.createElement('li');
-            li.textContent = error;
-            errorList.appendChild(li);
-        });
-        
-        errorAlert.classList.remove('d-none');
-        successAlert.classList.add('d-none');
-        
-        // Scroll to error message
-        errorAlert.scrollIntoView({ behavior: 'smooth' });
-    }
+
     
     // Show single error
     function showError(message) {
-        showErrors([message]);
+        ToastBottomEnd.fire({
+            icon: 'error',
+            title: message,
+        });
     }
     
     // Show success message
     function showSuccess(message) {
-        successMessage.textContent = message;
-        successAlert.classList.remove('d-none');
-        errorAlert.classList.add('d-none');
-        
-        // Hide success message after 3 seconds
-        setTimeout(() => {
-            successAlert.classList.add('d-none');
-        }, 3000);
+        ToastBottomEnd.fire({
+            icon: 'success',
+            title: message,
+        });
     }
-    
-    // Hide error messages
-    function hideErrors() {
-        errorAlert.classList.add('d-none');
-    }
-    
+
     // Event listeners
     addQuestionBtn.addEventListener('click', addQuestion);
     saveTemplateBtn.addEventListener('click', saveTemplate);

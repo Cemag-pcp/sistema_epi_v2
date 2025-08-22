@@ -89,18 +89,20 @@
                                     {% endif %}
                                 </nav>
                             </div>
+                            
+                            {% if request.user.funcionario.tipo_acesso == 'master' or request.user.is_superuser %}
+                                <div class="sb-sidenav-menu-heading">Checklist</div>
 
-                            <div class="sb-sidenav-menu-heading">Checklist</div>
+                                <a class="nav-link collapsed" href="{% url 'checklist:checklist' %}" aria-expanded="false">
+                                    <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
+                                    Checklist's
+                                </a>
 
-                            <a class="nav-link collapsed" href="{% url 'checklist:checklist' %}" aria-expanded="false">
-                                <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
-                                Checklist's
-                            </a>
-
-                            <a class="nav-link collapsed" href="{% url 'checklist:history-checklist' %}" aria-expanded="false">
-                                <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
-                                Histórico
-                            </a>
+                                <a class="nav-link collapsed" href="{% url 'checklist:history-checklist' %}" aria-expanded="false">
+                                    <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
+                                    Histórico
+                                </a>
+                            {% endif %}
 
                             {% if request.user.funcionario.tipo_acesso == 'master' or request.user.is_superuser %}
                                 <div class="sb-sidenav-menu-heading">Dashboard</div>

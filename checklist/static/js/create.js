@@ -61,11 +61,9 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       
       questionElement.querySelector('.delete-question-btn').addEventListener('click', () => {
-        if (confirm('Tem certeza que deseja excluir esta pergunta?')) {
           questions = questions.filter(q => q.id !== question.id);
           renderQuestions();
           updateQuestionsCount();
-        }
       });
       
       questionsContainer.appendChild(questionElement);
@@ -78,7 +76,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const description = document.getElementById('question-description').value.trim();
     
     if (!text) {
-      alert('O texto da pergunta é obrigatório');
+      ToastBottomEnd.fire({
+          icon: 'warning',
+          title: 'O texto da pergunta é obrigatório',
+      });
       return;
     }
     
@@ -105,7 +106,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const description = document.getElementById('edit-question-description').value.trim();
     
     if (!text) {
-      alert('O texto da pergunta é obrigatório');
+      ToastBottomEnd.fire({
+          icon: 'warning',
+          title: 'O texto da pergunta é obrigatório',
+      });
       return;
     }
     
@@ -132,7 +136,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (questions.length === 0) errors.push('Pelo menos uma pergunta é necessária');
     
     if (errors.length > 0) {
-      alert(errors.join('\n'));
+      ToastBottomEnd.fire({
+          icon: 'error',
+          title: errors.join('\n'),
+      });
       return;
     }
     
@@ -167,14 +174,20 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       // Mostrar mensagem de sucesso
-      alert('Checklist criado com sucesso!');
+      ToastBottomEnd.fire({
+          icon: 'success',
+          title: 'Checklist criado com sucesso!',
+      });
       
       // Redirecionar para a página de checklists
       window.location.href = '/checklists/';
       
     } catch (error) {
       console.error('Erro:', error);
-      alert('Erro ao salvar checklist: ' + error.message);
+      ToastBottomEnd.fire({
+          icon: 'success',
+          title: 'Erro ao salvar checklist: ' + error.message,
+      });
       
       toggleSpinner('save-checklist-btn', false);
     }

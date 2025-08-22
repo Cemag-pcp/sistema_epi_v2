@@ -1,3 +1,14 @@
+// Variáveis globais para controle de requisições e paginação
+let searchTimeout;
+let currentController = null;
+let paginacaoAtual = {
+    current_page: 1,
+    total_pages: 1,
+    has_next: false,
+    has_previous: false,
+    total_count: 0
+};
+
 // Format date function
 function formatDate(dateString) {
     const date = new Date(dateString);
@@ -28,43 +39,72 @@ function getComplianceStatus(stats) {
 function setLoading(loading) {
     const loadingState = document.getElementById('loadingState');
     const resultsContainer = document.getElementById('checklistResults');
+    const paginationContainer = document.getElementById('pagination-container');
     
     if (loading) {
         loadingState.style.display = 'block';
         resultsContainer.style.display = 'none';
+        paginationContainer.style.display = 'none';
     } else {
         loadingState.style.display = 'none';
         resultsContainer.style.display = 'block';
+        if (paginacaoAtual.total_pages > 1) {
+            paginationContainer.style.display = 'block';
+        }
     }
 }
 
-// Fetch data from API
-async function fetchChecklists(searchTerm = '', complianceFilter = 'all') {
+// Fetch data from API com suporte a AbortController
+async function fetchChecklists(searchTerm = '', complianceFilter = 'all', page = 1, signal = null) {
     try {
         const params = new URLSearchParams();
         if (searchTerm) params.append('search', searchTerm);
         if (complianceFilter !== 'all') params.append('compliance', complianceFilter);
+        params.append('page', page);
         
-        const response = await fetch(`/api/checklists/history/?${params}`);
+        const fetchOptions = {};
+        if (signal) {
+            fetchOptions.signal = signal;
+        }
+        
+        const response = await fetch(`/api/checklists/history/?${params}`, fetchOptions);
+        
+        // Se a requisição foi abortada, não processa a resposta
+        if (signal && signal.aborted) {
+            throw new DOMException('Aborted', 'AbortError');
+        }
+        
         if (!response.ok) throw new Error('Erro ao carregar dados');
         
         return await response.json();
     } catch (error) {
-        console.error('Erro:', error);
-        return [];
+        // Re-lança o erro para ser tratado no filterChecklists
+        throw error;
     }
 }
 
 // Render checklists
-function renderChecklists(checklists) {
+function renderChecklists(data) {
     const container = document.getElementById('checklistResults');
     const emptyState = document.getElementById('emptyState');
     const resultsCount = document.getElementById('resultsCount');
     
-    // Update results count
-    resultsCount.textContent = `${checklists.length} checklist${checklists.length !== 1 ? 's' : ''} encontrado${checklists.length !== 1 ? 's' : ''}`;
+    // Atualizar estado de paginação
+    paginacaoAtual = {
+        current_page: data.current_page,
+        total_pages: data.total_pages,
+        has_next: data.has_next,
+        has_previous: data.has_previous,
+        total_count: data.total_count
+    };
     
-    if (checklists.length === 0) {
+    // Update results count
+    resultsCount.textContent = `${data.total_count} checklist${data.total_count !== 1 ? 's' : ''} encontrado${data.total_count !== 1 ? 's' : ''}`;
+    
+    // Atualizar paginação
+    atualizarPaginacao();
+    
+    if (data.checklists.length === 0) {
         container.innerHTML = '';
         emptyState.classList.remove('d-none');
         const emptyStateMessage = document.getElementById('emptyStateMessage');
@@ -75,7 +115,7 @@ function renderChecklists(checklists) {
     emptyState.classList.add('d-none');
     
     let html = '';
-    checklists.forEach(checklist => {
+    data.checklists.forEach(checklist => {
         const complianceStatus = getComplianceStatus(checklist.stats);
         const compliancePercentage = getCompliancePercentage(checklist.stats);
         
@@ -132,25 +172,139 @@ function renderChecklists(checklists) {
     container.innerHTML = html;
 }
 
+// Função para atualizar a interface de paginação
+function atualizarPaginacao() {
+    const paginationContainer = document.getElementById('pagination-container');
+    const paginationList = paginationContainer.querySelector('ul');
+    
+    // Mostrar paginação apenas se houver mais de uma página
+    if (paginacaoAtual.total_pages <= 1) {
+        paginationContainer.style.display = 'none';
+        return;
+    }
+    
+    paginationContainer.style.display = 'block';
+    paginationList.innerHTML = '';
+    
+    // Botão Anterior
+    const previousItem = document.createElement('li');
+    previousItem.className = `page-item ${!paginacaoAtual.has_previous ? 'disabled' : ''}`;
+    previousItem.innerHTML = `
+        <a class="page-link" href="#" data-page="${paginacaoAtual.current_page - 1}">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+    `;
+    paginationList.appendChild(previousItem);
+    
+    // SEMPRE mostrar a primeira página
+    const firstPageItem = document.createElement('li');
+    firstPageItem.className = `page-item ${paginacaoAtual.current_page === 1 ? 'active' : ''}`;
+    firstPageItem.innerHTML = `
+        <a class="page-link" href="#" data-page="1">1</a>
+    `;
+    paginationList.appendChild(firstPageItem);
+    
+    // Adicionar ellipsis após a primeira página se necessário
+    if (paginacaoAtual.current_page > 3) {
+        const ellipsisItem = document.createElement('li');
+        ellipsisItem.className = 'page-item disabled';
+        ellipsisItem.innerHTML = `<span class="page-link">...</span>`;
+        paginationList.appendChild(ellipsisItem);
+    }
+    
+    // Páginas ao redor da página atual
+    const startPage = Math.max(2, paginacaoAtual.current_page - 1);
+    const endPage = Math.min(paginacaoAtual.total_pages - 1, paginacaoAtual.current_page + 1);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        // Não mostrar páginas que já foram ou serão mostradas
+        if (i === 1 || i === paginacaoAtual.total_pages) continue;
+        
+        const pageItem = document.createElement('li');
+        pageItem.className = `page-item ${i === paginacaoAtual.current_page ? 'active' : ''}`;
+        pageItem.innerHTML = `
+            <a class="page-link" href="#" data-page="${i}">${i}</a>
+        `;
+        paginationList.appendChild(pageItem);
+    }
+    
+    // Adicionar ellipsis antes da última página se necessário
+    if (paginacaoAtual.current_page < paginacaoAtual.total_pages - 2) {
+        const ellipsisItem = document.createElement('li');
+        ellipsisItem.className = 'page-item disabled';
+        ellipsisItem.innerHTML = `<span class="page-link">...</span>`;
+        paginationList.appendChild(ellipsisItem);
+    }
+    
+    // SEMPRE mostrar a última página (se houver mais de 1 página)
+    if (paginacaoAtual.total_pages > 1) {
+        const lastPageItem = document.createElement('li');
+        lastPageItem.className = `page-item ${paginacaoAtual.current_page === paginacaoAtual.total_pages ? 'active' : ''}`;
+        lastPageItem.innerHTML = `
+            <a class="page-link" href="#" data-page="${paginacaoAtual.total_pages}">${paginacaoAtual.total_pages}</a>
+        `;
+        paginationList.appendChild(lastPageItem);
+    }
+    
+    // Botão Próximo
+    const nextItem = document.createElement('li');
+    nextItem.className = `page-item ${!paginacaoAtual.has_next ? 'disabled' : ''}`;
+    nextItem.innerHTML = `
+        <a class="page-link" href="#" data-page="${paginacaoAtual.current_page + 1}">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+    `;
+    paginationList.appendChild(nextItem);
+    
+    // Adicionar event listeners para os links de paginação
+    paginationList.querySelectorAll('.page-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const page = parseInt(this.getAttribute('data-page'));
+            if (!isNaN(page) && page >= 1 && page <= paginacaoAtual.total_pages) {
+                filterChecklists(page);
+                
+                // Scroll suave para o topo dos resultados
+                document.getElementById('checklistResults').scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+}
+
 // Filter checklists based on search and compliance filters
-async function filterChecklists() {
+async function filterChecklists(page = 1) {
+    // Cancela a requisição anterior se existir
+    if (currentController) {
+        currentController.abort();
+    }
+    
+    // Cria um novo AbortController para esta requisição
+    currentController = new AbortController();
+    const signal = currentController.signal;
+    
     const searchTerm = document.getElementById('searchInput').value;
     const complianceFilter = document.getElementById('complianceFilter').value;
     
     setLoading(true);
+    
     try {
-        const checklists = await fetchChecklists(searchTerm, complianceFilter);
-        renderChecklists(checklists);
+        const data = await fetchChecklists(searchTerm, complianceFilter, page, signal);
+        renderChecklists(data);
     } catch (error) {
-        console.error('Erro:', error);
-        // Mostrar mensagem de erro
-        const container = document.getElementById('checklistResults');
-        container.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                Erro ao carregar dados. Tente novamente.
-            </div>
-        `;
+        // Ignora erros de aborto (quando a requisição foi cancelada)
+        if (error.name !== 'AbortError') {
+            console.error('Erro:', error);
+            const container = document.getElementById('checklistResults');
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Erro ao carregar dados. Tente novamente.
+                </div>
+            `;
+        }
     } finally {
         setLoading(false);
     }
@@ -162,13 +316,12 @@ document.addEventListener('DOMContentLoaded', function() {
     filterChecklists();
     
     // Add event listeners for filtering
-    document.getElementById('searchInput').addEventListener('input', filterChecklists);
-    document.getElementById('complianceFilter').addEventListener('change', filterChecklists);
-    
-    // Debounce para pesquisa
-    let searchTimeout;
     document.getElementById('searchInput').addEventListener('input', function() {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(filterChecklists, 300);
+        searchTimeout = setTimeout(() => filterChecklists(1), 300); // Reset para página 1
+    });
+    
+    document.getElementById('complianceFilter').addEventListener('change', function() {
+        filterChecklists(1); // Reset para página 1
     });
 });

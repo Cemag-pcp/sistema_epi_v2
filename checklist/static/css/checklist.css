@@ -67,3 +67,17 @@
 #loadingState {
   display: none;
 }
+
+.conformity-btn {
+    min-width: 120px;
+}
+.btn-outline-success:hover {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}

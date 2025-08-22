@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const sectorSelect = document.getElementById('sectorSelect');
       const selectedSector = sectorSelect.value;
 
-      if (!checklistName || !selectedSector || selectedSector === '') {
+      if (!checklistName) {
         ToastBottomEnd.fire({
             icon: 'warning',
             title: 'Por favor, preencha todos os campos.'
