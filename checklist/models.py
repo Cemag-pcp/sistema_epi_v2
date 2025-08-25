@@ -1,6 +1,11 @@
 from django.db import models
 from usuario.models import Setor, Funcionario
 from datetime import datetime
+import os
+
+def foto_upload_path(instance, filename):
+    """Gera o caminho de upload para as fotos: inspecao_{id}/pergunta_{id}/{filename}"""
+    return f'inspecao_{instance.item_resposta.inspecao.id}/pergunta_{instance.item_resposta.pergunta.id}/{filename}'
 
 class Checklist(models.Model):
     setor = models.ForeignKey(
@@ -20,7 +25,7 @@ class Checklist(models.Model):
         self.save()
 
     def get_stats(self, inspecao):
-        """Método para calcular estatísticas de uma inspeção específica"""
+        """Método para calcular estatísticas de uma inspecão específica"""
         itens = ItemResposta.objects.filter(inspecao=inspecao)
         total = itens.count()
         compliant = itens.filter(conformidade=True).count()
@@ -92,5 +97,41 @@ class ItemResposta(models.Model):
     texto_pergunta_historico = models.TextField()
     observacao = models.TextField(null=True, blank=True)
 
-    # def __str__(self):
-    #     return f"{self.pergunta.texto} - {'Conforme' if self.conformidade else 'Não Conforme'}"
+    def __str__(self):
+        return f"{self.pergunta.texto if self.pergunta else 'Pergunta removida'} - {'Conforme' if self.conformidade else 'Não Conforme'}"
+
+    def get_fotos(self):
+        """Retorna todas as fotos associadas a esta resposta"""
+        return self.fotos.all()
+
+
+class FotoResposta(models.Model):
+    item_resposta = models.ForeignKey(
+        ItemResposta,
+        on_delete=models.CASCADE,
+        related_name="fotos",
+        verbose_name="Resposta da pergunta"
+    )
+    foto = models.ImageField(
+        upload_to=foto_upload_path,
+        verbose_name="Foto",
+        null=True,
+        blank=True
+    )
+    data_upload = models.DateTimeField(auto_now_add=True)
+    descricao = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"Foto para {self.item_resposta}"
+
+    def delete(self, *args, **kwargs):
+        """Override do delete para remover o arquivo físico"""
+        if self.foto:
+            if os.path.isfile(self.foto.path):
+                os.remove(self.foto.path)
+        super().delete(*args, **kwargs)
+
+    class Meta:
+        ordering = ['data_upload']
+        verbose_name = 'Foto da Resposta'
+        verbose_name_plural = 'Fotos das Respostas'

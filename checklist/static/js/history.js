@@ -30,9 +30,9 @@ function getCompliancePercentage(stats) {
 // Get compliance status
 function getComplianceStatus(stats) {
     const percentage = getCompliancePercentage(stats);
-    if (percentage === 100) return { label: "Conforme", color: "bg-success" };
+    if (percentage === 100) return { label: "Totalmente Conforme", color: "bg-success" };
     if (percentage >= 80) return { label: "Parcial", color: "bg-warning" };
-    return { label: "Não Conforme", color: "bg-danger" };
+    return { label: "Com Não Conformidades", color: "bg-danger" };
 }
 
 // Show/hide loading state

@@ -4,9 +4,12 @@ from usuario.decorators import somente_master, master_solicit
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Count, Case, When, IntegerField, Q
-from .models import Checklist, Pergunta, Inspecao, ItemResposta
+from .models import Checklist, Pergunta, Inspecao, ItemResposta, FotoResposta
 from usuario.models import Setor
 import json
+import base64
+import uuid
+from django.core.files.base import ContentFile
 
 
 @login_required
@@ -145,43 +148,13 @@ def duplicate_checklist_api(request):
 
 @login_required
 @somente_master
-def inspection_checklist_api(request, id):
-    try:
-        # Buscar o checklist pelo ID
-        checklist = Checklist.objects.get(id=id, ativo=True)
-    except Checklist.DoesNotExist:
-        return JsonResponse(
-            {"error": "Checklist não encontrado ou inativo"}, status=404
-        )
-
-    if request.method == "GET":
-        # Retornar os dados do checklist para o frontend
-        perguntas = Pergunta.objects.filter(checklist=checklist).values("id", "texto")
-
-        checklist_data = {
-            "id": checklist.id,
-            "nome": checklist.nome,
-            "descricao": checklist.descricao,
-            "setor": (
-                {"id": checklist.setor.id, "nome": checklist.setor.nome}
-                if checklist.setor
-                else None
-            ),
-            "perguntas": list(perguntas),
-        }
-
-        return JsonResponse({"data": checklist_data})
-
-
-@login_required
-@somente_master
 def inspection_data_api(request, id):
     try:
         # Buscar a inspeção pelo ID
         inspecao = Inspecao.objects.get(id=id)
 
-        # Buscar todas as respostas desta inspeção
-        respostas = ItemResposta.objects.filter(inspecao=inspecao)
+        # Buscar todas as respostas desta inspeção com suas fotos
+        respostas = ItemResposta.objects.filter(inspecao=inspecao).prefetch_related('fotos')
 
         # Preparar dados para retorno
         data = {
@@ -204,6 +177,16 @@ def inspection_data_api(request, id):
                     "causas_reprovacao": resposta.causas_reprovacao or "",
                     "acoes_corretivas": resposta.acoes_corretivas or "",
                     "observacao": resposta.observacao or "",
+                    "fotos": [
+                        {
+                            "id": foto.id,
+                            "url": request.build_absolute_uri(foto.foto.url) if foto.foto else None,
+                            "descricao": foto.descricao or "",
+                            "data_upload": foto.data_upload.isoformat(),
+                            "nome_arquivo": foto.foto.name.split("/")[-1] if foto.foto else None,
+                        }
+                        for foto in resposta.fotos.all()
+                    ]
                 }
                 for resposta in respostas
             ],
@@ -223,6 +206,8 @@ def inspection_send_checklist_api(request):
             data = json.loads(request.body)
             checklist_id = data.get("checklist")
             respostas_data = data.get("respostas", [])
+            print(data)
+            print(respostas_data)
 
             # Validar dados obrigatórios
             if not checklist_id:
@@ -261,6 +246,7 @@ def inspection_send_checklist_api(request):
                 texto_pergunta_historico = resposta_data.get(
                     "texto_pergunta_historico", ""
                 )
+                fotos_base64 = resposta_data.get("fotos", [])  # Fotos em base64
 
                 # Validar dados da resposta
                 if pergunta_id is None or conformidade is None:
@@ -270,11 +256,10 @@ def inspection_send_checklist_api(request):
                 try:
                     pergunta = Pergunta.objects.get(id=pergunta_id, checklist=checklist)
                 except Pergunta.DoesNotExist:
-                    # Se a pergunta não existir, usar o texto histórico se disponível
                     pergunta = None
 
                 # Criar o item de resposta
-                ItemResposta.objects.create(
+                item_resposta = ItemResposta.objects.create(
                     inspecao=inspecao,
                     pergunta=pergunta,
                     conformidade=conformidade,
@@ -284,6 +269,49 @@ def inspection_send_checklist_api(request):
                     texto_pergunta_historico=texto_pergunta_historico
                     or (pergunta.texto if pergunta else f"Pergunta ID: {pergunta_id}"),
                 )
+
+                # Processar fotos em base64 para esta resposta
+                for foto_data in fotos_base64:
+                    try:
+                        base64_string = foto_data['dados']
+                        
+                        # Verificar se a string base64 contém o prefixo data URL
+                        if ';base64,' in base64_string:
+                            # Formato: data:image/png;base64,iVBORw0KGgoAAA...
+                            format, imgstr = base64_string.split(';base64,')
+                            ext = format.split('/')[-1]  # Extrai a extensão do formato
+                        else:
+                            # Formato direto base64 (sem prefixo)
+                            imgstr = base64_string
+                            ext = 'jpg'  # Assume JPG como padrão
+                            
+                            # Tentar detectar o tipo pela assinatura do base64
+                            if base64_string.startswith('iVBORw0KGgo'):
+                                ext = 'png'
+                            elif base64_string.startswith('/9j/4AAQ'):
+                                ext = 'jpg'
+                            elif base64_string.startswith('R0lGODdh'):
+                                ext = 'gif'
+                        
+                        # Decodificar base64
+                        decoded_file = base64.b64decode(imgstr)
+                        
+                        foto_file = ContentFile(
+                            decoded_file,
+                            name=f"pergunta_{pergunta_id}_{uuid.uuid4().hex[:8]}.{ext}"
+                        )
+                        
+                        # Criar registro da foto
+                        FotoResposta.objects.create(
+                            item_resposta=item_resposta,
+                            foto=foto_file,
+                            descricao=foto_data.get('nome', f"Foto para pergunta {pergunta_id}")
+                        )
+                        
+                    except Exception as e:
+                        print(f"Erro ao processar foto: {str(e)}")
+                        print(f"Dados da foto que causaram erro: {foto_data}")
+                        continue  # Continuar mesmo se uma foto falhar
 
             # Retornar sucesso
             return JsonResponse(
@@ -311,17 +339,28 @@ def update_inspection_api(request):
         try:
             data = json.loads(request.body)
             inspection_id = data.get("inspection_id")
+            respostas_data = data.get("respostas", [])
+            fotos_remover = data.get("fotos_remover", [])
 
             # Buscar a inspeção
             inspecao = Inspecao.objects.get(id=inspection_id)
 
+            # Remover fotos solicitadas
+            for foto_id in fotos_remover:
+                try:
+                    foto = FotoResposta.objects.get(id=foto_id, item_resposta__inspecao=inspecao)
+                    foto.delete()
+                except FotoResposta.DoesNotExist:
+                    pass  # Foto já não existe
+
             # Atualizar cada resposta
-            for resposta_data in data.get("respostas", []):
+            for resposta_data in respostas_data:
                 pergunta_id = resposta_data.get("pergunta_id")
                 conformidade = resposta_data.get("conformidade")
                 causa = resposta_data.get("causa")
                 acao = resposta_data.get("acao")
                 observacao = resposta_data.get("observacao", "")
+                fotos_base64 = resposta_data.get("fotos", [])  # Novas fotos em base64
 
                 # Buscar a resposta existente
                 try:
@@ -333,10 +372,31 @@ def update_inspection_api(request):
                     resposta.causas_reprovacao = causa
                     resposta.acoes_corretivas = acao
                     resposta.save()
+                    
+                    # Processar novas fotos em base64
+                    for foto_data in fotos_base64:
+                        try:
+                            format, imgstr = foto_data['dados'].split(';base64,')
+                            ext = format.split('/')[-1]
+                            
+                            foto_file = ContentFile(
+                                base64.b64decode(imgstr),
+                                name=f"pergunta_{pergunta_id}_{uuid.uuid4().hex[:8]}.{ext}"
+                            )
+                            
+                            FotoResposta.objects.create(
+                                item_resposta=resposta,
+                                foto=foto_file,
+                                descricao=foto_data.get('nome', f"Foto para pergunta {pergunta_id}")
+                            )
+                        except Exception as e:
+                            print(f"Erro ao processar foto: {str(e)}")
+                            continue
+                            
                 except ItemResposta.DoesNotExist:
                     # Se não existir, criar uma nova (caso raro)
                     pergunta = Pergunta.objects.get(id=pergunta_id)
-                    ItemResposta.objects.create(
+                    resposta = ItemResposta.objects.create(
                         inspecao=inspecao,
                         pergunta=pergunta,
                         conformidade=conformidade,
@@ -345,6 +405,26 @@ def update_inspection_api(request):
                         observacao=observacao,
                         texto_pergunta_historico=pergunta.texto,
                     )
+                    
+                    # Processar fotos para a nova resposta
+                    for foto_data in fotos_base64:
+                        try:
+                            format, imgstr = foto_data['dados'].split(';base64,')
+                            ext = format.split('/')[-1]
+                            
+                            foto_file = ContentFile(
+                                base64.b64decode(imgstr),
+                                name=f"pergunta_{pergunta_id}_{uuid.uuid4().hex[:8]}.{ext}"
+                            )
+                            
+                            FotoResposta.objects.create(
+                                item_resposta=resposta,
+                                foto=foto_file,
+                                descricao=foto_data.get('nome', f"Foto para pergunta {pergunta_id}")
+                            )
+                        except Exception as e:
+                            print(f"Erro ao processar foto: {str(e)}")
+                            continue
 
             return JsonResponse(
                 {"success": True, "message": "Inspeção atualizada com sucesso"}
@@ -373,7 +453,7 @@ def inspection_checklist_api(request, id):
 
     if request.method == "GET":
         # Retornar os dados do checklist para o frontend
-        perguntas = Pergunta.objects.filter(checklist=checklist).values("id", "texto")
+        perguntas = Pergunta.objects.filter(checklist=checklist).values("id", "texto",)
 
         checklist_data = {
             "id": checklist.id,

@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Atualizar título
         document.getElementById('checklist-title').textContent = checklistData.data.nome;
+        document.getElementById('checklist-description').textContent = checklistData.data.descricao;
         document.getElementById('checklist-complete-title').textContent = checklistData.data.nome;
         document.getElementById('questions-info').textContent = `${checklistData.data.perguntas.length} questões`;
         
@@ -84,6 +85,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             <label for="notes-${pergunta.id}" class="form-label">Observações</label>
                             <textarea class="form-control notes-input" id="notes-${pergunta.id}" data-question="${pergunta.id}" rows="3" placeholder="Adicione observações sobre esta questão..."></textarea>
                         </div>
+                        
+                        <!-- Upload de Fotos -->
+                        <div class="mb-3">
+                            <label class="form-label">Fotos</label>
+                            <div class="photo-upload-container" data-question="${pergunta.id}">
+                                <input type="file" class="d-none photo-input" id="photo-input-${pergunta.id}" accept="image/*" multiple>
+                                <button type="button" class="btn btn-outline-primary btn-sm add-photo-btn" data-question="${pergunta.id}">
+                                    <i class="bi bi-camera me-1"></i>Adicionar Fotos
+                                </button>
+                                <div class="photo-preview-container mt-2 d-flex flex-wrap gap-2" id="photo-preview-${pergunta.id}"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -96,7 +109,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 conformidade: null,
                 observacao: '',
                 causa: '',
-                acao: ''
+                acao: '',
+                fotos: []
             };
         });
         
@@ -104,25 +118,42 @@ document.addEventListener('DOMContentLoaded', function() {
         footerCard.classList.remove('d-none');
         updateProgress();
         
-        // Adicionar event listeners aos botões
+        // Adicionar event listeners
+        addEventListeners();
+    }
+    
+    // Adicionar todos os event listeners
+    function addEventListeners() {
+        // Botões de conformidade
         document.querySelectorAll('.compliance-btn').forEach(btn => {
             btn.addEventListener('click', handleComplianceClick);
         });
         
+        // Campos de observações
         document.querySelectorAll('.notes-input').forEach(input => {
             input.addEventListener('input', handleNotesInput);
         });
         
-        // Adicionar event listeners aos campos de causa e ação
+        // Campos de causa e ação
         document.querySelectorAll('input[id^="causes-"], input[id^="actions-"]').forEach(input => {
             input.addEventListener('input', handleCauseActionInput);
+        });
+        
+        // Botões de adicionar foto
+        document.querySelectorAll('.add-photo-btn').forEach(btn => {
+            btn.addEventListener('click', handleAddPhotoClick);
+        });
+        
+        // Inputs de foto
+        document.querySelectorAll('.photo-input').forEach(input => {
+            input.addEventListener('change', handlePhotoInputChange);
         });
     }
     
     // Manipulador de clique nos botões de conformidade
     function handleComplianceClick(e) {
-        const questionId = e.target.dataset.question;
-        const isCompliant = e.target.dataset.compliant === 'true';
+        const questionId = e.currentTarget.dataset.question;
+        const isCompliant = e.currentTarget.dataset.compliant === 'true';
         
         // Atualizar estado do botão
         document.querySelectorAll(`.compliance-btn[data-question="${questionId}"]`).forEach(btn => {
@@ -153,6 +184,105 @@ document.addEventListener('DOMContentLoaded', function() {
         responses[questionId][fieldType] = e.target.value;
     }
     
+    // Manipulador de clique no botão de adicionar foto
+    function handleAddPhotoClick(e) {
+        const questionId = e.currentTarget.dataset.question;
+        document.getElementById(`photo-input-${questionId}`).click();
+    }
+    
+    // Manipulador de seleção de arquivo de foto
+    function handlePhotoInputChange(e) {
+        const questionId = e.target.dataset.question || e.target.id.split('-')[2];
+        const files = e.target.files;
+        
+        if (!files.length) return;
+        
+        const previewContainer = document.getElementById(`photo-preview-${questionId}`);
+        
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            
+            // Verificar se é uma imagem
+            if (!file.type.startsWith('image/')) {
+                showError('Por favor, selecione apenas arquivos de imagem.');
+                continue;
+            }
+            
+            // Verificar tamanho do arquivo (máximo 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showError('A imagem deve ter no máximo 5MB.');
+                continue;
+            }
+            
+            // Criar preview da imagem
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const photoId = Date.now() + Math.random().toString(36).substr(2, 9);
+                
+                const photoHtml = `
+                    <div class="photo-preview-item position-relative" data-photo-id="${photoId}">
+                        <img src="${e.target.result}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 remove-photo-btn" data-question-id="${questionId}" data-photo-id="${photoId}">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Usar insertAdjacentHTML para não perder event listeners existentes
+                previewContainer.insertAdjacentHTML('beforeend', photoHtml);
+                
+                // Adicionar foto ao estado
+                responses[questionId].fotos.push({
+                    id: photoId,
+                    file: file,
+                    preview: e.target.result
+                });
+                
+                // Adicionar event listener para o botão de remover
+                const removeBtn = previewContainer.querySelector(`.remove-photo-btn[data-photo-id="${photoId}"]`);
+                removeBtn.addEventListener('click', handleRemovePhotoClick);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // Limpar input para permitir selecionar o mesmo arquivo novamente
+        e.target.value = '';
+    }
+    
+    // Manipulador de clique no botão de remover foto
+    function handleRemovePhotoClick(e) {
+        const button = e.currentTarget;
+        const questionId = button.dataset.questionId;
+        const photoId = button.dataset.photoId;
+        
+        if (!questionId || !photoId) {
+            console.error('Dados do botão de remover foto não encontrados:', button.dataset);
+            return;
+        }
+        
+        // Remover do DOM
+        const photoElement = document.querySelector(`.photo-preview-item[data-photo-id="${photoId}"]`);
+        if (photoElement) {
+            photoElement.remove();
+        }
+        
+        // Remover do estado
+        if (responses[questionId] && responses[questionId].fotos) {
+            responses[questionId].fotos = responses[questionId].fotos.filter(photo => photo.id !== photoId);
+        }
+    }
+    
+    // Função para converter arquivo para base64
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+        });
+    }
+    
     // Atualizar barra de progresso
     function updateProgress() {
         const answered = Object.values(responses).filter(r => r.conformidade !== null).length;
@@ -176,7 +306,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (unanswered.length > 0) {
             showError('Por favor, responda todas as questões antes de enviar.');
-            // Rolar para a primeira questão não respondida
             const firstUnansweredId = unanswered[0][0];
             document.getElementById(`question-${firstUnansweredId}`).scrollIntoView({ behavior: 'smooth' });
             toggleSpinner('submit-btn', false);
@@ -187,13 +316,25 @@ document.addEventListener('DOMContentLoaded', function() {
             // Preparar dados para envio
             const inspectionData = {
                 checklist: checklistId,
-                respostas: Object.entries(responses).map(([perguntaId, resposta]) => ({
-                    pergunta: parseInt(perguntaId),
-                    conformidade: resposta.conformidade,
-                    observacao: resposta.observacao,
-                    causa: resposta.causa,
-                    acao: resposta.acao,
-                    texto_pergunta_historico: questions.find(q => q.id == perguntaId).texto
+                respostas: await Promise.all(Object.entries(responses).map(async ([perguntaId, resposta]) => {
+                    // Converter fotos para base64
+                    const fotosBase64 = await Promise.all(
+                        resposta.fotos.map(async (foto) => ({
+                            nome: foto.file.name,
+                            tipo: foto.file.type,
+                            dados: await fileToBase64(foto.file)
+                        }))
+                    );
+                    
+                    return {
+                        pergunta: parseInt(perguntaId),
+                        conformidade: resposta.conformidade,
+                        observacao: resposta.observacao,
+                        causa: resposta.causa,
+                        acao: resposta.acao,
+                        texto_pergunta_historico: questions.find(q => q.id == perguntaId).texto,
+                        fotos: fotosBase64
+                    };
                 }))
             };
             

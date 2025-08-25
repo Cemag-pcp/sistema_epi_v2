@@ -70,6 +70,16 @@ export const ToastBottomEnd = Swal.mixin({
     }
 });
 
+// Adicione esta função se não existir
+export async function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 // Função para inicializar Select2 em elementos padrão
 $('.select2').select2({
     width: '100%'
