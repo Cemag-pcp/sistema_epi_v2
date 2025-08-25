@@ -1,4 +1,6 @@
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
 from . import views
 
 app_name = 'checklist'
@@ -25,4 +27,7 @@ urlpatterns += [
     path('api/checklists/history/', views.historico_api, name='historico-api'),
     path('api/checklists/inspection/data/<int:id>/', views.inspection_data_api, name='inspection-data-api'),
     path('api/checklists/inspection/update/', views.update_inspection_api, name='update-inspection-api'),
-]
+] 
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
