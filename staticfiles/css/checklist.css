@@ -1,0 +1,83 @@
+.hover-shadow:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.2s ease;
+  }
+  
+.fs-xxsmall {
+  font-size: 0.65rem;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.position-absolute {
+  position: absolute;
+}
+
+.top-0 {
+  top: 0;
+}
+
+.end-0 {
+  right: 0;
+}
+
+.bottom-0 {
+  bottom: 0;
+}
+
+.bg-gray {
+  background-color: #ebebeb;
+}
+
+.question-card {
+  transition: all 0.2s ease;
+}
+
+.question-card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.question-actions {
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.question-card:hover .question-actions {
+    opacity: 1;
+}
+
+.progress {
+  height: 6px;
+}
+
+.badge {
+  font-size: 0.75rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+#loadingState {
+  display: none;
+}
+
+.conformity-btn {
+    min-width: 120px;
+}
+.btn-outline-success:hover {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}

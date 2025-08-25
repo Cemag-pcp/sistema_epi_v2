@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block links %}
+    <link rel="stylesheet" href="{% static 'css/select2.css' %}">
+    <link rel="stylesheet" href="/static/css/checklist.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-md-12">
+            <!-- Header -->
+            <div class="mb-4">
+                <a href="{% url 'checklist:checklist' %}" class="btn btn-white mb-3">
+                    <i class="bi bi-arrow-left me-2"></i>Voltar para Checklists
+                </a>
+                <h1 class="h2 fw-bold text-dark">Histórico de Checklist's</h1>
+                <p class="text-muted mb-0">Visualize e gerencie todos os checklist's realizados</p>
+            </div>
+
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body p-3 p-md-4">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold text-secondary">Pesquisar</label>
+                            <div>
+                                <input type="text" class="form-control" placeholder="Pesquisar por nome, descrição ou inspetor..." id="searchInput">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Status de Conformidade</label>
+                            <select class="form-select" id="complianceFilter">
+                                <option value="all" selected>Todos os Status</option>
+                                <option value="compliant">Totalmente Conforme</option>
+                                <option value="non-compliant">Com Não Conformidades</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-secondary">Resultados</label>
+                            <div class="fw-medium text-secondary" id="resultsCount">Carregando...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div class="card" id="loadingState">
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="text-muted mb-0">Carregando checklists...</p>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="checklistResults">
+                <!-- Checklist items will be populated here by JavaScript -->
+            </div>
+
+            <!-- Empty State (hidden by default) -->
+            <div class="card d-none" id="emptyState">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox text-muted fs-1 mb-3"></i>
+                    <h3 class="h5 fw-medium text-dark mb-2">Nenhum checklist encontrado</h3>
+                    <p class="text-muted mb-4" id="emptyStateMessage">Tente ajustar seus filtros para ver mais resultados</p>
+                    <button class="btn btn-primary" onclick="filterChecklists()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Recarregar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Paginação -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="Navegação de páginas" id="pagination-container">
+                <ul class="pagination justify-content-center">
+                    <!-- A paginação será inserida aqui via JavaScript -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'js/history.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block links %}
+    <link rel="stylesheet" href="/static/css/select2.css">
+{% endblock %}
+
+{% block content %}
+<!-- Header (sempre visível) -->
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="d-flex justify-content-between align-items-center gap-4 mb-3">
+                <div>
+                    <a href="{% url 'checklist:checklist' %}" class="btn btn-white mb-3">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar para Checklists
+                    </a>
+                    <h1 class="h2 fw-bold text-dark">Editar Template de Checklist</h1>
+                    <p class="text-muted mt-2">Modifique a estrutura e as perguntas do checklist</p>
+                </div>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteChecklistConfirmModal">Excluir Template</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Container principal com spinner durante carregamento -->
+<div class="container" id="mainContainer">
+    <!-- Spinner de carregamento -->
+    <div id="loadingSpinner" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+        <p class="mt-3">Carregando questões...</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+
+            <!-- Conteúdo real (inicialmente oculto) -->
+            <div id="contentArea" style="display: none;">
+                <!-- Error Messages -->
+                <div id="errorAlert" class="alert alert-danger d-none mb-4">
+                    <ul id="errorList" class="mb-0 ps-3"></ul>
+                </div>
+
+                <!-- Success Messages -->
+                <div id="successAlert" class="alert alert-success d-none mb-4">
+                    <span id="successMessage"></span>
+                </div>
+
+                <!-- Template Details -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h2 class="h5 fw-bold mb-0">Detalhes do Checklist</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="title" class="form-label">Título do Template *</label>
+                                <input type="text" class="form-control" id="title" placeholder="Digite o título do template...">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="setor" class="form-label">Setor</label>
+                                <select class="form-select" id="setor">
+                                    <option value="">Selecionar setor</option>
+                                    <!-- Setores serão carregados via JavaScript -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="description" rows="4" placeholder="Descreva o que este template abrange..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add New Question -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h2 class="h5 fw-bold mb-0">
+                            <i class="bi bi-plus me-2"></i>Adicionar Pergunta
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="question-text" class="form-label">Texto da Pergunta *</label>
+                            <input type="text" class="form-control" id="question-text" placeholder="Digite sua pergunta...">
+                        </div>
+                        <button id="addQuestionBtn" class="btn btn-primary w-100">
+                            <i class="bi bi-plus me-2"></i>Adicionar Pergunta
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Questions List -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h5 mb-0">Perguntas (<span id="questionsCount">0</span>)</h2>
+                    </div>
+                    
+                    <div id="questionsContainer">
+                        <!-- Questions will be added here dynamically -->
+                        <div id="emptyState" class="card">
+                            <div class="card-body text-center py-5">
+                                <p class="text-muted mb-2">Nenhuma pergunta adicionada ainda</p>
+                                <p class="text-muted small">Adicione sua primeira pergunta acima para começar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="fw-medium mb-1">Pronto para salvar seu template?</p>
+                                <p class="text-muted small mb-0"><span id="totalQuestions">0</span> perguntas</p>
+                            </div>
+                            <div>
+                                <button id="saveTemplateBtn" class="btn btn-primary">
+                                    <span class="button-text"><i class="bi bi-save me-2"></i>Salvar Template</span>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Question Modal -->
+<div class="modal fade" id="editQuestionModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Pergunta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="edit-question-text" class="form-label">Texto da Pergunta</label>
+                    <input type="text" class="form-control" id="edit-question-text">
+                </div>
+                <input type="hidden" id="edit-question-id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="saveQuestionBtn" class="btn btn-primary">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteChecklistConfirmModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir este Checklist? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="confirmChecklistDeleteBtn" class="btn btn-danger">
+                    <span class="button-text">Excluir</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteQuestionConfirmModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir esta pergunta? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="confirmDeleteBtn" class="btn btn-danger">
+                    <span class="button-text">Excluir</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+   <script type="module" src="{% static 'js\edit-checklist.js' %}"></script>
+   <script type="module" src="{% static 'js\delete-checklist.js' %}"></script>
+{% endblock %}
