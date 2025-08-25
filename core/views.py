@@ -324,24 +324,27 @@ def send_signature(request):
                 except Solicitacao.DoesNotExist:
                     return JsonResponse({'success': False, 'message': 'Solicitação não encontrada'}, status=404)
 
+                # Tratando a assinatura em base64
                 format, imgstr = data['signature'].split(';base64,') 
                 ext = format.split('/')[-1]
                 file_name = f"{uuid.uuid4()}.{ext}"
                 assinatura_path = ContentFile(base64.b64decode(imgstr), name=file_name)
 
-                assinatura = Assinatura.objects.create(
+                # ✅ Usa update_or_create para não violar UNIQUE constraint
+                assinatura, created = Assinatura.objects.update_or_create(
                     solicitacao=solicitacao,
-                    imagem_assinatura=assinatura_path
+                    defaults={'imagem_assinatura': assinatura_path}
                 )
 
                 if not assinatura.imagem_assinatura:
-                    raise Exception("Campo de assinatura vazio após criação.")
+                    raise Exception("Campo de assinatura vazio após criação/atualização.")
                 
                 try:
                     print("URL da assinatura:", assinatura.imagem_assinatura.url)
                 except Exception as e:
                     raise Exception(f"Erro ao acessar URL da assinatura: {str(e)}")
 
+                # Processando equipamentos
                 for equipamento_data in data['equipamentos']:
                     equipamento_id = equipamento_data['equipamento_id']
                     qualidade = equipamento_data['condicao'].lower()  # deve estar entre 'bom', 'ruim', 'danificado'
@@ -353,7 +356,6 @@ def send_signature(request):
                             pk=equipamento_data['id'] # Esse id é do DadosSolicitacao associado ao equipamento
                         )
 
-
                         # Validando o que já foi devolvido
                         total_ja_devolvido = dados_solicitacao.total_devolvido or 0
 
@@ -363,13 +365,14 @@ def send_signature(request):
                         # Validando a quantidade devolvida
                         if int(equipamento_data['quantidade_devolvida']) <= 0:
                             raise ValueError("Quantidade devolvida deve ser maior que zero!")
-                        # Quantidade devolvida não pode ser maior que a quantidade disponível
-
                         if int(equipamento_data['quantidade_devolvida']) > quantidade_disponivel:
-                            raise ValueError(f"Quantidade devolvida ({equipamento_data['quantidade_devolvida']}) maior que a disponível ({quantidade_disponivel})!")
+                            raise ValueError(
+                                f"Quantidade devolvida ({equipamento_data['quantidade_devolvida']}) "
+                                f"maior que a disponível ({quantidade_disponivel})!"
+                            )
                         
                     except DadosSolicitacao.DoesNotExist:
-                            raise Exception(f"DadosSolicitacao não encontrado para equipamento {equipamento_id}")
+                        raise Exception(f"DadosSolicitacao não encontrado para equipamento {equipamento_id}")
 
                     # Criação da devolução
                     Devolucao.objects.create(
@@ -379,15 +382,19 @@ def send_signature(request):
                         quantidade_devolvida=int(equipamento_data['quantidade_devolvida']),
                     )
 
-                assinatura.save()
+                # Atualiza o status da solicitação
                 solicitacao.status = 'Entregue'
                 solicitacao.save()
 
-                return JsonResponse({'success': True, 'message': 'Assinatura e devoluções registradas com sucesso'}, status=200)
+                return JsonResponse(
+                    {'success': True, 'message': 'Assinatura e devoluções registradas com sucesso'}, 
+                    status=200
+                )
 
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
 
 @login_required
 @somente_master
