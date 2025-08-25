@@ -48,8 +48,8 @@
                     <div class="sb-sidenav-menu">
                         <div class="nav">
                             
-                            <div class="sb-sidenav-menu-heading">EPI</div>
                             {% if request.user.funcionario.tipo_acesso == 'master' or request.user.funcionario.tipo_acesso == 'solicitante' or request.user.is_superuser %}
+                            <div class="sb-sidenav-menu-heading">EPI</div>
                                 <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseHome" aria-expanded="false" aria-controls="collapseHome">
                                     <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
                                     Controle de EPI
@@ -70,6 +70,20 @@
                                         {% endif %}       
                                     </nav>
                                 </div>
+                            {% endif %}
+
+                            {% if request.user.funcionario.tipo_acesso == 'master' or request.user.is_superuser %}
+                                <div class="sb-sidenav-menu-heading">Checklist</div>
+
+                                <a class="nav-link collapsed" href="{% url 'checklist:checklist' %}" aria-expanded="false">
+                                    <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
+                                    Checklist's
+                                </a>
+
+                                <a class="nav-link collapsed" href="{% url 'checklist:history-checklist' %}" aria-expanded="false">
+                                    <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
+                                    Histórico
+                                </a>
                             {% endif %}
 
                             {% if request.user.funcionario.tipo_acesso == 'master' or request.user.funcionario.tipo_acesso == 'solicitante' or request.user.is_superuser %}
@@ -111,33 +125,6 @@
                                         {% endif %}
                                     </nav>
                                 </div>
-                            <div class="collapse" id="collapseCadastro" aria-labelledby="headingInicio" data-bs-parent="#sidenavAccordion">
-                                <nav class="sb-sidenav-menu-nested nav">
-                                    {% if request.user.funcionario.tipo_acesso == 'master' or request.user.is_superuser %}
-                                        <a class="nav-link" href="{% url 'usuario:funcionario' %}">Funcionário</a>
-                                        <a class="nav-link" href="{% url 'equipamento:equipamento' %}">Equipamento</a>
-                                        <a class="nav-link" href="{% url 'padrao:padrao' %}">Padrões de Solicitações</a>
-                                        <a class="nav-link" href="{% url 'usuario:setores' %}">Setores</a>
-                                    {% elif request.user.funcionario.tipo_acesso == 'solicitante' %}
-                                        <a class="nav-link" href="{% url 'padrao:padrao' %}">Padrões de Solicitações</a>
-                                    {% endif %}
-                                </nav>
-                            </div>
-                            
-                            {% if request.user.funcionario.tipo_acesso == 'master' or request.user.is_superuser %}
-                                <div class="sb-sidenav-menu-heading">Checklist</div>
-
-                                <a class="nav-link collapsed" href="{% url 'checklist:checklist' %}" aria-expanded="false">
-                                    <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
-                                    Checklist's
-                                </a>
-
-                                <a class="nav-link collapsed" href="{% url 'checklist:history-checklist' %}" aria-expanded="false">
-                                    <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
-                                    Histórico
-                                </a>
-                            {% endif %}
-
                             {% if request.user.funcionario.tipo_acesso == 'master' or request.user.is_superuser %}
                                 <div class="sb-sidenav-menu-heading">Dashboard</div>
                                 <a class="nav-link collapsed" href="{% url 'core:dashboard' %}" aria-expanded="false">
