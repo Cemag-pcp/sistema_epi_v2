@@ -275,33 +275,22 @@ def inspection_send_checklist_api(request):
                     try:
                         base64_string = foto_data['dados']
                         
-                        # Verificar se a string base64 contém o prefixo data URL
-                        if ';base64,' in base64_string:
-                            # Formato: data:image/png;base64,iVBORw0KGgoAAA...
-                            format, imgstr = base64_string.split(';base64,')
-                            ext = format.split('/')[-1]  # Extrai a extensão do formato
-                        else:
-                            # Formato direto base64 (sem prefixo)
-                            imgstr = base64_string
-                            ext = 'jpg'  # Assume JPG como padrão
-                            
-                            # Tentar detectar o tipo pela assinatura do base64
-                            if base64_string.startswith('iVBORw0KGgo'):
-                                ext = 'png'
-                            elif base64_string.startswith('/9j/4AAQ'):
-                                ext = 'jpg'
-                            elif base64_string.startswith('R0lGODdh'):
-                                ext = 'gif'
+                        # Verificar se já é apenas dados base64 (sem prefixo)
+                        if ';base64,' not in base64_string:
+                            # Se não tem prefixo, assumir que é JPEG e adicionar o prefixo
+                            base64_string = f"data:image/jpeg;base64,{base64_string}"
                         
-                        # Decodificar base64
+                        # Agora processe normalmente
+                        format, imgstr = base64_string.split(';base64,')
+                        ext = format.split('/')[-1]
+                        
+                        # Resto do código permanece igual...
                         decoded_file = base64.b64decode(imgstr)
-                        
                         foto_file = ContentFile(
                             decoded_file,
                             name=f"pergunta_{pergunta_id}_{uuid.uuid4().hex[:8]}.{ext}"
                         )
                         
-                        # Criar registro da foto
                         FotoResposta.objects.create(
                             item_resposta=item_resposta,
                             foto=foto_file,
@@ -310,8 +299,7 @@ def inspection_send_checklist_api(request):
                         
                     except Exception as e:
                         print(f"Erro ao processar foto: {str(e)}")
-                        print(f"Dados da foto que causaram erro: {foto_data}")
-                        continue  # Continuar mesmo se uma foto falhar
+                        continue
 
             # Retornar sucesso
             return JsonResponse(
