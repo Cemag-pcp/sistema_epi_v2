@@ -64,6 +64,10 @@
   color: #6c757d;
 }
 
+.photo-thumbnail .img-thumbnail {
+    cursor: pointer;
+}
+
 #loadingState {
   display: none;
 }
