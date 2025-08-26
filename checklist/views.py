@@ -4,6 +4,7 @@ from usuario.decorators import somente_master, master_solicit
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Count, Case, When, IntegerField, Q
+from django.db import transaction
 from .models import Checklist, Pergunta, Inspecao, ItemResposta, FotoResposta
 from usuario.models import Setor
 import json
@@ -325,94 +326,95 @@ def inspection_send_checklist_api(request):
 def update_inspection_api(request):
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
-            inspection_id = data.get("inspection_id")
-            respostas_data = data.get("respostas", [])
-            fotos_remover = data.get("fotos_remover", [])
+            with transaction.atomic():
+                data = json.loads(request.body)
+                inspection_id = data.get("inspection_id")
+                respostas_data = data.get("respostas", [])
+                fotos_remover = data.get("fotos_remover", [])
 
-            # Buscar a inspeção
-            inspecao = Inspecao.objects.get(id=inspection_id)
+                # Buscar a inspeção
+                inspecao = Inspecao.objects.get(id=inspection_id)
 
-            # Remover fotos solicitadas
-            for foto_id in fotos_remover:
-                try:
-                    foto = FotoResposta.objects.get(id=foto_id, item_resposta__inspecao=inspecao)
-                    foto.delete()
-                except FotoResposta.DoesNotExist:
-                    pass  # Foto já não existe
+                # Remover fotos solicitadas
+                for foto_id in fotos_remover:
+                    try:
+                        foto = FotoResposta.objects.get(id=foto_id, item_resposta__inspecao=inspecao)
+                        foto.delete()
+                    except FotoResposta.DoesNotExist:
+                        pass
 
-            # Atualizar cada resposta
-            for resposta_data in respostas_data:
-                pergunta_id = resposta_data.get("pergunta_id")
-                conformidade = resposta_data.get("conformidade")
-                causa = resposta_data.get("causa")
-                acao = resposta_data.get("acao")
-                observacao = resposta_data.get("observacao", "")
-                fotos_base64 = resposta_data.get("fotos", [])  # Novas fotos em base64
+                # Atualizar cada resposta
+                for resposta_data in respostas_data:
+                    pergunta_id = resposta_data.get("pergunta_id")
+                    conformidade = resposta_data.get("conformidade")
+                    causa = resposta_data.get("causa")
+                    acao = resposta_data.get("acao")
+                    observacao = resposta_data.get("observacao", "")
+                    fotos_base64 = resposta_data.get("fotos", [])  # Novas fotos em base64
 
-                # Buscar a resposta existente
-                try:
-                    resposta = ItemResposta.objects.get(
-                        inspecao=inspecao, pergunta_id=pergunta_id
-                    )
-                    resposta.conformidade = conformidade
-                    resposta.observacao = observacao
-                    resposta.causas_reprovacao = causa
-                    resposta.acoes_corretivas = acao
-                    resposta.save()
-                    
-                    # Processar novas fotos em base64
-                    for foto_data in fotos_base64:
-                        try:
-                            format, imgstr = foto_data['dados'].split(';base64,')
-                            ext = format.split('/')[-1]
-                            
-                            foto_file = ContentFile(
-                                base64.b64decode(imgstr),
-                                name=f"pergunta_{pergunta_id}_{uuid.uuid4().hex[:8]}.{ext}"
-                            )
-                            
-                            FotoResposta.objects.create(
-                                item_resposta=resposta,
-                                foto=foto_file,
-                                descricao=foto_data.get('nome', f"Foto para pergunta {pergunta_id}")
-                            )
-                        except Exception as e:
-                            print(f"Erro ao processar foto: {str(e)}")
-                            continue
-                            
-                except ItemResposta.DoesNotExist:
-                    # Se não existir, criar uma nova (caso raro)
-                    pergunta = Pergunta.objects.get(id=pergunta_id)
-                    resposta = ItemResposta.objects.create(
-                        inspecao=inspecao,
-                        pergunta=pergunta,
-                        conformidade=conformidade,
-                        causas_reprovacao=causa,
-                        acoes_corretivas=acao,
-                        observacao=observacao,
-                        texto_pergunta_historico=pergunta.texto,
-                    )
-                    
-                    # Processar fotos para a nova resposta
-                    for foto_data in fotos_base64:
-                        try:
-                            format, imgstr = foto_data['dados'].split(';base64,')
-                            ext = format.split('/')[-1]
-                            
-                            foto_file = ContentFile(
-                                base64.b64decode(imgstr),
-                                name=f"pergunta_{pergunta_id}_{uuid.uuid4().hex[:8]}.{ext}"
-                            )
-                            
-                            FotoResposta.objects.create(
-                                item_resposta=resposta,
-                                foto=foto_file,
-                                descricao=foto_data.get('nome', f"Foto para pergunta {pergunta_id}")
-                            )
-                        except Exception as e:
-                            print(f"Erro ao processar foto: {str(e)}")
-                            continue
+                    # Buscar a resposta existente
+                    try:
+                        resposta = ItemResposta.objects.get(
+                            inspecao=inspecao, pergunta_id=pergunta_id
+                        )
+                        resposta.conformidade = conformidade
+                        resposta.observacao = observacao
+                        resposta.causas_reprovacao = causa
+                        resposta.acoes_corretivas = acao
+                        resposta.save()
+                        
+                        # Processar novas fotos em base64
+                        for foto_data in fotos_base64:
+                            try:
+                                format, imgstr = foto_data['dados'].split(';base64,')
+                                ext = format.split('/')[-1]
+                                
+                                foto_file = ContentFile(
+                                    base64.b64decode(imgstr),
+                                    name=f"pergunta_{pergunta_id}_{uuid.uuid4().hex[:8]}.{ext}"
+                                )
+                                
+                                FotoResposta.objects.create(
+                                    item_resposta=resposta,
+                                    foto=foto_file,
+                                    descricao=foto_data.get('nome', f"Foto para pergunta {pergunta_id}")
+                                )
+                            except Exception as e:
+                                print(f"Erro ao processar foto: {str(e)}")
+                                continue
+                                
+                    except ItemResposta.DoesNotExist:
+                        # Se não existir, criar uma nova (caso raro)
+                        pergunta = Pergunta.objects.get(id=pergunta_id)
+                        resposta = ItemResposta.objects.create(
+                            inspecao=inspecao,
+                            pergunta=pergunta,
+                            conformidade=conformidade,
+                            causas_reprovacao=causa,
+                            acoes_corretivas=acao,
+                            observacao=observacao,
+                            texto_pergunta_historico=pergunta.texto,
+                        )
+                        
+                        # Processar fotos para a nova resposta
+                        for foto_data in fotos_base64:
+                            try:
+                                format, imgstr = foto_data['dados'].split(';base64,')
+                                ext = format.split('/')[-1]
+                                
+                                foto_file = ContentFile(
+                                    base64.b64decode(imgstr),
+                                    name=f"pergunta_{pergunta_id}_{uuid.uuid4().hex[:8]}.{ext}"
+                                )
+                                
+                                FotoResposta.objects.create(
+                                    item_resposta=resposta,
+                                    foto=foto_file,
+                                    descricao=foto_data.get('nome', f"Foto para pergunta {pergunta_id}")
+                                )
+                            except Exception as e:
+                                print(f"Erro ao processar foto: {str(e)}")
+                                continue
 
             return JsonResponse(
                 {"success": True, "message": "Inspeção atualizada com sucesso"}

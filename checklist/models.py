@@ -125,14 +125,6 @@ class FotoResposta(models.Model):
 
     def __str__(self):
         return f"Foto para {self.item_resposta}"
-
-    def delete(self, *args, **kwargs):
-        """Override do delete para remover o arquivo físico"""
-        if self.foto:
-            if os.path.isfile(self.foto.path):
-                os.remove(self.foto.path)
-        super().delete(*args, **kwargs)
-
     class Meta:
         ordering = ['data_upload']
         verbose_name = 'Foto da Resposta'
