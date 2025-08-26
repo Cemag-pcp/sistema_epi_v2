@@ -1,5 +1,6 @@
 from django.db import models
 from usuario.models import Setor, Funcionario
+from storages.backends.s3boto3 import S3Boto3Storage
 from datetime import datetime
 import os
 
@@ -116,7 +117,8 @@ class FotoResposta(models.Model):
         upload_to=foto_upload_path,
         verbose_name="Foto",
         null=True,
-        blank=True
+        blank=True,
+        storage=S3Boto3Storage(),
     )
     data_upload = models.DateTimeField(auto_now_add=True)
     descricao = models.CharField(max_length=255, blank=True, null=True)
