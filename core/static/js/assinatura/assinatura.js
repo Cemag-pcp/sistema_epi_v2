@@ -347,6 +347,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then(data => {
                     if (data.success) {
                         // Fecha o modal e recarrega a tabela
+                        ToastBottomEnd.fire({
+                            icon: 'success',
+                            title: 'Assinatura enviada com sucesso.'
+                        });
                         const modal = bootstrap.Modal.getInstance(document.getElementById('modal-assinatura'));
                         modal.hide();
                         solicitacoesTable.ajax.reload(null, false);
@@ -356,6 +360,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
                 .catch(error => {
                     console.error('Erro:', error);
+                    ToastBottomEnd.fire({
+                        icon: 'error',
+                        title: error
+                    });
                 })
                 .finally(() => {
                     // Restaura o botão
