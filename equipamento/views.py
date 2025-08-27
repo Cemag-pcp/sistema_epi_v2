@@ -39,7 +39,7 @@ def equipamento(request):
                 nome=data['nome'],
                 codigo=data['codigo'],
                 vida_util_dias=data['vida_util_dias'],
-                ca=data['ca'],
+                ca=data['ca'] if data['ca'] != '' else 0,
                 ativo=data.get('ativo', True)
             )
             
