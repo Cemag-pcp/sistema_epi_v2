@@ -158,7 +158,7 @@ def home_solicitacoes(request):
 
 @login_required
 @somente_master
-@require_http_methods(["GET", "PATCH", "PUT"])
+@require_http_methods(["GET", "DELETE", "PUT"])
 def alter_solicitacao(request, id):
 
     if request.method == 'GET':
@@ -206,17 +206,13 @@ def alter_solicitacao(request, id):
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
-    elif request.method == 'PATCH':
+    elif request.method == 'DELETE':
         try:
             # Implementação do método PATCH aqui
             solicitacao = Solicitacao.objects.get(id=id)
 
-            if solicitacao.status == 'Pendente':
-                solicitacao.status = 'Cancelado'
-                solicitacao.save()
-            elif solicitacao.status == 'Cancelado':
-                solicitacao.status = 'Pendente'
-                solicitacao.save()
+            if solicitacao.status == 'Pendente' or solicitacao.status == 'Cancelado':
+                solicitacao.delete()
             else:
                 return JsonResponse({'success': False, 'message': 'Solicitação não pode ser cancelada pois já foi entregue'}, status=404)
             

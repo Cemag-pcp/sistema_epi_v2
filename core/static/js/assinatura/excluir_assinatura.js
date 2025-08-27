@@ -31,8 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 buttonCancelarSolicitacao.classList.remove('btn-danger');
                 buttonCancelarSolicitacao.classList.add('btn-success');
             } else {
-                modalTitle.textContent = 'Cancelar Solicitação';
-                modalBodyText.textContent = `Tem certeza que deseja cancelar a solicitação?`;
+                modalTitle.textContent = 'Excluir Solicitação';
+                modalBodyText.textContent = `Tem certeza que deseja Excluir a solicitação?`;
                 buttonCancelarSolicitacao.querySelector('.text-button').textContent = 'Cancelar';
                 buttonCancelarSolicitacao.classList.remove('btn-success');
                 buttonCancelarSolicitacao.classList.add('btn-danger');
