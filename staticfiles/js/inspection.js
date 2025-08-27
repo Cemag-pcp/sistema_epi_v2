@@ -11,10 +11,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const submitBtn = document.getElementById('submit-btn');
     const completionModal = new bootstrap.Modal(document.getElementById('completion-modal'));
     
+    // >>> INÍCIO DA ADIÇÃO: Variáveis para os modais <<<
+    let deletePhotoModal, confirmDeleteBtn;
+    let imageViewerModal, modalImageContent;
+    // >>> FIM DA ADIÇÃO <<<
+
     // Estado da aplicação
     let checklistData = null;
     let questions = [];
     let responses = {};
+
+    // >>> INÍCIO DA ADIÇÃO: Inicialização dos modais <<<
+    // Modal de confirmação de exclusão
+    const deleteModalEl = document.getElementById('deletePhotoConfirmModal');
+    if (deleteModalEl) {
+        deletePhotoModal = new bootstrap.Modal(deleteModalEl);
+        confirmDeleteBtn = document.getElementById('confirmPhotoDeleteBtn');
+
+        confirmDeleteBtn.addEventListener('click', function() {
+            const questionId = this.dataset.questionId;
+            const photoId = this.dataset.photoId;
+            if (questionId && photoId) {
+                // Chama a função de remoção com os dados armazenados
+                handleRemovePhotoClick(questionId, photoId);
+                deletePhotoModal.hide();
+            }
+        });
+    }
+
+    // Modal de visualização de imagem
+    const imageViewerModalEl = document.getElementById('imageViewerModal');
+    if (imageViewerModalEl) {
+        imageViewerModal = new bootstrap.Modal(imageViewerModalEl);
+        modalImageContent = document.getElementById('modal-image-content');
+    }
+    // >>> FIM DA ADIÇÃO <<<
     
     // Função para buscar dados do checklist
     async function fetchChecklist() {
@@ -54,7 +85,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <h5 class="card-title">${pergunta.texto}</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Botões de conformidade -->
                         <div class="mb-3">
                             <label class="form-label">Status de Conformidade</label>
                             <div class="d-flex gap-2">
@@ -80,13 +110,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                         
-                        <!-- Notas -->
                         <div class="mb-3">
                             <label for="notes-${pergunta.id}" class="form-label">Observações</label>
                             <textarea class="form-control notes-input" id="notes-${pergunta.id}" data-question="${pergunta.id}" rows="3" placeholder="Adicione observações sobre esta questão..."></textarea>
                         </div>
                         
-                        <!-- Upload de Fotos -->
                         <div class="mb-3">
                             <label class="form-label">Fotos</label>
                             <div class="photo-upload-container" data-question="${pergunta.id}">
@@ -124,38 +152,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Adicionar todos os event listeners
     function addEventListeners() {
-        // Botões de conformidade
-        document.querySelectorAll('.compliance-btn').forEach(btn => {
-            btn.addEventListener('click', handleComplianceClick);
-        });
-        
-        // Campos de observações
-        document.querySelectorAll('.notes-input').forEach(input => {
-            input.addEventListener('input', handleNotesInput);
-        });
-        
-        // Campos de causa e ação
-        document.querySelectorAll('input[id^="causes-"], input[id^="actions-"]').forEach(input => {
-            input.addEventListener('input', handleCauseActionInput);
-        });
-        
-        // Botões de adicionar foto
-        document.querySelectorAll('.add-photo-btn').forEach(btn => {
-            btn.addEventListener('click', handleAddPhotoClick);
-        });
-        
-        // Inputs de foto
-        document.querySelectorAll('.photo-input').forEach(input => {
-            input.addEventListener('change', handlePhotoInputChange);
-        });
+        // ... (outros listeners não precisam ser alterados)
+        document.querySelectorAll('.compliance-btn').forEach(btn => btn.addEventListener('click', handleComplianceClick));
+        document.querySelectorAll('.notes-input').forEach(input => input.addEventListener('input', handleNotesInput));
+        document.querySelectorAll('input[id^="causes-"], input[id^="actions-"]').forEach(input => input.addEventListener('input', handleCauseActionInput));
+        document.querySelectorAll('.add-photo-btn').forEach(btn => btn.addEventListener('click', handleAddPhotoClick));
+        document.querySelectorAll('.photo-input').forEach(input => input.addEventListener('change', handlePhotoInputChange));
     }
     
-    // Manipulador de clique nos botões de conformidade
+    // ... (funções handleComplianceClick, handleNotesInput, handleCauseActionInput, handleAddPhotoClick não mudam)
     function handleComplianceClick(e) {
         const questionId = e.currentTarget.dataset.question;
         const isCompliant = e.currentTarget.dataset.compliant === 'true';
-        
-        // Atualizar estado do botão
         document.querySelectorAll(`.compliance-btn[data-question="${questionId}"]`).forEach(btn => {
             if (btn.dataset.compliant === 'true') {
                 btn.classList.toggle('btn-success', isCompliant);
@@ -165,26 +173,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.classList.toggle('btn-outline-danger', isCompliant);
             }
         });
-        
-        // Atualizar resposta
         responses[questionId].conformidade = isCompliant;
         updateProgress();
     }
-    
-    // Manipulador de entrada de observações
     function handleNotesInput(e) {
-        const questionId = e.target.dataset.question;
-        responses[questionId].observacao = e.target.value;
+        responses[e.target.dataset.question].observacao = e.target.value;
     }
-    
-    // Manipulador de entrada para causa e ação
     function handleCauseActionInput(e) {
         const questionId = e.target.dataset.question;
         const fieldType = e.target.id.startsWith('causes-') ? 'causa' : 'acao';
         responses[questionId][fieldType] = e.target.value;
     }
-    
-    // Manipulador de clique no botão de adicionar foto
     function handleAddPhotoClick(e) {
         const questionId = e.currentTarget.dataset.question;
         document.getElementById(`photo-input-${questionId}`).click();
@@ -194,70 +193,75 @@ document.addEventListener('DOMContentLoaded', function() {
     function handlePhotoInputChange(e) {
         const questionId = e.target.dataset.question || e.target.id.split('-')[2];
         const files = e.target.files;
-        
         if (!files.length) return;
         
         const previewContainer = document.getElementById(`photo-preview-${questionId}`);
         
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            
-            // Verificar se é uma imagem
             if (!file.type.startsWith('image/')) {
                 showError('Por favor, selecione apenas arquivos de imagem.');
                 continue;
             }
-            
-            // Verificar tamanho do arquivo (máximo 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 showError('A imagem deve ter no máximo 5MB.');
                 continue;
             }
             
-            // Criar preview da imagem
             const reader = new FileReader();
             reader.onload = function(e) {
                 const photoId = Date.now() + Math.random().toString(36).substr(2, 9);
                 
+                // >>> ALTERAÇÃO: Adicionado cursor:pointer na imagem <<<
                 const photoHtml = `
                     <div class="photo-preview-item position-relative" data-photo-id="${photoId}">
-                        <img src="${e.target.result}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                        <img src="${e.target.result}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover; cursor: pointer;">
                         <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 remove-photo-btn" data-question-id="${questionId}" data-photo-id="${photoId}">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
                 `;
                 
-                // Usar insertAdjacentHTML para não perder event listeners existentes
                 previewContainer.insertAdjacentHTML('beforeend', photoHtml);
                 
-                // Adicionar foto ao estado
                 responses[questionId].fotos.push({
                     id: photoId,
                     file: file,
                     preview: e.target.result
                 });
                 
-                // Adicionar event listener para o botão de remover
-                const removeBtn = previewContainer.querySelector(`.remove-photo-btn[data-photo-id="${photoId}"]`);
-                removeBtn.addEventListener('click', handleRemovePhotoClick);
+                // >>> INÍCIO DA ALTERAÇÃO: Adicionar listeners para modais <<<
+                const newPhotoItem = previewContainer.querySelector(`.photo-preview-item[data-photo-id="${photoId}"]`);
+                const removeBtn = newPhotoItem.querySelector('.remove-photo-btn');
+                const imgElement = newPhotoItem.querySelector('.img-thumbnail');
+
+                // Listener para o botão de remover (abre o modal de confirmação)
+                removeBtn.addEventListener('click', function() {
+                    if (confirmDeleteBtn && deletePhotoModal) {
+                        confirmDeleteBtn.dataset.questionId = questionId;
+                        confirmDeleteBtn.dataset.photoId = photoId;
+                        deletePhotoModal.show();
+                    }
+                });
+
+                // Listener para a imagem (abre o modal de visualização)
+                imgElement.addEventListener('click', function() {
+                    if (modalImageContent && imageViewerModal) {
+                        modalImageContent.src = this.src;
+                        imageViewerModal.show();
+                    }
+                });
+                // >>> FIM DA ALTERAÇÃO <<<
             };
-            
             reader.readAsDataURL(file);
         }
-        
-        // Limpar input para permitir selecionar o mesmo arquivo novamente
         e.target.value = '';
     }
     
-    // Manipulador de clique no botão de remover foto
-    function handleRemovePhotoClick(e) {
-        const button = e.currentTarget;
-        const questionId = button.dataset.questionId;
-        const photoId = button.dataset.photoId;
-        
+    // >>> ALTERAÇÃO: A função agora recebe os IDs como parâmetros <<<
+    function handleRemovePhotoClick(questionId, photoId) {
         if (!questionId || !photoId) {
-            console.error('Dados do botão de remover foto não encontrados:', button.dataset);
+            console.error('IDs da foto ou da questão não fornecidos para remoção.');
             return;
         }
         
@@ -269,11 +273,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Remover do estado
         if (responses[questionId] && responses[questionId].fotos) {
-            responses[questionId].fotos = responses[questionId].fotos.filter(photo => photo.id !== photoId);
+            responses[questionId].fotos = responses[questionId].fotos.filter(photo => photo.id.toString() !== photoId.toString());
         }
     }
     
-    // Função para converter arquivo para base64
+    // ... (O restante das funções como fileToBase64, updateProgress, submitInspection, showError permanecem iguais)
     function fileToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -282,8 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
             reader.onerror = error => reject(error);
         });
     }
-    
-    // Atualizar barra de progresso
+
     function updateProgress() {
         const answered = Object.values(responses).filter(r => r.conformidade !== null).length;
         const compliant = Object.values(responses).filter(r => r.conformidade === true).length;
@@ -297,10 +300,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('compliant-count-modal').textContent = compliant;
         document.getElementById('non-compliant-count-modal').textContent = nonCompliant;
     }
-    
-    // Função para enviar a inspeção
+
     async function submitInspection() {
-        // Validar se todas as questões foram respondidas
         const unanswered = Object.entries(responses).filter(([id, r]) => r.conformidade === null);
         toggleSpinner('submit-btn', true);
 
@@ -313,11 +314,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            // Preparar dados para envio
             const inspectionData = {
                 checklist: checklistId,
                 respostas: await Promise.all(Object.entries(responses).map(async ([perguntaId, resposta]) => {
-                    // Converter fotos para base64
                     const fotosBase64 = await Promise.all(
                         resposta.fotos.map(async (foto) => ({
                             nome: foto.file.name,
@@ -338,7 +337,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }))
             };
             
-            // Enviar para a API
             const response = await fetch('/api/checklists/inspection/', {
                 method: 'POST',
                 headers: {
@@ -354,7 +352,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(result.error || 'Erro ao enviar a inspeção');
             }
             
-            // Mostrar modal de sucesso
             completionModal.show();
             
         } catch (error) {
@@ -363,8 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleSpinner('submit-btn', false);
         }
     }
-    
-    // Função para mostrar erro
+
     function showError(message) {
         ToastBottomEnd.fire({
             icon: 'error',
@@ -372,9 +368,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Event listener para o botão de envio
     submitBtn.addEventListener('click', submitInspection);
-    
-    // Inicializar a página
     fetchChecklist();
 });
