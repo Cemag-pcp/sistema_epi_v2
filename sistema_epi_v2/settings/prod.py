@@ -1,12 +1,11 @@
+# prod.py - SIMPLIFICADO
 from .base import *
-
 import os
 
 # Configurações específicas de produção
 DEBUG = False
-ALLOWED_HOSTS = ['http://127.0.0.1','sistema-epi-v2-testes.onrender.com','sistema-epi-v2.onrender.com']
+ALLOWED_HOSTS = ['sistema-epi-v2-testes.onrender.com','sistema-epi-v2.onrender.com']
 CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1', 
     'https://sistema-epi-v2-testes.onrender.com',
     'https://sistema-epi-v2.onrender.com'
 ]
@@ -27,8 +26,6 @@ DATABASES = {
 }
 
 # Configurações para servir arquivos estáticos
-# STATIC_URL = '/static/'
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_ROOT = str(BASE_DIR.joinpath('staticfiles'))
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
@@ -38,7 +35,7 @@ MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 # Configuração para forçar atualização de arquivos estáticos
 WHITENOISE_MAX_AGE = 0
 
-# Configurações de segurança para produção (certifique-se de ajustar essas conforme necessário)
+# Configurações de segurança para produção
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
@@ -56,3 +53,5 @@ LOGGING = {
         'level': 'WARNING',
     },
 }
+
+# ⚠️ O STORAGE DE MÍDIA JÁ ESTÁ CONFIGURADO NO base.py

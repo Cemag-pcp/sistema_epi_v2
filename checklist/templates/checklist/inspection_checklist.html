@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block links %}
+    <link rel="stylesheet" href="/static/css/select2.css">
+    <link rel="stylesheet" href="/static/css/checklist.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Cabeçalho -->
+            <a href="{% url 'checklist:checklist' %}" class="btn btn-white mb-3">
+                <i class="bi bi-arrow-left me-2"></i>Voltar para Checklists
+            </a>
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="flex-grow-1">
+                    <h1 class="h2 fw-bold text-dark" id="checklist-title">Carregando Checklist...</h1>
+                    <p class="text-muted mb-0" id="checklist-description">Okfdfszdsdwsdf</p>
+                    <p class="text-muted mb-0" id="questions-info">0 questões</p>
+                </div>
+            </div>
+
+            <!-- Alerta de erro -->
+            <div class="alert alert-danger d-none" id="error-alert" role="alert">
+                <i class="bi bi-exclamation-circle me-2"></i>
+                <span id="error-message"></span>
+            </div>
+
+            <!-- Lista de questões -->
+            <div id="questions-container">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-3">Carregando questões...</p>
+                </div>
+            </div>
+
+            <!-- Rodapé com estatísticas e botão de envio -->
+            <div class="card mt-4 d-none" id="footer-card">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <p class="fw-medium text-dark mb-1" id="progress-text">0 de 0 questões respondidas</p>
+                            <p class="small text-muted mb-0">
+                                <span id="compliant-count">0</span> conformes • 
+                                <span id="non-compliant-count">0</span> não conformes
+                            </p>
+                        </div>
+                        <button class="btn btn-primary btn-lg" id="submit-btn">
+                            <span class="button-text"><i class="bi bi-save me-2"></i>Enviar Inspeção</span>
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de conclusão -->
+<div class="modal fade" id="completion-modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-success">Inspeção Concluída!</h5>
+            </div>
+            <div class="modal-body">
+                <p id="checklist-complete-title" class="text-muted"></p>
+                
+                <div class="row text-center my-4">
+                    <div class="col-4">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <div class="h4 fw-bold text-primary" id="total-answered">0</div>
+                            <div class="small text-primary">Total Respondido</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <div class="h4 fw-bold text-success" id="compliant-count-modal">0</div>
+                            <div class="small text-success">Conformes</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="bg-danger bg-opacity-10 p-3 rounded">
+                            <div class="h4 fw-bold text-danger" id="non-compliant-count-modal">0</div>
+                            <div class="small text-danger">Não Conformes</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="/checklists/" class="btn btn-white">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar para Início
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deletePhotoConfirmModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir essa Foto? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="confirmPhotoDeleteBtn" class="btn btn-danger">
+                    <span class="button-text">Excluir</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="imageViewerModal" tabindex="-1" aria-labelledby="imageViewerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageViewerModalLabel">Visualizar Imagem</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="" id="modal-image-content" class="img-fluid" alt="Imagem expandida">
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+   <script type="module" src="{% static 'js\inspection.js' %}"></script>
+{% endblock %}

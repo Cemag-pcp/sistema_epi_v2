@@ -1,3 +1,4 @@
+# dev.py - SIMPLIFICADO
 from .base import *
 import sys
 
@@ -30,10 +31,3 @@ if 'test' in sys.argv:
             'NAME': ':memory:',
         }
     }
-
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# Configurações adicionais para desenvolvimento (opcional)
-# STATIC_URL = '/static/'
-# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

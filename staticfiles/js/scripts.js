@@ -40,6 +40,24 @@ export function getCookie(name) {
     return cookieValue;
 }
 
+export function toggleSpinner(buttonId, isLoading) {
+    const button = document.getElementById(buttonId);
+    if (button) {
+        const spinner = button.querySelector('.spinner-border');
+        const text = button.querySelector('.button-text');
+        
+        if (isLoading) {
+            spinner.classList.remove('d-none');
+            text.classList.add('d-none');
+            button.disabled = true;
+        } else {
+            spinner.classList.add('d-none');
+            text.classList.remove('d-none');
+            button.disabled = false;
+        }
+    }
+}
+
 export const ToastBottomEnd = Swal.mixin({
     toast: true,
     position: "bottom-end",
@@ -51,6 +69,16 @@ export const ToastBottomEnd = Swal.mixin({
         toast.onmouseleave = Swal.resumeTimer;
     }
 });
+
+// Adicione esta função se não existir
+export async function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
 
 // Função para inicializar Select2 em elementos padrão
 $('.select2').select2({
