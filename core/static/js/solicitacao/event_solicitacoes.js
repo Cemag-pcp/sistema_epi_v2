@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Enviar para a API
             const response = await fetch(`/core/solicitacoes/${solicitacaoId}/`, {
-                method: 'PATCH',
+                method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')

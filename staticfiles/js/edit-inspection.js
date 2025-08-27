@@ -9,6 +9,14 @@ let currentPhotos = {};
 let newPhotos = {};
 let photosToRemove = [];
 
+// Variáveis para o modal de confirmação de exclusão de foto
+let deletePhotoModal;
+let confirmDeleteBtn;
+
+let imageViewerModal;
+let modalImageContent;
+
+
 // Carregar os dados da inspeção
 async function loadInspectionData() {
     try {
@@ -119,7 +127,6 @@ function populateFormWithData(inspectionData) {
                         placeholder="Adicione observações relevantes...">${resposta.observacao || ''}</textarea>
                 </div>
                 
-                <!-- Seção de Fotos -->
                 <div class="mb-3">
                     <label class="form-label">Fotos:</label>
                     <div class="photos-container mt-2 d-flex flex-wrap gap-2" id="photos-container-${index}" data-question-id="${resposta.pergunta_id}">
@@ -161,7 +168,7 @@ function renderPhotos(fotos, questionId) {
     
     return fotos.map(foto => `
         <div class="photo-thumbnail me-2 mb-2" data-photo-id="${foto.id}">
-            <img src="${foto.url}" alt="${foto.descricao}" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
+            <img src="${foto.url}" alt="${foto.descricao}" class="img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
             <button type="button" class="btn btn-sm btn-danger remove-photo-btn" data-photo-id="${foto.id}" data-question-id="${questionId}">
                 <i class="bi bi-x"></i>
             </button>
@@ -199,9 +206,23 @@ function setupPhotoHandlers() {
 function setupPhotoEventListeners(questionId) {
     // Botão para remover fotos existentes
     document.querySelectorAll(`.remove-photo-btn[data-question-id="${questionId}"]`).forEach(btn => {
-        btn.addEventListener('click', function() {
+        // Clonar e substituir o botão para remover listeners antigos e evitar duplicação
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+
+        newBtn.addEventListener('click', function() {
             const photoId = this.getAttribute('data-photo-id');
-            removePhoto(photoId, questionId);
+            
+            // 1. Passa os dados para o botão de confirmação do modal
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.setAttribute('data-photo-id', photoId);
+                confirmDeleteBtn.setAttribute('data-question-id', questionId);
+            }
+
+            // 2. Abre o modal de confirmação
+            if (deletePhotoModal) {
+                deletePhotoModal.show();
+            }
         });
     });
     
@@ -212,6 +233,18 @@ function setupPhotoEventListeners(questionId) {
             removeNewPhoto(questionId, index);
         });
     });
+
+    document.querySelectorAll(`.photos-container[data-question-id="${questionId}"] .img-thumbnail`).forEach(img => {
+        img.addEventListener('click', function() {
+            if (modalImageContent && imageViewerModal) {
+                // Pega o src da imagem clicada e coloca no modal
+                modalImageContent.src = this.src;
+                // Mostra o modal
+                imageViewerModal.show();
+            }
+        });
+    });
+
 }
 
 // Função para obter índice pela questão ID
@@ -275,9 +308,8 @@ function updatePhotoPreview(questionId) {
     
     let html = '';
     
-    // Fotos existentes (não removidas) - CORREÇÃO AQUI
+    // Fotos existentes (não removidas)
     current.forEach(foto => {
-        // Verificar se a foto NÃO está na lista de remoção
         if (!photosToRemove.includes(foto.id.toString())) {
             html += `
                 <div class="photo-thumbnail me-2 mb-2" data-photo-id="${foto.id}">
@@ -314,13 +346,12 @@ function updatePhotoPreview(questionId) {
 
 // Remover foto existente
 function removePhoto(photoId, questionId) {
-    // Converter para string para garantir comparação correta
     const photoIdStr = photoId.toString();
     
     if (!photosToRemove.includes(photoIdStr)) {
         photosToRemove.push(photoIdStr);
         updatePhotoPreview(questionId);
-        showInfo('Foto removida');
+        showInfo('Foto marcada para remoção');
     }
 }
 
@@ -394,10 +425,8 @@ async function submitUpdates() {
         const result = await response.json();
         
         if (response.ok) {
-            // Mostrar modal de sucesso
             const modal = new bootstrap.Modal(document.getElementById('completion-modal'));
             
-            // Atualizar estatísticas no modal
             const compliantCount = updatedData.respostas.filter(r => r.conformidade).length;
             const nonCompliantCount = updatedData.respostas.length - compliantCount;
             
@@ -417,34 +446,23 @@ async function submitUpdates() {
     }
 }
 
-// Função para mostrar erro
+// Funções de feedback para o usuário
 function showError(message) {
-    ToastBottomEnd.fire({
-        icon: 'error',
-        title: message,
-    });
+    ToastBottomEnd.fire({ icon: 'error', title: message });
 }
 
-// Função para mostrar sucesso
 function showSuccess(message) {
-    ToastBottomEnd.fire({
-        icon: 'success',
-        title: message,
-    });
+    ToastBottomEnd.fire({ icon: 'success', title: message });
 }
 
-// Função para mostrar informação
 function showInfo(message) {
-    ToastBottomEnd.fire({
-        icon: 'info',
-        title: message,
-    });
+    ToastBottomEnd.fire({ icon: 'info', title: message });
 }
 
 // Função para atualizar o progresso
 function updateProgress() {
     const questionCards = document.querySelectorAll('.question-card');
-    const answeredCount = questionCards.length; // Todas estão respondidas em modo de edição
+    const answeredCount = questionCards.length;
     
     const compliantCount = Array.from(questionCards).filter(card => {
         const index = card.getAttribute('data-index');
@@ -465,6 +483,30 @@ function setupUpdateButton() {
 
 // Carregar os dados quando a página for carregada
 window.addEventListener('DOMContentLoaded', async () => {
+    // Inicializa o modal e o botão de confirmação
+    const modalEl = document.getElementById('deletePhotoConfirmModal');
+    if (modalEl) {
+        deletePhotoModal = new bootstrap.Modal(modalEl);
+        confirmDeleteBtn = document.getElementById('confirmPhotoDeleteBtn');
+
+        // Adiciona o listener para o botão que confirma a exclusão
+        confirmDeleteBtn.addEventListener('click', function() {
+            const photoId = this.getAttribute('data-photo-id');
+            const questionId = this.getAttribute('data-question-id');
+
+            if (photoId && questionId) {
+                removePhoto(photoId, questionId); // Chama a função original para remover
+                deletePhotoModal.hide(); // Esconde o modal
+            }
+        });
+    }
+
+    const imageViewerModalEl = document.getElementById('imageViewerModal');
+    if (imageViewerModalEl) {
+        imageViewerModal = new bootstrap.Modal(imageViewerModalEl);
+        modalImageContent = document.getElementById('modal-image-content');
+    }
+
     const inspectionData = await loadInspectionData();
     if (inspectionData) {
         populateFormWithData(inspectionData);
