@@ -122,7 +122,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
                                 data-nome="${row.funcionario_nome}" data-id="${data}"
                                 data-action="cancelar" style="color: #dc2626; cursor: pointer;">
                                 <i class="bi bi-x-circle" style="margin-right: 8px; pointer-events: none;"></i>
-                                Cancelar Solicitação
+                                Excluir Solicitação
                             </a>
                         </li>
                     `;
