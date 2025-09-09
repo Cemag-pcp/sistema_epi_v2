@@ -1,0 +1,53 @@
+name: Django Collect Static and Commit
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-collect-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Precisamos de um token para poder fazer push de volta para o repositório
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run collectstatic
+        # Desta vez, rodamos o comando de verdade, sem --dry-run
+        run: python manage.py collectstatic --no-input
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DEBUG: "False"
+
+      - name: Commit and push static files
+        run: |
+          # Configura o usuário do Git para o commit
+          git config --global user.name "SaulSantos1"
+          git config --global user.email "saulsantos111@gmail.com"
+          
+          # Adiciona a pasta de estáticos ao stage
+          # Mude 'staticfiles/' para o valor do seu STATIC_ROOT se for diferente
+          git add staticfiles/
+          
+          # Verifica se há mudanças para commitar, para não criar commits vazios
+          if ! git diff-index --quiet HEAD; then
+            # Cria o commit. A parte [ci skip] é CRUCIAL para evitar o loop infinito.
+            git commit -m "chore: Collect and update static files [ci skip]"
+            
+            # Empurra as mudanças para a branch 'main'
+            git push
+          else
+            echo "No changes to commit."
+          fi
