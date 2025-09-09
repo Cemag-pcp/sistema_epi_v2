@@ -113,7 +113,7 @@ export function carregarCardsChecklist(page = 1) {
                                             title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a href="${checklist.url_inspection}/${checklist.id}/" class="text-decoration-none text-dark inspection-btn"
+                                    <a href="${checklist.url_inspection}" class="text-decoration-none text-dark inspection-btn"
                                         data-checklist-id="${checklist.id}" 
                                         data-checklist-name="${checklist.nome}">
                                         <div class="d-flex justify-content-between align-items-start">
