@@ -25,7 +25,7 @@ def login_view(request):
         password = request.POST.get('password')
 
         user = authenticate(request, username=matricula, password=password)
-        if user:
+        if user and (user.funcionario and user.funcionario.ativo) or user.is_superuser:
             login(request, user)
             if (user.is_superuser) or (user.is_authenticated and user.funcionario.tipo_acesso == 'master'):
                 print('Redirecionando para a página de administração')
