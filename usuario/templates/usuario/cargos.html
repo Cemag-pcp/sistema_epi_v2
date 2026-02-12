@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">Gestao de Cargos</h1>
+            <button id="addCargoBtn" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-2"></i>Novo Cargo
+            </button>
+        </div>
+
+        <div class="row mb-4 align-items-center">
+            <div class="col-md-6 mb-3 mb-md-0">
+                <div class="input-group">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar cargos...">
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="cargoTable" class="table table-hover w-100 dataTable no-footer" style="width:100%">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Acoes</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <div id="loadingSpinner" class="loading-overlay d-none">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-2">Carregando dados...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'usuario/modal/modal_cargo.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{% static 'js/crud_cargos.js' %}"></script>
+{% endblock %}

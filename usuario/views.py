@@ -466,6 +466,56 @@ def busca_setor(request,id):
 def setores(request):
     if request.method == 'GET':
         return render(request,'usuario/setores.html')
+
+@login_required
+@somente_master
+@require_http_methods(["GET", "POST"])
+def cargos(request):
+    if request.method == 'GET':
+        return render(request, 'usuario/cargos.html')
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body) if request.body else {}
+            nome = data.get('nome', '').strip()
+
+            if not nome:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Campo obrigatorio faltando',
+                    'errors': {'nome': 'Este campo e obrigatorio'}
+                }, status=400)
+
+            if Cargo.objects.filter(nome__iexact=nome).exists():
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Ja existe um cargo com este nome',
+                    'errors': {'nome': 'Cargo duplicado'}
+                }, status=400)
+
+            cargo = Cargo(nome=nome)
+            cargo.full_clean()
+            cargo.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Cargo cadastrado com sucesso!',
+                'cargo': {'id': cargo.id, 'nome': cargo.nome}
+            }, status=201)
+
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'message': 'Erro de validacao',
+                'errors': e.message_dict
+            }, status=400)
+        except Exception as e:
+            print('Stack trace:', traceback.format_exc())
+            return JsonResponse({
+                'success': False,
+                'message': 'Erro ao cadastrar cargo',
+                'errors': str(e)
+            }, status=500)
     
 @login_required
 @somente_master
@@ -543,12 +593,87 @@ def editar_setor(request,id):
             {'success': False, 'message': f'Erro interno no servidor: {str(e)}'},
             status=500
         )
+
+@login_required
+@somente_master
+@require_http_methods(["PUT", "DELETE"])
+def editar_cargo(request, id):
+    try:
+        cargo = Cargo.objects.filter(id=id).first()
+
+        if not cargo:
+            return JsonResponse(
+                {'success': False, 'message': 'Cargo nao encontrado'},
+                status=404
+            )
+
+        if request.method == 'PUT':
+            try:
+                data = json.loads(request.body) if request.body else {}
+                nome = data.get('nome', '').strip()
+
+                if not nome:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Campo obrigatorio faltando',
+                        'errors': {'nome': 'Este campo e obrigatorio'}
+                    }, status=400)
+
+                if Cargo.objects.filter(nome__iexact=nome).exclude(id=cargo.id).exists():
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Ja existe um cargo com este nome',
+                        'errors': {'nome': 'Cargo duplicado'}
+                    }, status=400)
+
+                cargo.nome = nome
+                cargo.full_clean()
+                cargo.save()
+
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Cargo atualizado com sucesso!',
+                    'cargo': {'id': cargo.id, 'nome': cargo.nome}
+                }, status=200)
+
+            except json.JSONDecodeError:
+                return JsonResponse(
+                    {'success': False, 'message': 'Formato JSON invalido'},
+                    status=400
+                )
+            except ValidationError as e:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Erro de validacao',
+                    'errors': e.message_dict
+                }, status=400)
+            except Exception as e:
+                print('Stack trace:', traceback.format_exc())
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Erro ao atualizar cargo',
+                    'errors': str(e)
+                }, status=500)
+
+        if request.method == 'DELETE':
+            cargo.delete()
+            return JsonResponse({
+                'success': True,
+                'message': 'Cargo removido com sucesso!'
+            }, status=200)
+
+    except Exception as e:
+        print('Stack trace:', traceback.format_exc())
+        return JsonResponse(
+            {'success': False, 'message': f'Erro interno no servidor: {str(e)}'},
+            status=500
+        )
     
 @login_required
 @somente_master
 def api_cargos(request):
     if request.method == 'GET':
-        cargos = list(Cargo.objects.values())
+        cargos = list(Cargo.objects.values('id', 'nome').order_by('nome'))
 
         return JsonResponse(cargos, safe=False)
     

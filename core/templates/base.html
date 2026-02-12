@@ -101,6 +101,7 @@
                                             <a class="nav-link" href="{% url 'equipamento:equipamento' %}">Equipamento</a>
                                             <a class="nav-link" href="{% url 'padrao:padrao' %}">Padrões de Solicitações</a>
                                             <a class="nav-link" href="{% url 'usuario:setores' %}">Setores</a>
+                                            <a class="nav-link" href="{% url 'usuario:cargos' %}">Cargos</a>
                                         {% elif request.user.funcionario.tipo_acesso == 'solicitante' %}
                                             <a class="nav-link" href="{% url 'padrao:padrao' %}">Padrões de Solicitações</a>
                                         {% endif %}
@@ -120,6 +121,7 @@
                                             <a class="nav-link" href="{% url 'equipamento:equipamento' %}">Equipamento</a>
                                             <a class="nav-link" href="{% url 'padrao:padrao' %}">Padrões de Solicitações</a>
                                             <a class="nav-link" href="{% url 'usuario:setores' %}">Setores</a>
+                                            <a class="nav-link" href="{% url 'usuario:cargos' %}">Cargos</a>
                                         {% elif request.user.funcionario.tipo_acesso == 'solicitante' %}
                                             <a class="nav-link" href="{% url 'padrao:padrao' %}">Padrões de Solicitações</a>
                                         {% endif %}
