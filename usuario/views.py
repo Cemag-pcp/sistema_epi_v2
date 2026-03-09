@@ -11,12 +11,29 @@ from django.db.models import Sum, F, Q
 from django.db import transaction, DatabaseError
 from django.core.exceptions import ObjectDoesNotExist
 
-from usuario.models import Funcionario,Setor,Usuario,Cargo
+from usuario.models import Funcionario,Setor,Usuario,Cargo,DDS
 from solicitacao.models import DadosSolicitacao
 from usuario.decorators import somente_master, master_solicit
 
 import traceback
 import json
+
+
+def serializar_dds(dds):
+    participantes = list(dds.participantes.order_by('nome').values('id', 'nome', 'matricula'))
+    return {
+        'id': dds.id,
+        'titulo': dds.titulo,
+        'data': dds.data.isoformat(),
+        'horario': dds.horario.strftime('%H:%M'),
+        'participantes': participantes,
+        'participantes_label': ', '.join(
+            f"{participante['matricula']} - {participante['nome']}" for participante in participantes
+        ),
+        'created_at': dds.created_at.strftime('%d/%m/%Y %H:%M'),
+        'updated_at': dds.updated_at.strftime('%d/%m/%Y %H:%M'),
+        'criado_por': str(dds.criado_por) if dds.criado_por else '--',
+    }
 
 def login_view(request):
     if request.method == 'POST':
@@ -25,13 +42,14 @@ def login_view(request):
         password = request.POST.get('password')
 
         user = authenticate(request, username=matricula, password=password)
-        if user and (user.funcionario and user.funcionario.ativo) or user.is_superuser:
+        funcionario = getattr(user, 'funcionario', None) if user else None
+        if user and (user.is_superuser or (funcionario and funcionario.ativo)):
             login(request, user)
-            if (user.is_superuser) or (user.is_authenticated and user.funcionario.tipo_acesso == 'master'):
+            if user.is_superuser or (funcionario and funcionario.tipo_acesso == 'master'):
                 print('Redirecionando para a página de administração')
                 next_url = request.POST.get('next') or 'core:home'
                 # Redirecionar para a página inicial de solicitações
-            elif user.funcionario.tipo_acesso == 'solicitante':
+            elif funcionario and funcionario.tipo_acesso == 'solicitante':
                 print('Redirecionando para a página de funcionário')
                 next_url = request.POST.get('next') or 'solicitacao:solicitacao'
                 # Enquanto ainda não existe uma página de solicitação EPI, vamos redirecionar para a home
@@ -676,6 +694,153 @@ def api_cargos(request):
         cargos = list(Cargo.objects.values('id', 'nome').order_by('nome'))
 
         return JsonResponse(cargos, safe=False)
+
+
+@login_required
+def dds(request):
+    if request.method == 'GET':
+        return render(request, 'usuario/dds.html')
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_dds_participantes(request):
+    participantes = list(
+        Funcionario.objects.filter(ativo=True)
+        .values('id', 'nome', 'matricula')
+        .order_by('nome')
+    )
+    return JsonResponse(participantes, safe=False)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def api_dds(request):
+    if request.method == 'GET':
+        dds_registros = DDS.objects.prefetch_related('participantes').select_related('criado_por')
+        return JsonResponse([serializar_dds(dds) for dds in dds_registros], safe=False)
+
+    try:
+        data = json.loads(request.body) if request.body else {}
+        required_fields = ['titulo', 'data', 'horario', 'participantes']
+        if not all(field in data for field in required_fields):
+            return JsonResponse({
+                'success': False,
+                'message': 'Campos obrigatorios faltando',
+                'errors': {field: 'Este campo e obrigatorio' for field in required_fields if field not in data}
+            }, status=400)
+
+        participantes_ids = data.get('participantes', [])
+        if not isinstance(participantes_ids, list) or not participantes_ids:
+            return JsonResponse({
+                'success': False,
+                'message': 'Selecione pelo menos um participante',
+                'errors': {'participantes': 'Selecione pelo menos um participante'}
+            }, status=400)
+
+        participantes = list(Funcionario.objects.filter(id__in=participantes_ids, ativo=True))
+        if len(participantes) != len(set(participantes_ids)):
+            return JsonResponse({
+                'success': False,
+                'message': 'Existem participantes invalidos na selecao',
+                'errors': {'participantes': 'Existem participantes invalidos na selecao'}
+            }, status=400)
+
+        with transaction.atomic():
+            dds = DDS(
+                titulo=data.get('titulo', '').strip(),
+                data=data.get('data'),
+                horario=data.get('horario'),
+                criado_por=request.user,
+            )
+            dds.full_clean()
+            dds.save()
+            dds.participantes.set(participantes)
+
+        return JsonResponse({
+            'success': True,
+            'message': 'DDS cadastrada com sucesso!',
+            'dds': serializar_dds(dds)
+        }, status=201)
+
+    except ValidationError as e:
+        return JsonResponse({
+            'success': False,
+            'message': 'Erro de validacao',
+            'errors': e.message_dict
+        }, status=400)
+    except Exception as e:
+        print('Stack trace:', traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'message': 'Erro ao cadastrar DDS',
+            'errors': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["PUT"])
+def editar_dds(request, id):
+    dds = DDS.objects.filter(id=id).first()
+    if not dds:
+        return JsonResponse({
+            'success': False,
+            'message': 'DDS nao encontrada'
+        }, status=404)
+
+    try:
+        data = json.loads(request.body) if request.body else {}
+        required_fields = ['titulo', 'data', 'horario', 'participantes']
+        if not all(field in data for field in required_fields):
+            return JsonResponse({
+                'success': False,
+                'message': 'Campos obrigatorios faltando',
+                'errors': {field: 'Este campo e obrigatorio' for field in required_fields if field not in data}
+            }, status=400)
+
+        participantes_ids = data.get('participantes', [])
+        if not isinstance(participantes_ids, list) or not participantes_ids:
+            return JsonResponse({
+                'success': False,
+                'message': 'Selecione pelo menos um participante',
+                'errors': {'participantes': 'Selecione pelo menos um participante'}
+            }, status=400)
+
+        participantes = list(Funcionario.objects.filter(id__in=participantes_ids, ativo=True))
+        if len(participantes) != len(set(participantes_ids)):
+            return JsonResponse({
+                'success': False,
+                'message': 'Existem participantes invalidos na selecao',
+                'errors': {'participantes': 'Existem participantes invalidos na selecao'}
+            }, status=400)
+
+        with transaction.atomic():
+            dds.titulo = data.get('titulo', '').strip()
+            dds.data = data.get('data')
+            dds.horario = data.get('horario')
+            dds.full_clean()
+            dds.save()
+            dds.participantes.set(participantes)
+
+        return JsonResponse({
+            'success': True,
+            'message': 'DDS atualizada com sucesso!',
+            'dds': serializar_dds(dds)
+        }, status=200)
+
+    except ValidationError as e:
+        return JsonResponse({
+            'success': False,
+            'message': 'Erro de validacao',
+            'errors': e.message_dict
+        }, status=400)
+    except Exception as e:
+        print('Stack trace:', traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'message': 'Erro ao atualizar DDS',
+            'errors': str(e)
+        }, status=500)
     
 @login_required
 def itens_ativos_funcionario(request,id):

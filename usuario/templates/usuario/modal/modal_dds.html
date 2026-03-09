@@ -1,0 +1,41 @@
+<div class="modal fade" id="ddsModal" tabindex="-1" aria-labelledby="ddsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ddsModalLabel">Nova DDS</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="ddsForm">
+                    <input type="hidden" id="ddsId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="ddsTitulo" class="form-label">Titulo da DDS</label>
+                            <input type="text" class="form-control" id="ddsTitulo" maxlength="200" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ddsData" class="form-label">Data</label>
+                            <input type="date" class="form-control" id="ddsData" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ddsHorario" class="form-label">Horario</label>
+                            <input type="time" class="form-control" id="ddsHorario" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="ddsParticipantes" class="form-label">Participantes</label>
+                            <select id="ddsParticipantes" class="form-select select2-modal" multiple required></select>
+                            <div class="form-text">Selecione um ou mais participantes para registrar a DDS.</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveDDSBtn">
+                    <span id="saveDDSButtonText">Salvar</span>
+                    <span id="saveDDSSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

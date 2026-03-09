@@ -55,6 +55,30 @@ class Funcionario(models.Model):
     def __str__(self):
         return f'{self.matricula} - {self.nome}'
 
+
+class DDS(models.Model):
+    titulo = models.CharField(max_length=200)
+    data = models.DateField()
+    horario = models.TimeField()
+    participantes = models.ManyToManyField(Funcionario, related_name='dds_participados')
+    criado_por = models.ForeignKey(
+        'Usuario',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='dds_criados'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-data', '-horario', '-id']
+        verbose_name = 'DDS'
+        verbose_name_plural = 'DDS'
+
+    def __str__(self):
+        return f'{self.titulo} - {self.data}'
+
 class Usuario(AbstractBaseUser, PermissionsMixin):
     nome = models.CharField(max_length=150)
     matricula = models.IntegerField(unique=True)
