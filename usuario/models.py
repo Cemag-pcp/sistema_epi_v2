@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.utils.translation import gettext_lazy as _
+from storages.backends.s3boto3 import S3Boto3Storage
 
 
 class UsuarioManager(BaseUserManager):
@@ -60,6 +61,13 @@ class DDS(models.Model):
     titulo = models.CharField(max_length=200)
     data = models.DateField()
     horario = models.TimeField()
+    responsavel = models.ForeignKey(
+        Funcionario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='dds_responsavel'
+    )
     participantes = models.ManyToManyField(Funcionario, related_name='dds_participados')
     criado_por = models.ForeignKey(
         'Usuario',
@@ -78,6 +86,27 @@ class DDS(models.Model):
 
     def __str__(self):
         return f'{self.titulo} - {self.data}'
+
+
+class DDSAssinatura(models.Model):
+    dds = models.ForeignKey(DDS, on_delete=models.CASCADE, related_name='assinaturas')
+    funcionario = models.ForeignKey(Funcionario, on_delete=models.CASCADE, related_name='dds_assinaturas')
+    imagem_assinatura = models.ImageField(
+        upload_to='assinatura/dds/',
+        blank=False,
+        null=False,
+        storage=S3Boto3Storage()
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('dds', 'funcionario')
+        verbose_name = 'Assinatura DDS'
+        verbose_name_plural = 'Assinaturas DDS'
+
+    def __str__(self):
+        return f'{self.dds_id} - {self.funcionario}'
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
     nome = models.CharField(max_length=150)

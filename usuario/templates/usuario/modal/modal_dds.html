@@ -10,7 +10,7 @@
                     <input type="hidden" id="ddsId">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label for="ddsTitulo" class="form-label">Titulo da DDS</label>
+                            <label for="ddsTitulo" class="form-label">Tema da DDS</label>
                             <input type="text" class="form-control" id="ddsTitulo" maxlength="200" required>
                         </div>
                         <div class="col-md-6">
@@ -20,6 +20,11 @@
                         <div class="col-md-6">
                             <label for="ddsHorario" class="form-label">Horario</label>
                             <input type="time" class="form-control" id="ddsHorario" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="ddsResponsavel" class="form-label">Responsável</label>
+                            <select id="ddsResponsavel" class="form-select select2-modal" required></select>
+                            <div class="form-text">Selecione o funcionário responsável pela DDS.</div>
                         </div>
                         <div class="col-12">
                             <label for="ddsParticipantes" class="form-label">Participantes</label>

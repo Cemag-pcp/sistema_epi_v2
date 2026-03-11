@@ -24,6 +24,7 @@ urlpatterns = [
     path('api_dds/', views.api_dds, name='api_dds'),
     path('api_dds_participantes/', views.api_dds_participantes, name='api_dds_participantes'),
     path('dds/<int:id>/', views.editar_dds, name='editar_dds'),
+    path('dds/<int:id>/exportar-pdf/', views.exportar_dds_pdf, name='exportar_dds_pdf'),
     path('api_itens_ativos/<int:id>/',views.itens_ativos_funcionario, name='itens_ativos_funcionario'), # Verificar itens ativos de um funcionario
     path('inventario/', views.inventario, name='inventario'), # Inventario do operador
 ]

@@ -1,32 +1,63 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.views.decorators.http import require_http_methods
+from django.utils import timezone
 
 from django.core.exceptions import ValidationError
 from django.db.models import Sum, F, Q
 from django.db import transaction, DatabaseError
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files.base import ContentFile
 
-from usuario.models import Funcionario,Setor,Usuario,Cargo,DDS
+from usuario.models import Funcionario,Setor,Usuario,Cargo,DDS,DDSAssinatura
 from solicitacao.models import DadosSolicitacao
 from usuario.decorators import somente_master, master_solicit
 
 import traceback
 import json
+import base64
+import uuid
+from io import BytesIO
+
+from PIL import Image, ImageDraw, ImageFont
 
 
 def serializar_dds(dds):
     participantes = list(dds.participantes.order_by('nome').values('id', 'nome', 'matricula'))
+    assinaturas = list(
+        dds.assinaturas.select_related('funcionario')
+        .order_by('funcionario__nome')
+        .values('funcionario_id', 'funcionario__nome', 'funcionario__matricula', 'imagem_assinatura')
+    )
     return {
         'id': dds.id,
         'titulo': dds.titulo,
         'data': dds.data.isoformat(),
         'horario': dds.horario.strftime('%H:%M'),
+        'responsavel': (
+            {
+                'id': dds.responsavel.id,
+                'nome': dds.responsavel.nome,
+                'matricula': dds.responsavel.matricula,
+            }
+            if dds.responsavel else None
+        ),
+        'responsavel_label': str(dds.responsavel) if dds.responsavel else '--',
         'participantes': participantes,
+        'assinaturas': [
+            {
+                'funcionario_id': assinatura['funcionario_id'],
+                'nome': assinatura['funcionario__nome'],
+                'matricula': assinatura['funcionario__matricula'],
+                'imagem_assinatura': assinatura['imagem_assinatura'],
+            }
+            for assinatura in assinaturas
+        ],
+        'assinaturas_ids': [assinatura['funcionario_id'] for assinatura in assinaturas],
         'participantes_label': ', '.join(
             f"{participante['matricula']} - {participante['nome']}" for participante in participantes
         ),
@@ -34,6 +65,247 @@ def serializar_dds(dds):
         'updated_at': dds.updated_at.strftime('%d/%m/%Y %H:%M'),
         'criado_por': str(dds.criado_por) if dds.criado_por else '--',
     }
+
+
+def normalizar_assinaturas_dds(assinaturas_payload):
+    if not isinstance(assinaturas_payload, list):
+        raise ValidationError({'assinaturas': 'Formato de assinaturas invalido'})
+
+    assinaturas_normalizadas = {}
+    for assinatura in assinaturas_payload:
+        if not isinstance(assinatura, dict):
+            raise ValidationError({'assinaturas': 'Formato de assinaturas invalido'})
+
+        funcionario_id = assinatura.get('funcionario_id')
+        signature = assinatura.get('signature')
+        if not funcionario_id or not signature:
+            raise ValidationError({'assinaturas': 'Assinatura incompleta para participante'})
+
+        assinaturas_normalizadas[int(funcionario_id)] = signature
+
+    return assinaturas_normalizadas
+
+
+def salvar_assinaturas_dds(dds, assinaturas_por_funcionario):
+    for funcionario_id, signature in assinaturas_por_funcionario.items():
+        image_format, imgstr = signature.split(';base64,')
+        ext = image_format.split('/')[-1]
+        file_name = f"dds-{dds.id}-{funcionario_id}-{uuid.uuid4()}.{ext}"
+        assinatura_path = ContentFile(base64.b64decode(imgstr), name=file_name)
+
+        DDSAssinatura.objects.update_or_create(
+            dds=dds,
+            funcionario_id=funcionario_id,
+            defaults={'imagem_assinatura': assinatura_path}
+        )
+
+
+def get_pdf_font(size, bold=False):
+    font_candidates = [
+        "arialbd.ttf" if bold else "arial.ttf",
+        "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
+    ]
+    for font_name in font_candidates:
+        try:
+            return ImageFont.truetype(font_name, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def draw_text(draw, text, position, font, fill, max_width, line_spacing=8):
+    words = str(text).split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = f"{current_line} {word}".strip()
+        bbox = draw.textbbox((0, 0), test_line, font=font)
+        if bbox[2] - bbox[0] <= max_width or not current_line:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    x, y = position
+    for line in lines:
+        draw.text((x, y), line, font=font, fill=fill)
+        bbox = draw.textbbox((x, y), line, font=font)
+        y += (bbox[3] - bbox[1]) + line_spacing
+
+    return y
+
+
+def build_dds_pdf(dds):
+    page_width, page_height = 1240, 1754
+    margin = 80
+    content_width = page_width - (margin * 2)
+    text_color = "black"
+    muted_color = "black"
+    line_color = "black"
+
+    title_font = get_pdf_font(30, bold=True)
+    section_font = get_pdf_font(20, bold=True)
+    label_font = get_pdf_font(15, bold=True)
+    body_font = get_pdf_font(15)
+    small_font = get_pdf_font(12)
+
+    pages = []
+    page = Image.new("RGB", (page_width, page_height), "white")
+    draw = ImageDraw.Draw(page)
+    y = margin
+
+    def new_page():
+        nonlocal page, draw, y
+        pages.append(page)
+        page = Image.new("RGB", (page_width, page_height), "white")
+        draw = ImageDraw.Draw(page)
+        y = margin
+
+    def ensure_space(required_height):
+        nonlocal y
+        if y + required_height > page_height - margin:
+            new_page()
+
+    draw.rectangle((margin, y, page_width - margin, y + 120), outline=line_color, width=2)
+    draw.text((margin + 30, y + 18), "REGISTRO DE DDS", font=title_font, fill=text_color)
+    draw.text((margin + 30, y + 62), "Documento de controle interno para auditoria", font=body_font, fill=text_color)
+    draw.text((page_width - margin - 250, y + 24), f"Documento: DDS-{dds.id:05d}", font=label_font, fill=text_color)
+    draw.text((page_width - margin - 250, y + 56), f"Emissao: {timezone.localtime().strftime('%d/%m/%Y %H:%M')}", font=body_font, fill=text_color)
+    y += 155
+
+    draw.text((margin, y), "1. Identificacao da DDS", font=section_font, fill=text_color)
+    y += 30
+    draw.line((margin, y, page_width - margin, y), fill=line_color, width=2)
+    y += 24
+
+    info_rows = [
+        ("Tema", dds.titulo),
+        ("Data", dds.data.strftime('%d/%m/%Y')),
+        ("Horario", dds.horario.strftime('%H:%M')),
+        ("Responsavel", str(dds.responsavel) if dds.responsavel else "--"),
+        ("Registrado por", str(dds.criado_por) if dds.criado_por else "--"),
+        ("Ultima atualizacao", dds.updated_at.strftime('%d/%m/%Y %H:%M')),
+    ]
+
+    label_width = 220
+    row_height = 42
+    for label, value in info_rows:
+        ensure_space(row_height + 8)
+        draw.rectangle((margin, y, margin + label_width, y + row_height), outline=line_color, width=1)
+        draw.rectangle((margin + label_width, y, page_width - margin, y + row_height), outline=line_color, width=1)
+        draw.text((margin + 12, y + 11), label, font=label_font, fill=text_color)
+        draw.text((margin + label_width + 12, y + 11), str(value), font=body_font, fill=text_color)
+        y += row_height
+
+    y += 28
+
+    participantes = list(dds.participantes.order_by('nome'))
+    assinaturas = {
+        assinatura.funcionario_id: assinatura
+        for assinatura in dds.assinaturas.select_related('funcionario').all()
+    }
+
+    draw.text((margin, y), "2. Participantes", font=section_font, fill=text_color)
+    y += 30
+    draw.line((margin, y, page_width - margin, y), fill=line_color, width=2)
+    y += 22
+
+    matricula_width = 180
+    nome_width = 420
+    assinatura_width = content_width - matricula_width - nome_width
+    table_header_height = 40
+    row_height = 150
+
+    def draw_table_header(top_y):
+        draw.rectangle((margin, top_y, page_width - margin, top_y + table_header_height), outline=line_color, width=2)
+        draw.line((margin + matricula_width, top_y, margin + matricula_width, top_y + table_header_height), fill=line_color, width=2)
+        draw.line((margin + matricula_width + nome_width, top_y, margin + matricula_width + nome_width, top_y + table_header_height), fill=line_color, width=2)
+        draw.text((margin + 12, top_y + 10), "Matricula", font=label_font, fill=text_color)
+        draw.text((margin + matricula_width + 12, top_y + 10), "Nome", font=label_font, fill=text_color)
+        draw.text((margin + matricula_width + nome_width + 12, top_y + 10), "Assinatura", font=label_font, fill=text_color)
+
+    draw_table_header(y)
+    y += table_header_height
+
+    for participante in participantes:
+        ensure_space(row_height + 20)
+        if y == margin:
+            draw.text((margin, y), "2. Participantes", font=section_font, fill=text_color)
+            y += 30
+            draw.line((margin, y, page_width - margin, y), fill=line_color, width=2)
+            y += 22
+            draw_table_header(y)
+            y += table_header_height
+
+        draw.rectangle((margin, y, page_width - margin, y + row_height), outline=line_color, width=1)
+        draw.line((margin + matricula_width, y, margin + matricula_width, y + row_height), fill=line_color, width=1)
+        draw.line((margin + matricula_width + nome_width, y, margin + matricula_width + nome_width, y + row_height), fill=line_color, width=1)
+
+        draw.text((margin + 12, y + 16), str(participante.matricula), font=body_font, fill=text_color)
+        draw_text(
+            draw,
+            participante.nome,
+            (margin + matricula_width + 12, y + 16),
+            body_font,
+            text_color,
+            nome_width - 24,
+            4
+        )
+
+        assinatura = assinaturas.get(participante.id)
+        assinatura_area = (
+            margin + matricula_width + nome_width + 12,
+            y + 12,
+            page_width - margin - 12,
+            y + row_height - 28
+        )
+        draw.rectangle(assinatura_area, outline=line_color, width=1)
+
+        if assinatura and assinatura.imagem_assinatura:
+            try:
+                assinatura.imagem_assinatura.open("rb")
+                signature_image = Image.open(assinatura.imagem_assinatura).convert("RGBA")
+                signature_image.thumbnail(
+                    (assinatura_area[2] - assinatura_area[0] - 12, assinatura_area[3] - assinatura_area[1] - 12)
+                )
+                sig_x = assinatura_area[0] + ((assinatura_area[2] - assinatura_area[0]) - signature_image.width) // 2
+                sig_y = assinatura_area[1] + ((assinatura_area[3] - assinatura_area[1]) - signature_image.height) // 2
+                page.paste(signature_image, (sig_x, sig_y), signature_image)
+            except Exception:
+                draw.text((assinatura_area[0] + 12, assinatura_area[1] + 20), "Assinatura indisponivel", font=body_font, fill=text_color)
+        else:
+            draw.text((assinatura_area[0] + 12, assinatura_area[1] + 20), "Assinatura nao encontrada", font=body_font, fill=text_color)
+
+        draw.text((assinatura_area[0], y + row_height - 22), "Assinatura do participante", font=small_font, fill=text_color)
+        y += row_height
+
+    y += 24
+    ensure_space(140)
+    draw.text((margin, y), "3. Observacoes de controle", font=section_font, fill=text_color)
+    y += 30
+    draw.line((margin, y, page_width - margin, y), fill=line_color, width=2)
+    y += 20
+    observacoes = [
+        "Este documento registra os participantes presentes na DDS e suas respectivas assinaturas.",
+        "As assinaturas foram coletadas eletronicamente no sistema e vinculadas ao registro da DDS.",
+        f"Quantidade total de participantes assinantes: {len(participantes)}.",
+    ]
+    for observacao in observacoes:
+        y = draw_text(draw, f"- {observacao}", (margin, y), body_font, text_color, content_width, 6)
+        y += 6
+
+    draw.line((margin, page_height - margin - 28, page_width - margin, page_height - margin - 28), fill=line_color, width=1)
+    draw.text((margin, page_height - margin), "Sistema EPI - Documento gerado eletronicamente para fins de auditoria", font=small_font, fill=text_color)
+    pages.append(page)
+
+    buffer = BytesIO()
+    pages[0].save(buffer, format="PDF", resolution=150.0, save_all=True, append_images=pages[1:])
+    buffer.seek(0)
+    return buffer
 
 def login_view(request):
     if request.method == 'POST':
@@ -717,12 +989,12 @@ def api_dds_participantes(request):
 @require_http_methods(["GET", "POST"])
 def api_dds(request):
     if request.method == 'GET':
-        dds_registros = DDS.objects.prefetch_related('participantes').select_related('criado_por')
+        dds_registros = DDS.objects.prefetch_related('participantes', 'assinaturas__funcionario').select_related('criado_por', 'responsavel')
         return JsonResponse([serializar_dds(dds) for dds in dds_registros], safe=False)
 
     try:
         data = json.loads(request.body) if request.body else {}
-        required_fields = ['titulo', 'data', 'horario', 'participantes']
+        required_fields = ['titulo', 'data', 'horario', 'responsavel', 'participantes', 'assinaturas']
         if not all(field in data for field in required_fields):
             return JsonResponse({
                 'success': False,
@@ -731,11 +1003,19 @@ def api_dds(request):
             }, status=400)
 
         participantes_ids = data.get('participantes', [])
+        responsavel_id = data.get('responsavel')
+        assinaturas_por_funcionario = normalizar_assinaturas_dds(data.get('assinaturas', []))
         if not isinstance(participantes_ids, list) or not participantes_ids:
             return JsonResponse({
                 'success': False,
                 'message': 'Selecione pelo menos um participante',
                 'errors': {'participantes': 'Selecione pelo menos um participante'}
+            }, status=400)
+        if not responsavel_id:
+            return JsonResponse({
+                'success': False,
+                'message': 'Selecione um responsavel',
+                'errors': {'responsavel': 'Selecione um responsavel'}
             }, status=400)
 
         participantes = list(Funcionario.objects.filter(id__in=participantes_ids, ativo=True))
@@ -746,16 +1026,42 @@ def api_dds(request):
                 'errors': {'participantes': 'Existem participantes invalidos na selecao'}
             }, status=400)
 
+        responsavel = Funcionario.objects.filter(id=responsavel_id, ativo=True).first()
+        if not responsavel:
+            return JsonResponse({
+                'success': False,
+                'message': 'Responsavel invalido na selecao',
+                'errors': {'responsavel': 'Responsavel invalido na selecao'}
+            }, status=400)
+
+        if responsavel.id not in {participante.id for participante in participantes}:
+            return JsonResponse({
+                'success': False,
+                'message': 'O responsavel precisa estar entre os participantes',
+                'errors': {'responsavel': 'O responsavel precisa estar entre os participantes'}
+            }, status=400)
+
+        participantes_ids_set = {participante.id for participante in participantes}
+        assinaturas_ids_set = set(assinaturas_por_funcionario.keys())
+        if participantes_ids_set != assinaturas_ids_set:
+            return JsonResponse({
+                'success': False,
+                'message': 'Todos os participantes devem assinar a DDS',
+                'errors': {'assinaturas': 'Todos os participantes devem assinar a DDS'}
+            }, status=400)
+
         with transaction.atomic():
             dds = DDS(
                 titulo=data.get('titulo', '').strip(),
                 data=data.get('data'),
                 horario=data.get('horario'),
+                responsavel=responsavel,
                 criado_por=request.user,
             )
             dds.full_clean()
             dds.save()
             dds.participantes.set(participantes)
+            salvar_assinaturas_dds(dds, assinaturas_por_funcionario)
 
         return JsonResponse({
             'success': True,
@@ -781,7 +1087,7 @@ def api_dds(request):
 @login_required
 @require_http_methods(["PUT"])
 def editar_dds(request, id):
-    dds = DDS.objects.filter(id=id).first()
+    dds = DDS.objects.prefetch_related('assinaturas').filter(id=id).first()
     if not dds:
         return JsonResponse({
             'success': False,
@@ -790,7 +1096,7 @@ def editar_dds(request, id):
 
     try:
         data = json.loads(request.body) if request.body else {}
-        required_fields = ['titulo', 'data', 'horario', 'participantes']
+        required_fields = ['titulo', 'data', 'horario', 'responsavel', 'participantes', 'assinaturas']
         if not all(field in data for field in required_fields):
             return JsonResponse({
                 'success': False,
@@ -799,11 +1105,19 @@ def editar_dds(request, id):
             }, status=400)
 
         participantes_ids = data.get('participantes', [])
+        responsavel_id = data.get('responsavel')
+        assinaturas_por_funcionario = normalizar_assinaturas_dds(data.get('assinaturas', []))
         if not isinstance(participantes_ids, list) or not participantes_ids:
             return JsonResponse({
                 'success': False,
                 'message': 'Selecione pelo menos um participante',
                 'errors': {'participantes': 'Selecione pelo menos um participante'}
+            }, status=400)
+        if not responsavel_id:
+            return JsonResponse({
+                'success': False,
+                'message': 'Selecione um responsavel',
+                'errors': {'responsavel': 'Selecione um responsavel'}
             }, status=400)
 
         participantes = list(Funcionario.objects.filter(id__in=participantes_ids, ativo=True))
@@ -814,13 +1128,44 @@ def editar_dds(request, id):
                 'errors': {'participantes': 'Existem participantes invalidos na selecao'}
             }, status=400)
 
+        responsavel = Funcionario.objects.filter(id=responsavel_id, ativo=True).first()
+        if not responsavel:
+            return JsonResponse({
+                'success': False,
+                'message': 'Responsavel invalido na selecao',
+                'errors': {'responsavel': 'Responsavel invalido na selecao'}
+            }, status=400)
+
+        if responsavel.id not in {participante.id for participante in participantes}:
+            return JsonResponse({
+                'success': False,
+                'message': 'O responsavel precisa estar entre os participantes',
+                'errors': {'responsavel': 'O responsavel precisa estar entre os participantes'}
+            }, status=400)
+
+        participantes_ids_set = {participante.id for participante in participantes}
+        assinaturas_existentes_ids = set(
+            dds.assinaturas.filter(funcionario_id__in=participantes_ids_set)
+            .values_list('funcionario_id', flat=True)
+        )
+        assinaturas_ids_set = assinaturas_existentes_ids.union(set(assinaturas_por_funcionario.keys()))
+        if participantes_ids_set != assinaturas_ids_set:
+            return JsonResponse({
+                'success': False,
+                'message': 'Todos os participantes devem assinar a DDS',
+                'errors': {'assinaturas': 'Todos os participantes devem assinar a DDS'}
+            }, status=400)
+
         with transaction.atomic():
             dds.titulo = data.get('titulo', '').strip()
             dds.data = data.get('data')
             dds.horario = data.get('horario')
+            dds.responsavel = responsavel
             dds.full_clean()
             dds.save()
             dds.participantes.set(participantes)
+            dds.assinaturas.exclude(funcionario_id__in=participantes_ids_set).delete()
+            salvar_assinaturas_dds(dds, assinaturas_por_funcionario)
 
         return JsonResponse({
             'success': True,
@@ -841,6 +1186,27 @@ def editar_dds(request, id):
             'message': 'Erro ao atualizar DDS',
             'errors': str(e)
         }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def exportar_dds_pdf(request, id):
+    dds = (
+        DDS.objects.select_related('responsavel', 'criado_por')
+        .prefetch_related('participantes', 'assinaturas__funcionario')
+        .filter(id=id)
+        .first()
+    )
+    if not dds:
+        return JsonResponse({
+            'success': False,
+            'message': 'DDS nao encontrada'
+        }, status=404)
+
+    pdf_buffer = build_dds_pdf(dds)
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="dds-{dds.id}.pdf"'
+    return response
     
 @login_required
 def itens_ativos_funcionario(request,id):

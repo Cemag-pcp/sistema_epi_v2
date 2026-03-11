@@ -1,0 +1,25 @@
+<div class="modal fade" id="ddsSignatureModal" tabindex="-1" aria-labelledby="ddsSignatureModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ddsSignatureModalLabel">Assinatura do participante</h5>
+                <button type="button" class="btn-close" id="closeDDSignatureModal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3 text-muted" id="ddsSignatureParticipantLabel">Assine para confirmar a participação na DDS.</p>
+                <div class="row mb-3">
+                    <label for="ddsSignatureCanvas">Assinatura <span style="color: red;">*</span></label>
+                    <canvas id="ddsSignatureCanvas" style="border: 1px solid #000; width: 100%; height: 220px; margin: 0 auto;"></canvas>
+                </div>
+                <small class="text-end d-block" style="color: red;">Obrigatório(*)</small>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-white" id="clearDDSignatureBtn">Limpar assinatura</button>
+                <button type="button" class="btn btn-primary d-flex align-items-center gap-2" id="saveDDSignatureBtn">
+                    <span class="spinner-border spinner-border-sm d-none" id="saveDDSignatureSpinner" aria-hidden="true"></span>
+                    <span id="saveDDSignatureText">Salvar assinatura</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
