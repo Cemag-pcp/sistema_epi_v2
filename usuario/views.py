@@ -174,10 +174,10 @@ def build_dds_pdf(dds):
     draw.text((margin + 30, y + 18), "REGISTRO DE DDS", font=title_font, fill=text_color)
     draw.text((margin + 30, y + 62), "Documento de controle interno para auditoria", font=body_font, fill=text_color)
     draw.text((page_width - margin - 250, y + 24), f"Documento: DDS-{dds.id:05d}", font=label_font, fill=text_color)
-    draw.text((page_width - margin - 250, y + 56), f"Emissao: {timezone.localtime().strftime('%d/%m/%Y %H:%M')}", font=body_font, fill=text_color)
+    draw.text((page_width - margin - 250, y + 56), f"Emissão: {timezone.localtime().strftime('%d/%m/%Y %H:%M')}", font=body_font, fill=text_color)
     y += 155
 
-    draw.text((margin, y), "1. Identificacao da DDS", font=section_font, fill=text_color)
+    draw.text((margin, y), "1. Identificação da DDS", font=section_font, fill=text_color)
     y += 30
     draw.line((margin, y, page_width - margin, y), fill=line_color, width=2)
     y += 24
@@ -185,10 +185,10 @@ def build_dds_pdf(dds):
     info_rows = [
         ("Tema", dds.titulo),
         ("Data", dds.data.strftime('%d/%m/%Y')),
-        ("Horario", dds.horario.strftime('%H:%M')),
-        ("Responsavel", str(dds.responsavel) if dds.responsavel else "--"),
+        ("Horário", dds.horario.strftime('%H:%M')),
+        ("Responsável", str(dds.responsavel) if dds.responsavel else "--"),
         ("Registrado por", str(dds.criado_por) if dds.criado_por else "--"),
-        ("Ultima atualizacao", dds.updated_at.strftime('%d/%m/%Y %H:%M')),
+        ("Última atualização", dds.updated_at.strftime('%d/%m/%Y %H:%M')),
     ]
 
     label_width = 220
@@ -276,16 +276,16 @@ def build_dds_pdf(dds):
                 sig_y = assinatura_area[1] + ((assinatura_area[3] - assinatura_area[1]) - signature_image.height) // 2
                 page.paste(signature_image, (sig_x, sig_y), signature_image)
             except Exception:
-                draw.text((assinatura_area[0] + 12, assinatura_area[1] + 20), "Assinatura indisponivel", font=body_font, fill=text_color)
+                draw.text((assinatura_area[0] + 12, assinatura_area[1] + 20), "Assinatura indisponível", font=body_font, fill=text_color)
         else:
-            draw.text((assinatura_area[0] + 12, assinatura_area[1] + 20), "Assinatura nao encontrada", font=body_font, fill=text_color)
+            draw.text((assinatura_area[0] + 12, assinatura_area[1] + 20), "Assinatura não encontrada", font=body_font, fill=text_color)
 
         draw.text((assinatura_area[0], y + row_height - 22), "Assinatura do participante", font=small_font, fill=text_color)
         y += row_height
 
     y += 24
     ensure_space(140)
-    draw.text((margin, y), "3. Observacoes de controle", font=section_font, fill=text_color)
+    draw.text((margin, y), "3. Observações de controle", font=section_font, fill=text_color)
     y += 30
     draw.line((margin, y, page_width - margin, y), fill=line_color, width=2)
     y += 20
@@ -1085,7 +1085,7 @@ def api_dds(request):
 
 
 @login_required
-@require_http_methods(["PUT"])
+@require_http_methods(["PUT", "DELETE"])
 def editar_dds(request, id):
     dds = DDS.objects.prefetch_related('assinaturas').filter(id=id).first()
     if not dds:
@@ -1093,6 +1093,21 @@ def editar_dds(request, id):
             'success': False,
             'message': 'DDS nao encontrada'
         }, status=404)
+
+    if request.method == 'DELETE':
+        try:
+            dds.delete()
+            return JsonResponse({
+                'success': True,
+                'message': 'DDS removida com sucesso!'
+            }, status=200)
+        except Exception as e:
+            print('Stack trace:', traceback.format_exc())
+            return JsonResponse({
+                'success': False,
+                'message': 'Erro ao remover DDS',
+                'errors': str(e)
+            }, status=500)
 
     try:
         data = json.loads(request.body) if request.body else {}

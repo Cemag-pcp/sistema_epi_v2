@@ -268,17 +268,15 @@ function initializeDataTable(data) {
                 searchable: false,
                 render: function (_, __, row) {
                     return `
-                        <div class="d-flex align-items-center gap-2 flex-nowrap">
-                            <button class="btn btn-sm btn-outline-secondary export-pdf-btn" data-id="${row.id}" title="Exportar PDF" aria-label="Exportar PDF">
-                                <i class="bi bi-file-earmark-pdf"></i>
-                            </button>
-                            <button class="btn btn-sm btn-white edit-btn" data-id="${row.id}" title="Editar DDS" aria-label="Editar DDS">
-                                <i class="bi bi-pencil-square"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${row.id}" title="Excluir DDS" aria-label="Excluir DDS">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
+                        <button class="btn btn-sm btn-outline-secondary export-pdf-btn me-2" data-id="${row.id}" title="Exportar PDF" aria-label="Exportar PDF">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </button>
+                        <button class="btn btn-sm btn-white edit-btn me-2" data-id="${row.id}" title="Editar DDS" aria-label="Editar DDS">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${row.id}" title="Excluir DDS" aria-label="Excluir DDS">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     `;
                 }
             }
@@ -485,7 +483,7 @@ closeDDSignatureModalBtn.addEventListener("click", function () {
     ddsSignatureModal.hide();
 });
 
-document.getElementById("ddsTable").addEventListener("click", async (event) => {
+document.getElementById("ddsTable").addEventListener("click", (event) => {
     const toggleParticipantesButton = event.target.closest(".dds-toggle-participantes");
     if (toggleParticipantesButton) {
         const participantesContainer = toggleParticipantesButton.closest(".dds-participantes");
