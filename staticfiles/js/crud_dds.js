@@ -483,7 +483,7 @@ closeDDSignatureModalBtn.addEventListener("click", function () {
     ddsSignatureModal.hide();
 });
 
-document.getElementById("ddsTable").addEventListener("click", (event) => {
+document.getElementById("ddsTable").addEventListener("click", async (event) => {
     const toggleParticipantesButton = event.target.closest(".dds-toggle-participantes");
     if (toggleParticipantesButton) {
         const participantesContainer = toggleParticipantesButton.closest(".dds-participantes");
