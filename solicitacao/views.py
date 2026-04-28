@@ -128,9 +128,9 @@ def solicitacao_template(request):
 def solicitacao(request):
     
     if request.user.is_superuser == True:
-        funcionarios = list(Funcionario.objects.values('id', 'nome', 'matricula'))
+        funcionarios = list(Funcionario.objects.filter(ativo=True).values('id', 'nome', 'matricula'))
     else:
-        funcionarios = list(Funcionario.objects.filter(setor=request.user.funcionario.setor).values('id', 'nome', 'matricula'))
+        funcionarios = list(Funcionario.objects.filter(setor=request.user.funcionario.setor, ativo=True).values('id', 'nome', 'matricula'))
 
     equipamentos = list(Equipamento.objects.values('id', 'nome', 'codigo'))
     

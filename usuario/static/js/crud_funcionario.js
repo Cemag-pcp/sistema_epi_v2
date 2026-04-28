@@ -277,8 +277,6 @@ document.getElementById('employeeModal').addEventListener('show.bs.modal', funct
         setorPreSelecionado = setorInput.value;
 
         // Desabilita os campos que não podem ser editados
-        matriculaInput.disabled = true;
-        nomeInput.disabled = true;
         dataAdmissaoInput.disabled = true;
 
         if (setorPreSelecionado){

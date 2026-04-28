@@ -18,7 +18,7 @@ import copy
 # Create your views here.
 def template_ficha(request):
 
-    funcionarios = Funcionario.objects.values('id','matricula','nome').order_by('id')
+    funcionarios = Funcionario.objects.filter(ativo=True).values('id','matricula','nome').order_by('id')
 
     return render(request, 'ficha.html', {'funcionarios':funcionarios})
 

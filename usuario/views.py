@@ -377,7 +377,7 @@ def api_funcionarios(request):
             except Funcionario.DoesNotExist:
                 return JsonResponse({'error': 'Funcionário não encontrado'}, status=404)
         # Se não houver id, retorna todos os funcionários
-        funcionarios = Funcionario.objects.select_related('setor','setor__responsavel','cargo').values(
+        funcionarios = Funcionario.objects.filter(ativo=True).select_related('setor','setor__responsavel','cargo').values(
             'id', 'nome', 'matricula', 'setor__nome', 'setor__id',
                 'setor__responsavel__nome', 'setor__responsavel__matricula','cargo_id',
                 'cargo__nome', 'data_admissao', 'ativo','usuario','tipo_acesso',
@@ -482,7 +482,7 @@ def get_funcionarios_pelo_setor(request, id):
 
     if request.method == 'GET':
 
-        funcionarios = list(Funcionario.objects.filter(setor__id=id).values('id','nome','matricula'))
+        funcionarios = list(Funcionario.objects.filter(setor__id=id, ativo=True).values('id','nome','matricula'))
 
         return JsonResponse({'funcionarios':funcionarios}, status=200)
 
@@ -503,7 +503,7 @@ def editar_funcionario(request, id):
                 data = json.loads(request.body) if request.body else {}
                 print(data)
                 # Validação do json
-                required_fields = ['setor', 'cargo','tipoAcesso']
+                required_fields = ['nome', 'matricula', 'setor', 'cargo', 'tipoAcesso']
                 if not all(field in data for field in required_fields):
                     return JsonResponse({
                         'success': False,
@@ -527,6 +527,8 @@ def editar_funcionario(request, id):
                         setor_antigo.responsavel = None
                         setor_antigo.save()
                     
+                    funcionario.nome = data.get('nome', funcionario.nome)
+                    funcionario.matricula = data.get('matricula', funcionario.matricula)
                     funcionario.setor_id = int(data.get('setorId', funcionario.setor_id))
                     novo_cargo = Cargo.objects.filter(id=int(data.get('cargoId', funcionario.cargo))).first()
                     funcionario.cargo = novo_cargo
