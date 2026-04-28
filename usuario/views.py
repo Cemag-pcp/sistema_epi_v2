@@ -36,6 +36,7 @@ def serializar_dds(dds):
     return {
         'id': dds.id,
         'titulo': dds.titulo,
+        'conteudo_programatico': dds.conteudo_programatico,
         'data': dds.data.isoformat(),
         'horario': dds.horario.strftime('%H:%M'),
         'responsavel': (
@@ -84,6 +85,14 @@ def normalizar_assinaturas_dds(assinaturas_payload):
         assinaturas_normalizadas[int(funcionario_id)] = signature
 
     return assinaturas_normalizadas
+
+
+def validar_conteudo_programatico_dds(data):
+    conteudo_programatico = data.get('conteudo_programatico', '')
+    if not isinstance(conteudo_programatico, str) or not conteudo_programatico.strip():
+        raise ValidationError({'conteudo_programatico': 'Este campo e obrigatorio'})
+
+    return conteudo_programatico.strip()
 
 
 def salvar_assinaturas_dds(dds, assinaturas_por_funcionario):
@@ -184,6 +193,7 @@ def build_dds_pdf(dds):
 
     info_rows = [
         ("Tema", dds.titulo),
+        ("Conteudo programático", dds.conteudo_programatico),
         ("Data", dds.data.strftime('%d/%m/%Y')),
         ("Horário", dds.horario.strftime('%H:%M')),
         ("Responsável", str(dds.responsavel) if dds.responsavel else "--"),
@@ -192,13 +202,17 @@ def build_dds_pdf(dds):
     ]
 
     label_width = 220
-    row_height = 42
     for label, value in info_rows:
+        value_text = str(value)
+        row_height = 120 if label == "Conteudo programático" else 42
         ensure_space(row_height + 8)
         draw.rectangle((margin, y, margin + label_width, y + row_height), outline=line_color, width=1)
         draw.rectangle((margin + label_width, y, page_width - margin, y + row_height), outline=line_color, width=1)
         draw.text((margin + 12, y + 11), label, font=label_font, fill=text_color)
-        draw.text((margin + label_width + 12, y + 11), str(value), font=body_font, fill=text_color)
+        if label == "Conteudo programático":
+            draw_text(draw, value_text, (margin + label_width + 12, y + 11), body_font, text_color, page_width - margin - (margin + label_width + 24), 6)
+        else:
+            draw.text((margin + label_width + 12, y + 11), value_text, font=body_font, fill=text_color)
         y += row_height
 
     y += 28
@@ -214,9 +228,10 @@ def build_dds_pdf(dds):
     draw.line((margin, y, page_width - margin, y), fill=line_color, width=2)
     y += 22
 
-    matricula_width = 180
-    nome_width = 420
-    assinatura_width = content_width - matricula_width - nome_width
+    matricula_width = 160
+    nome_width = 300
+    setor_width = 220
+    assinatura_width = content_width - matricula_width - nome_width - setor_width
     table_header_height = 40
     row_height = 150
 
@@ -224,9 +239,11 @@ def build_dds_pdf(dds):
         draw.rectangle((margin, top_y, page_width - margin, top_y + table_header_height), outline=line_color, width=2)
         draw.line((margin + matricula_width, top_y, margin + matricula_width, top_y + table_header_height), fill=line_color, width=2)
         draw.line((margin + matricula_width + nome_width, top_y, margin + matricula_width + nome_width, top_y + table_header_height), fill=line_color, width=2)
+        draw.line((margin + matricula_width + nome_width + setor_width, top_y, margin + matricula_width + nome_width + setor_width, top_y + table_header_height), fill=line_color, width=2)
         draw.text((margin + 12, top_y + 10), "Matricula", font=label_font, fill=text_color)
         draw.text((margin + matricula_width + 12, top_y + 10), "Nome", font=label_font, fill=text_color)
-        draw.text((margin + matricula_width + nome_width + 12, top_y + 10), "Assinatura", font=label_font, fill=text_color)
+        draw.text((margin + matricula_width + nome_width + 12, top_y + 10), "Setor", font=label_font, fill=text_color)
+        draw.text((margin + matricula_width + nome_width + setor_width + 12, top_y + 10), "Assinatura", font=label_font, fill=text_color)
 
     draw_table_header(y)
     y += table_header_height
@@ -244,6 +261,7 @@ def build_dds_pdf(dds):
         draw.rectangle((margin, y, page_width - margin, y + row_height), outline=line_color, width=1)
         draw.line((margin + matricula_width, y, margin + matricula_width, y + row_height), fill=line_color, width=1)
         draw.line((margin + matricula_width + nome_width, y, margin + matricula_width + nome_width, y + row_height), fill=line_color, width=1)
+        draw.line((margin + matricula_width + nome_width + setor_width, y, margin + matricula_width + nome_width + setor_width, y + row_height), fill=line_color, width=1)
 
         draw.text((margin + 12, y + 16), str(participante.matricula), font=body_font, fill=text_color)
         draw_text(
@@ -255,10 +273,19 @@ def build_dds_pdf(dds):
             nome_width - 24,
             4
         )
+        draw_text(
+            draw,
+            participante.setor.nome if participante.setor else "--",
+            (margin + matricula_width + nome_width + 12, y + 16),
+            body_font,
+            text_color,
+            setor_width - 24,
+            4
+        )
 
         assinatura = assinaturas.get(participante.id)
         assinatura_area = (
-            margin + matricula_width + nome_width + 12,
+            margin + matricula_width + nome_width + setor_width + 12,
             y + 12,
             page_width - margin - 12,
             y + row_height - 28
@@ -996,7 +1023,7 @@ def api_dds(request):
 
     try:
         data = json.loads(request.body) if request.body else {}
-        required_fields = ['titulo', 'data', 'horario', 'responsavel', 'participantes', 'assinaturas']
+        required_fields = ['titulo', 'conteudo_programatico', 'data', 'horario', 'responsavel', 'participantes', 'assinaturas']
         if not all(field in data for field in required_fields):
             return JsonResponse({
                 'success': False,
@@ -1004,6 +1031,7 @@ def api_dds(request):
                 'errors': {field: 'Este campo e obrigatorio' for field in required_fields if field not in data}
             }, status=400)
 
+        conteudo_programatico = validar_conteudo_programatico_dds(data)
         participantes_ids = data.get('participantes', [])
         responsavel_id = data.get('responsavel')
         assinaturas_por_funcionario = normalizar_assinaturas_dds(data.get('assinaturas', []))
@@ -1055,6 +1083,7 @@ def api_dds(request):
         with transaction.atomic():
             dds = DDS(
                 titulo=data.get('titulo', '').strip(),
+                conteudo_programatico=conteudo_programatico,
                 data=data.get('data'),
                 horario=data.get('horario'),
                 responsavel=responsavel,
@@ -1113,7 +1142,7 @@ def editar_dds(request, id):
 
     try:
         data = json.loads(request.body) if request.body else {}
-        required_fields = ['titulo', 'data', 'horario', 'responsavel', 'participantes', 'assinaturas']
+        required_fields = ['titulo', 'conteudo_programatico', 'data', 'horario', 'responsavel', 'participantes', 'assinaturas']
         if not all(field in data for field in required_fields):
             return JsonResponse({
                 'success': False,
@@ -1121,6 +1150,7 @@ def editar_dds(request, id):
                 'errors': {field: 'Este campo e obrigatorio' for field in required_fields if field not in data}
             }, status=400)
 
+        conteudo_programatico = validar_conteudo_programatico_dds(data)
         participantes_ids = data.get('participantes', [])
         responsavel_id = data.get('responsavel')
         assinaturas_por_funcionario = normalizar_assinaturas_dds(data.get('assinaturas', []))
@@ -1175,6 +1205,7 @@ def editar_dds(request, id):
 
         with transaction.atomic():
             dds.titulo = data.get('titulo', '').strip()
+            dds.conteudo_programatico = conteudo_programatico
             dds.data = data.get('data')
             dds.horario = data.get('horario')
             dds.responsavel = responsavel

@@ -10,6 +10,7 @@ const ddsModal = new bootstrap.Modal(ddsModalElement);
 const ddsForm = document.getElementById("ddsForm");
 const ddsIdInput = document.getElementById("ddsId");
 const ddsTituloInput = document.getElementById("ddsTitulo");
+const ddsConteudoProgramaticoInput = document.getElementById("ddsConteudoProgramatico");
 const ddsDataInput = document.getElementById("ddsData");
 const ddsHorarioInput = document.getElementById("ddsHorario");
 const ddsResponsavelInput = document.getElementById("ddsResponsavel");
@@ -272,6 +273,9 @@ function initializeDataTable(data) {
                             <button class="btn btn-sm btn-outline-secondary export-pdf-btn" data-id="${row.id}" title="Exportar PDF" aria-label="Exportar PDF">
                                 <i class="bi bi-file-earmark-pdf"></i>
                             </button>
+                            <button class="btn btn-sm btn-outline-primary duplicate-btn" data-id="${row.id}" title="Duplicar DDS" aria-label="Duplicar DDS">
+                                <i class="bi bi-files"></i>
+                            </button>
                             <button class="btn btn-sm btn-white edit-btn" data-id="${row.id}" title="Editar DDS" aria-label="Editar DDS">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
@@ -340,9 +344,20 @@ function openCreateModal() {
     ddsModal.show();
 }
 
+function openDuplicateModal(dds) {
+    resetForm();
+    ddsTituloInput.value = dds.titulo || "";
+    ddsConteudoProgramaticoInput.value = dds.conteudo_programatico || "";
+    ddsDataInput.value = dds.data || "";
+    ddsHorarioInput.value = dds.horario || "";
+    ddsModalLabel.textContent = "Nova DDS";
+    ddsModal.show();
+}
+
 function openEditModal(dds) {
     ddsIdInput.value = dds.id;
     ddsTituloInput.value = dds.titulo;
+    ddsConteudoProgramaticoInput.value = dds.conteudo_programatico || "";
     ddsDataInput.value = dds.data;
     ddsHorarioInput.value = dds.horario;
     assinaturasParticipantes = new Map();
@@ -362,6 +377,7 @@ function getPayload() {
     const participantesSelecionados = $(ddsParticipantesInput).val() || [];
     return {
         titulo: ddsTituloInput.value.trim(),
+        conteudo_programatico: ddsConteudoProgramaticoInput.value.trim(),
         data: ddsDataInput.value,
         horario: ddsHorarioInput.value,
         responsavel: Number(ddsResponsavelInput.value),
@@ -501,6 +517,7 @@ document.getElementById("ddsTable").addEventListener("click", async (event) => {
     }
 
     const editButton = event.target.closest(".edit-btn");
+    const duplicateButton = event.target.closest(".duplicate-btn");
     const deleteButton = event.target.closest(".delete-btn");
     const exportPdfButton = event.target.closest(".export-pdf-btn");
     if (exportPdfButton) {
@@ -543,6 +560,18 @@ document.getElementById("ddsTable").addEventListener("click", async (event) => {
             console.error(error);
             showAlert(error.message || "Erro ao excluir DDS", "error");
         }
+        return;
+    }
+
+    if (duplicateButton) {
+        const ddsId = Number(duplicateButton.dataset.id);
+        const dds = ddsRegistros.find((item) => item.id === ddsId);
+        if (!dds) {
+            showAlert("DDS nao encontrada", "error");
+            return;
+        }
+
+        openDuplicateModal(dds);
         return;
     }
 

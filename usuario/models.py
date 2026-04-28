@@ -59,6 +59,7 @@ class Funcionario(models.Model):
 
 class DDS(models.Model):
     titulo = models.CharField(max_length=200)
+    conteudo_programatico = models.TextField(default='')
     data = models.DateField()
     horario = models.TimeField()
     responsavel = models.ForeignKey(
