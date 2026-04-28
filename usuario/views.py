@@ -404,7 +404,7 @@ def api_funcionarios(request):
             except Funcionario.DoesNotExist:
                 return JsonResponse({'error': 'Funcionário não encontrado'}, status=404)
         # Se não houver id, retorna todos os funcionários
-        funcionarios = Funcionario.objects.filter(ativo=True).select_related('setor','setor__responsavel','cargo').values(
+        funcionarios = Funcionario.objects.select_related('setor','setor__responsavel','cargo').values(
             'id', 'nome', 'matricula', 'setor__nome', 'setor__id',
                 'setor__responsavel__nome', 'setor__responsavel__matricula','cargo_id',
                 'cargo__nome', 'data_admissao', 'ativo','usuario','tipo_acesso',
