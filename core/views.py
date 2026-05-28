@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
-from django.db.models import Q, Sum, Prefetch
+from django.db.models import Q, Sum, Prefetch, Count
 from usuario.decorators import somente_master
 from usuario.models import Funcionario
 from solicitacao.models import Solicitacao, DadosSolicitacao, Assinatura
@@ -89,6 +89,17 @@ def home_solicitacoes(request):
         data_fim += timedelta(days=1)
         query = query.filter(data_solicitacao__lt=data_fim)
 
+    summary_query = query
+    summary_counts_raw = summary_query.values('status').annotate(total=Count('id'))
+    summary_counts = {
+        'Pendente': 0,
+        'Entregue': 0,
+        'Cancelado': 0,
+    }
+    for item in summary_counts_raw:
+        if item['status'] in summary_counts:
+            summary_counts[item['status']] = item['total']
+
     if status and status != ['']:
         query = query.filter(status__in=status)
 
@@ -152,6 +163,12 @@ def home_solicitacoes(request):
     return JsonResponse({
         'dados_solicitados': dados_formatados,
         'total_itens': total_count,
+        'summary': {
+            'pendente': summary_counts['Pendente'],
+            'entregue': summary_counts['Entregue'],
+            'cancelado': summary_counts['Cancelado'],
+            'active_status': status if status != [''] else ['Pendente', 'Entregue', 'Cancelado'],
+        },
         'page': page,
         'per_page': per_page
     })

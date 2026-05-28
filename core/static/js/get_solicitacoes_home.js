@@ -24,6 +24,7 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
         dataSrc: function(json) {
             json.recordsTotal = json.total_itens;
             json.recordsFiltered = json.total_itens;
+            updateStatusSummary(json.summary);
             return json.dados_solicitados;
         }
     },
@@ -190,6 +191,8 @@ export var solicitacoesTable = $('#tabela-solicitacoes').DataTable({
 
 // Variáveis para armazenar os filtros
 let filtrosSolicitacoes = {
+    idSolicitacao: '',
+    funcionario: '',
     codigoNome: '',
     equipamento: '',
     dataInicio: '',
@@ -205,6 +208,43 @@ function aplicarFiltrosSolicitacoes() {
     
     // Mostra os filtros aplicados
     atualizarFiltrosAplicados();
+}
+
+function updateStatusSummary(summary = {}) {
+    document.getElementById('summary-pendente').textContent = summary.pendente ?? 0;
+    document.getElementById('summary-entregue').textContent = summary.entregue ?? 0;
+    document.getElementById('summary-cancelado').textContent = summary.cancelado ?? 0;
+
+    const activeStatuses = Array.isArray(summary.active_status) ? summary.active_status : filtrosSolicitacoes.status;
+    const isSingleStatus = activeStatuses.length === 1;
+
+    document.querySelectorAll('[data-status-card]').forEach((card) => {
+        const cardStatus = card.getAttribute('data-status-card');
+        const isActive = isSingleStatus && activeStatuses.includes(cardStatus);
+
+        card.classList.toggle('border-dark', isActive);
+        card.classList.toggle('shadow', isActive);
+        card.classList.toggle('bg-light', isActive);
+        card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+}
+
+function syncStatusCheckboxes() {
+    document.getElementById('status_pendente').checked = filtrosSolicitacoes.status.includes('Pendente');
+    document.getElementById('status_entregue').checked = filtrosSolicitacoes.status.includes('Entregue');
+    document.getElementById('status_cancelado').checked = filtrosSolicitacoes.status.includes('Cancelado');
+}
+
+function applyStatusCardFilter(status) {
+    const isOnlyCurrentStatus =
+        filtrosSolicitacoes.status.length === 1 && filtrosSolicitacoes.status[0] === status;
+
+    filtrosSolicitacoes.status = isOnlyCurrentStatus
+        ? ['Pendente', 'Entregue', 'Cancelado']
+        : [status];
+
+    syncStatusCheckboxes();
+    aplicarFiltrosSolicitacoes();
 }
 
 // Função para atualizar os badges de filtros aplicados
@@ -307,6 +347,8 @@ document.getElementById('btn-limpar-solicitacoes').addEventListener('click', fun
     
     // Limpa os filtros
     filtrosSolicitacoes = {
+        idSolicitacao: '',
+        funcionario: '',
         codigoNome: '',
         equipamento: '',
         dataInicio: '',
@@ -316,4 +358,10 @@ document.getElementById('btn-limpar-solicitacoes').addEventListener('click', fun
     };
     
     aplicarFiltrosSolicitacoes();
+});
+
+document.querySelectorAll('[data-status-card]').forEach((card) => {
+    card.addEventListener('click', function() {
+        applyStatusCardFilter(this.getAttribute('data-status-card'));
+    });
 });
