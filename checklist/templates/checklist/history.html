@@ -21,17 +21,47 @@
                 <p class="text-muted mb-0">Visualize e gerencie todos os checklist's realizados</p>
             </div>
 
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <p class="text-muted text-uppercase small fw-semibold mb-2">Realizados</p>
+                            <div class="display-5 fw-bold text-dark" id="summaryTotalInspections">0</div>
+                            <p class="text-muted mb-0 small" id="summaryPeriodLabel">Todo o perÃ­odo</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <p class="text-muted text-uppercase small fw-semibold mb-2">Totalmente Conformes</p>
+                            <div class="display-5 fw-bold text-success" id="summaryFullyCompliant">0</div>
+                            <p class="text-muted mb-0 small">Inspeções sem não conformidades</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <p class="text-muted text-uppercase small fw-semibold mb-2">Com não Conformidades</p>
+                            <div class="display-5 fw-bold text-danger" id="summaryNonCompliant">0</div>
+                            <p class="text-muted mb-0 small">Inspeções com ao menos um item reprovado</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filters -->
             <div class="card mb-4">
                 <div class="card-body p-3 p-md-4">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <label class="form-label small fw-semibold text-secondary">Pesquisar</label>
                             <div>
                                 <input type="text" class="form-control" placeholder="Pesquisar por nome, descrição ou inspetor..." id="searchInput">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small fw-semibold text-secondary">Status de Conformidade</label>
                             <select class="form-select" id="complianceFilter">
                                 <option value="all" selected>Todos os Status</option>
@@ -39,9 +69,31 @@
                                 <option value="non-compliant">Com Não Conformidades</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-semibold text-secondary">Resultados</label>
-                            <div class="fw-medium text-secondary" id="resultsCount">Carregando...</div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold text-secondary">Data inicial</label>
+                            <input type="date" class="form-control" id="startDateFilter">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold text-secondary">Data final</label>
+                            <input type="date" class="form-control" id="endDateFilter">
+                        </div>
+                        <div class="col-md-1">
+                            <button class="btn btn-outline-secondary w-100" id="clearDateFilters" type="button" title="Limpar perÃ­odo">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3">
+                                <div>
+                                    <label class="form-label small fw-semibold text-secondary">Resultados</label>
+                                    <div class="fw-medium text-secondary" id="resultsCount">Carregando...</div>
+                                </div>
+                                <div>
+                                    <button class="btn btn-danger" id="openNonComplianceExportModal" type="button">
+                                        <i class="bi bi-file-earmark-pdf me-2"></i>Exportar apenas não conformidades
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -83,6 +135,33 @@
                     <!-- A paginação será inserida aqui via JavaScript -->
                 </ul>
             </nav>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="nonComplianceExportModal" tabindex="-1" aria-labelledby="nonComplianceExportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nonComplianceExportModalLabel">Exportar Não conformidades</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Informe o perÃ­odo para gerar um PDF com apenas os checklist's que possuem itens Não conformes.</p>
+                <div class="mb-3">
+                    <label for="exportStartDate" class="form-label">Data inicial</label>
+                    <input type="date" class="form-control" id="exportStartDate" required>
+                </div>
+                <div class="mb-3">
+                    <label for="exportEndDate" class="form-label">Data final</label>
+                    <input type="date" class="form-control" id="exportEndDate" required>
+                </div>
+                <div class="alert alert-danger d-none mb-0" id="exportNonComplianceError"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmNonComplianceExport">Exportar</button>
+            </div>
         </div>
     </div>
 </div>

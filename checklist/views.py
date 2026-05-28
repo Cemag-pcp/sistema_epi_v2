@@ -1,16 +1,26 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from usuario.decorators import somente_master, master_solicit
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from django.db.models import Count, Case, When, IntegerField, Q
+from django.db.models import Count, Case, When, IntegerField, Q, Prefetch
 from django.db import transaction
+from django.utils.dateparse import parse_date
+from django.utils import timezone
 from .models import Checklist, Pergunta, Inspecao, ItemResposta, FotoResposta
 from usuario.models import Setor
 import json
 import base64
 import uuid
+from io import BytesIO
 from django.core.files.base import ContentFile
+from PIL import Image, ImageDraw, ImageFont
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_LEFT
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
 @login_required
@@ -583,6 +593,8 @@ def historico_api(request):
     # Obter parâmetros de filtro
     search_term = request.GET.get("search", "").lower()
     compliance_filter = request.GET.get("compliance", "all")
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
     page_number = request.GET.get("page", 1)
 
     # Annotate com contagem de itens não conformes
@@ -608,6 +620,15 @@ def historico_api(request):
             | Q(inspetor__nome__icontains=search_term)
         )
 
+    parsed_start_date = parse_date(start_date) if start_date else None
+    parsed_end_date = parse_date(end_date) if end_date else None
+
+    if parsed_start_date:
+        inspecoes = inspecoes.filter(data_inspecao__date__gte=parsed_start_date)
+
+    if parsed_end_date:
+        inspecoes = inspecoes.filter(data_inspecao__date__lte=parsed_end_date)
+
     # Aplicar filtro de conformidade
     if compliance_filter == "compliant":
         # Onde não há itens não conformes
@@ -615,6 +636,10 @@ def historico_api(request):
     elif compliance_filter == "non-compliant":
         # Onde há pelo menos um item não conforme
         inspecoes = inspecoes.filter(non_compliant_count__gt=0)
+
+    total_count = inspecoes.count()
+    total_compliant = inspecoes.filter(non_compliant_count=0).count()
+    total_non_compliant = inspecoes.filter(non_compliant_count__gt=0).count()
 
     # Ordenar por data mais recente primeiro
     inspecoes = inspecoes.order_by("-data_inspecao")
@@ -657,10 +682,342 @@ def historico_api(request):
             "current_page": page_obj.number,
             "total_pages": paginator.num_pages,
             "total_count": paginator.count,
+            "summary": {
+                "total_inspections": total_count,
+                "fully_compliant": total_compliant,
+                "with_non_compliance": total_non_compliant,
+                "start_date": start_date,
+                "end_date": end_date,
+            },
             "next_page_number": page_obj.next_page_number() if page_obj.has_next() else None,
             "previous_page_number": page_obj.previous_page_number() if page_obj.has_previous() else None,
         }
     )
+
+
+def get_pdf_font(size, bold=False):
+    font_candidates = [
+        "arialbd.ttf" if bold else "arial.ttf",
+        "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
+    ]
+    for font_name in font_candidates:
+        try:
+            return ImageFont.truetype(font_name, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def draw_wrapped_text(draw, text, position, font, fill, max_width, line_spacing=6):
+    words = str(text).split()
+    if not words:
+        return position[1]
+
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = f"{current_line} {word}".strip()
+        bbox = draw.textbbox((0, 0), test_line, font=font)
+        if bbox[2] - bbox[0] <= max_width or not current_line:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    x, y = position
+    for line in lines:
+        draw.text((x, y), line, font=font, fill=fill)
+        bbox = draw.textbbox((x, y), line, font=font)
+        y += (bbox[3] - bbox[1]) + line_spacing
+
+    return y
+
+
+def measure_wrapped_text_height(draw, text, font, max_width, line_spacing=6):
+    words = str(text).split()
+    if not words:
+        bbox = draw.textbbox((0, 0), "A", font=font)
+        return bbox[3] - bbox[1]
+
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = f"{current_line} {word}".strip()
+        bbox = draw.textbbox((0, 0), test_line, font=font)
+        if bbox[2] - bbox[0] <= max_width or not current_line:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    line_box = draw.textbbox((0, 0), "Ag", font=font)
+    line_height = line_box[3] - line_box[1]
+    return (len(lines) * line_height) + (max(len(lines) - 1, 0) * line_spacing)
+
+
+def build_non_compliance_pdf(inspecoes, start_date, end_date, generated_at=None):
+    generated_at = generated_at or timezone.localtime()
+    document_code = f"RNC-{start_date.strftime('%Y%m%d')}-{end_date.strftime('%Y%m%d')}"
+    total_non_compliances = sum(len(inspecao.itens_nao_conformes) for inspecao in inspecoes)
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=12 * mm,
+        rightMargin=12 * mm,
+        topMargin=12 * mm,
+        bottomMargin=14 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(
+        name="ReportTitle",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=14,
+        leading=18,
+        alignment=TA_LEFT,
+    ))
+    styles.add(ParagraphStyle(
+        name="ReportSection",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=14,
+        spaceBefore=4,
+        spaceAfter=4,
+    ))
+    styles.add(ParagraphStyle(
+        name="ReportBody",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=9,
+        leading=12,
+        alignment=TA_LEFT,
+    ))
+    styles.add(ParagraphStyle(
+        name="TableHeader",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=10,
+        alignment=TA_LEFT,
+    ))
+    styles.add(ParagraphStyle(
+        name="TableCell",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=8,
+        leading=10,
+        alignment=TA_LEFT,
+    ))
+
+    story = []
+
+    header_table = Table(
+        [[
+            Paragraph(
+                "RELATÓRIO DE NÃO CONFORMIDADES<br/><font size='9'>Relatorio de checklists</font>",
+                styles["ReportTitle"],
+            ),
+            Paragraph(
+                f"<b>Código:</b> {document_code}<br/>"
+                f"<b>Emissão:</b> {generated_at.strftime('%d/%m/%Y %H:%M')}<br/>"
+                f"<b>Período:</b> {start_date.strftime('%d/%m/%Y')} a {end_date.strftime('%d/%m/%Y')}",
+                styles["ReportBody"],
+            ),
+        ]],
+        colWidths=[120 * mm, 65 * mm],
+    )
+    header_table.setStyle(TableStyle([
+        ("BOX", (0, 0), (-1, -1), 1, colors.black),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 8))
+    story.append(Paragraph("1. Resumo do período", styles["ReportSection"]))
+
+    summary_table = Table(
+        [
+            [
+                Paragraph("Período auditado", styles["TableHeader"]),
+                Paragraph("Inspeções com não conformidade", styles["TableHeader"]),
+                Paragraph("Itens não conformes", styles["TableHeader"]),
+                Paragraph("Critério", styles["TableHeader"]),
+            ],
+            [
+                Paragraph(f"{start_date.strftime('%d/%m/%Y')} a {end_date.strftime('%d/%m/%Y')}", styles["TableCell"]),
+                Paragraph(str(len(inspecoes)), styles["TableCell"]),
+                Paragraph(str(total_non_compliances), styles["TableCell"]),
+                Paragraph("Itens com status não conforme no período informado.", styles["TableCell"]),
+            ],
+        ],
+        colWidths=[48 * mm, 44 * mm, 34 * mm, 59 * mm],
+        repeatRows=1,
+    )
+    summary_table.setStyle(TableStyle([
+        ("BOX", (0, 0), (-1, -1), 1, colors.black),
+        ("GRID", (0, 0), (-1, -1), 0.7, colors.black),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f2f2f2")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(summary_table)
+    story.append(Spacer(1, 8))
+
+    if not inspecoes:
+        story.append(Paragraph("Nenhuma não conformidade encontrada no período informado.", styles["ReportBody"]))
+    else:
+        for inspection_index, inspecao in enumerate(inspecoes, start=1):
+            story.append(Paragraph(f"2.{inspection_index} Inspeção", styles["ReportSection"]))
+
+            inspection_info = Table(
+                [
+                    [Paragraph("Campo", styles["TableHeader"]), Paragraph("Informação", styles["TableHeader"]), Paragraph("Complemento", styles["TableHeader"])],
+                    [
+                        Paragraph("Checklist", styles["TableCell"]),
+                        Paragraph(inspecao.checklist.nome, styles["TableCell"]),
+                        Paragraph(f"Itens nao conformes: {len(inspecao.itens_nao_conformes)}", styles["TableCell"]),
+                    ],
+                    [
+                        Paragraph("Data", styles["TableCell"]),
+                        Paragraph(timezone.localtime(inspecao.data_inspecao).strftime('%d/%m/%Y %H:%M'), styles["TableCell"]),
+                        Paragraph(f"Inspetor: {inspecao.inspetor.nome if inspecao.inspetor else 'N/A'}", styles["TableCell"]),
+                    ],
+                ],
+                colWidths=[28 * mm, 103 * mm, 54 * mm],
+                repeatRows=1,
+            )
+            inspection_info.setStyle(TableStyle([
+                ("BOX", (0, 0), (-1, -1), 1, colors.black),
+                ("GRID", (0, 0), (-1, -1), 0.7, colors.black),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f2f2f2")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]))
+            story.append(inspection_info)
+            story.append(Spacer(1, 5))
+
+            rows = [[
+                Paragraph("N", styles["TableHeader"]),
+                Paragraph("Item n?o conforme", styles["TableHeader"]),
+                Paragraph("Motivo", styles["TableHeader"]),
+            ]]
+
+            for index, item in enumerate(inspecao.itens_nao_conformes, start=1):
+                motivo = item.causas_reprovacao or item.observacao or "N?o informado"
+                rows.append([
+                    Paragraph(str(index), styles["TableCell"]),
+                    Paragraph(item.texto_pergunta_historico or "Item n?o identificado", styles["TableCell"]),
+                    Paragraph(motivo, styles["TableCell"]),
+                ])
+
+            non_compliance_table = Table(
+                rows,
+                colWidths=[12 * mm, 84 * mm, 94 * mm],
+                repeatRows=1,
+            )
+
+            non_compliance_table.setStyle(TableStyle([
+                ("BOX", (0, 0), (-1, -1), 1, colors.black),
+                ("GRID", (0, 0), (-1, -1), 0.6, colors.black),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f2f2f2")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ]))
+            story.append(non_compliance_table)
+            story.append(Spacer(1, 8))
+
+    def draw_page(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 8)
+        canvas.line(doc.leftMargin, 12 * mm, A4[0] - doc.rightMargin, 12 * mm)
+        canvas.drawString(doc.leftMargin, 8 * mm, f"Emitido em {generated_at.strftime('%d/%m/%Y %H:%M')}")
+        canvas.drawRightString(A4[0] - doc.rightMargin, 8 * mm, f"Página {canvas.getPageNumber()} | Documento {document_code}")
+        canvas.restoreState()
+
+    doc.build(story, onFirstPage=draw_page, onLaterPages=draw_page)
+    buffer.seek(0)
+    return buffer
+
+@login_required
+@somente_master
+def export_non_compliance_pdf(request):
+    start_date_raw = request.GET.get("start_date", "")
+    end_date_raw = request.GET.get("end_date", "")
+
+    if not start_date_raw or not end_date_raw:
+        return JsonResponse(
+            {"success": False, "message": "Informe a data inicial e a data final."},
+            status=400,
+        )
+
+    start_date = parse_date(start_date_raw)
+    end_date = parse_date(end_date_raw)
+
+    if not start_date or not end_date:
+        return JsonResponse(
+            {"success": False, "message": "Período informado inválido."},
+            status=400,
+        )
+
+    if start_date > end_date:
+        return JsonResponse(
+            {"success": False, "message": "A data inicial não pode ser maior que a data final."},
+            status=400,
+        )
+
+    inspecoes = list(
+        Inspecao.objects.select_related("checklist", "inspetor")
+        .prefetch_related(
+            Prefetch(
+                "itens_resposta",
+                queryset=ItemResposta.objects.filter(conformidade=False).order_by("id"),
+                to_attr="itens_nao_conformes",
+            ),
+        )
+        .filter(
+            data_inspecao__date__gte=start_date,
+            data_inspecao__date__lte=end_date,
+            itens_resposta__conformidade=False,
+        )
+        .distinct()
+        .order_by("-data_inspecao")
+    )
+
+    pdf_buffer = build_non_compliance_pdf(
+        inspecoes,
+        start_date,
+        end_date,
+        generated_at=timezone.localtime(),
+    )
+    response = HttpResponse(pdf_buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="nao-conformidades-{start_date.strftime("%Y%m%d")}-{end_date.strftime("%Y%m%d")}.pdf"'
+    )
+    return response
 
 
 @login_required
