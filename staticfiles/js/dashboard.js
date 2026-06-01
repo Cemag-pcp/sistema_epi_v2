@@ -1,4 +1,4 @@
-import { getCookie, ToastBottomEnd } from "../../../static/js/scripts.js";
+import { getCookie, ToastBottomEnd } from "/static/js/scripts.js";
 
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('container-dashboard');
