@@ -104,12 +104,13 @@ def gerar_ficha_epi(request, id):
                 ws.cell(row=linha_destino, column=4).value = dado.equipamento.ca
                 ws.cell(row=linha_destino, column=6).value = dado.get_motivo_display()
                 
-                if hasattr(solicitacao, 'assinatura') and solicitacao.assinatura.imagem_assinatura:
+                assinatura_field = getattr(getattr(solicitacao, 'assinatura', None), 'imagem_assinatura', None)
+                if assinatura_field and assinatura_field.storage.exists(assinatura_field.name):
                     # Criar arquivo temporário
                     temp_filename = f"assinatura_temp_{solicitacao.id}_{i}.png"
                     with open(temp_filename, 'wb') as temp_file:
-                        solicitacao.assinatura.imagem_assinatura.seek(0)
-                        temp_file.write(solicitacao.assinatura.imagem_assinatura.read())
+                        assinatura_field.seek(0)
+                        temp_file.write(assinatura_field.read())
                     temp_files.append(temp_filename)
                     
                     # Adicionar imagem em G{linha_destino}
