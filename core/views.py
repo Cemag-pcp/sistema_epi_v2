@@ -17,7 +17,35 @@ import json
 import base64
 import uuid
 import traceback
+import urllib.request
+import urllib.error
 from datetime import timedelta, datetime
+
+ALMOX_API_URL = 'https://www.cmgprod.com.br/almox/api/criar-requisicao/'
+
+
+def _criar_requisicao_almox(funcionario_id, itens):
+    payload_dict = {
+        'funcionario_id': 22,
+        'cc_id': 6,
+        'status_id': 1,
+        'obs': 'Requisição automática SESMT',
+        'itens': itens,
+    }
+    print(f'[SESMT] Payload enviado ao almoxarifado: {json.dumps(payload_dict, ensure_ascii=False, indent=2)}')
+    payload = json.dumps(payload_dict).encode('utf-8')
+    req = urllib.request.Request(
+        ALMOX_API_URL,
+        data=payload,
+        headers={'Content-Type': 'application/json'},
+        method='POST',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10):
+            pass
+    except Exception as exc:
+        print(f'[SESMT] Falha ao criar requisição no almoxarifado: {exc}')
+
 
 # Create your views here.
 
@@ -399,8 +427,21 @@ def send_signature(request):
                 solicitacao.status = 'Entregue'
                 solicitacao.save()
 
+                itens_requisicao = [
+                    {
+                        'codigo_produto': dado.equipamento.codigo,
+                        'classe_requisicao_id': 3,
+                        'quantidade': float(dado.quantidade),
+                    }
+                    for dado in solicitacao.dados_solicitacao.select_related('equipamento').all()
+                ]
+                funcionario_id = solicitacao.funcionario_id
+                transaction.on_commit(
+                    lambda: _criar_requisicao_almox(funcionario_id, itens_requisicao)
+                )
+
                 return JsonResponse(
-                    {'success': True, 'message': 'Assinatura e devoluções registradas com sucesso'}, 
+                    {'success': True, 'message': 'Assinatura e devoluções registradas com sucesso'},
                     status=200
                 )
 
