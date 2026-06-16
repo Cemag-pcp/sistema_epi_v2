@@ -33,6 +33,14 @@
 
     {% endblock %}
 
+    <style>
+        /* Permite que o menu do sidebar role quando o conteúdo excede a altura */
+        .sb-sidenav .sb-sidenav-menu {
+            min-height: 0;
+            overflow-y: auto;
+        }
+    </style>
+
     </head>
     <body class="sb-nav-fixed">
         <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
@@ -63,6 +71,7 @@
                                             <a class="nav-link" href="{% url 'solicitacao:solicitacao' %}">Solicitar EPI</a>
                                             <a class="nav-link" href="{% url 'devolucao:devolucao' %}">Devolução EPI</a>
                                             <a class="nav-link" href="{% url 'core:historico' %}">Histórico EPI</a>
+                                            <a class="nav-link" href="{% url 'core:controle_trocas' %}">Controle de Trocas</a>
                                             <a class="nav-link" href="{% url 'ficha:ficha' %}">Ficha EPI</a>
 
                                         {% elif request.user.funcionario.tipo_acesso == 'solicitante' %}  

@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
-from django.db.models import Q, Sum, Prefetch, Count
+from django.db.models import Q, Sum, Prefetch, Count, F
 from usuario.decorators import somente_master
 from usuario.models import Funcionario
 from solicitacao.models import Solicitacao, DadosSolicitacao, Assinatura
@@ -823,3 +823,115 @@ def dashboard(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
+
+
+@login_required
+@somente_master
+def controle_trocas(request):
+    from usuario.models import Setor
+    setores = Setor.objects.order_by('nome')
+    return render(request, 'controle_trocas.html', {'setores': setores})
+
+
+@login_required
+@somente_master
+def api_controle_trocas(request):
+    from datetime import date, timedelta
+
+    search = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    setor_filter = request.GET.get('setor', '').strip()
+    page = int(request.GET.get('page', 1))
+    per_page = int(request.GET.get('per_page', 25))
+
+    items = (
+        DadosSolicitacao.objects
+        .select_related(
+            'solicitacao__funcionario__setor',
+            'equipamento'
+        )
+        .prefetch_related('dados_solicitacao_devolucao')
+        .annotate(
+            total_devolvido=Sum('dados_solicitacao_devolucao__quantidade_devolvida')
+        )
+        .filter(solicitacao__status='Entregue', solicitacao__funcionario__ativo=True)
+        .filter(
+            Q(total_devolvido__isnull=True) | Q(total_devolvido__lt=F('quantidade'))
+        )
+        .order_by('-solicitacao__data_atualizacao')
+    )
+
+    if search:
+        items = items.filter(
+            Q(solicitacao__funcionario__nome__icontains=search) |
+            Q(solicitacao__funcionario__matricula__icontains=search) |
+            Q(equipamento__nome__icontains=search)
+        ).distinct()
+
+    if setor_filter:
+        items = items.filter(solicitacao__funcionario__setor__id=setor_filter)
+
+    today = date.today()
+    seen = set()
+    result = []
+
+    for item in items:
+        func_id = item.solicitacao.funcionario.id
+        equip_id = item.equipamento.id
+        key = (func_id, equip_id)
+
+        if key in seen:
+            continue
+        seen.add(key)
+
+        data_entrega = item.solicitacao.data_atualizacao.date()
+        vida_util = item.equipamento.vida_util_dias
+        data_troca = data_entrega + timedelta(days=vida_util)
+        dias_restantes = (data_troca - today).days
+
+        if dias_restantes < 0:
+            status = 'vencido'
+        elif dias_restantes <= 30:
+            status = 'urgente'
+        else:
+            status = 'ok'
+
+        result.append({
+            'funcionario_nome': item.solicitacao.funcionario.nome,
+            'funcionario_matricula': item.solicitacao.funcionario.matricula,
+            'setor': item.solicitacao.funcionario.setor.nome if item.solicitacao.funcionario.setor else '',
+            'equipamento_nome': item.equipamento.nome,
+            'equipamento_codigo': item.equipamento.codigo,
+            'data_entrega': data_entrega.strftime('%d/%m/%Y'),
+            'vida_util_dias': vida_util,
+            'data_troca': data_troca.strftime('%d/%m/%Y'),
+            'dias_restantes': dias_restantes,
+            'status': status,
+        })
+
+    if status_filter:
+        result = [r for r in result if r['status'] == status_filter]
+
+    result.sort(key=lambda x: x['dias_restantes'])
+
+    total = len(result)
+    vencidos = sum(1 for r in result if r['status'] == 'vencido')
+    urgentes = sum(1 for r in result if r['status'] == 'urgente')
+    em_dia = sum(1 for r in result if r['status'] == 'ok')
+
+    start = (page - 1) * per_page
+    page_data = result[start:start + per_page]
+
+    return JsonResponse({
+        'data': page_data,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': max(1, (total + per_page - 1) // per_page),
+        'stats': {
+            'total': total,
+            'vencidos': vencidos,
+            'urgentes': urgentes,
+            'em_dia': em_dia,
+        }
+    })

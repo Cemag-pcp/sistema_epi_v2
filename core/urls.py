@@ -13,4 +13,6 @@ urlpatterns = [
     path('api_historico/', views.api_historico, name='api_historico'),
     path('dashboard/', views.dashboard_template, name='dashboard'),
     path('dashboard/cards/', views.dashboard, name='dashboard_cards'),
+    path('controle-trocas/', views.controle_trocas, name='controle_trocas'),
+    path('controle-trocas/api/', views.api_controle_trocas, name='api_controle_trocas'),
 ]
