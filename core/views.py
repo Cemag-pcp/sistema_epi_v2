@@ -37,12 +37,17 @@ def _criar_requisicao_almox(funcionario_id, itens):
     req = urllib.request.Request(
         ALMOX_API_URL,
         data=payload,
-        headers={'Content-Type': 'application/json'},
+        headers={
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; SistemaEPI/1.0)',
+        },
         method='POST',
     )
     try:
-        with urllib.request.urlopen(req, timeout=10):
-            pass
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print(f'[SESMT] Resposta do almoxarifado ({resp.status}): {resp.read().decode("utf-8")}')
+    except urllib.error.HTTPError as exc:
+        print(f'[SESMT] Falha ao criar requisição no almoxarifado: HTTP {exc.code}: {exc.read().decode("utf-8")}')
     except Exception as exc:
         print(f'[SESMT] Falha ao criar requisição no almoxarifado: {exc}')
 
