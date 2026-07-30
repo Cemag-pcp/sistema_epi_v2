@@ -1,5 +1,20 @@
 let verificationAbortController = null;
 
+// Desabilita/força "Controlar uso" quando o equipamento selecionado não tem vida útil
+export function aplicarRegraControlarUso(equipamentoSelect) {
+    if (!equipamentoSelect || !equipamentoSelect.value) return;
+
+    const form = equipamentoSelect.closest('.clone-form-1');
+    const controlarUso = form?.querySelector('.controlar-uso');
+    if (!controlarUso) return;
+
+    const selectedOption = equipamentoSelect.selectedOptions[0];
+    const temVidaUtil = selectedOption?.dataset.temVidaUtil === 'true';
+
+    controlarUso.disabled = !temVidaUtil;
+    controlarUso.checked = temVidaUtil;
+}
+
 // Função independente para atualizar motivos
 function atualizarMotivos(isPrimeiraEntrega, motivoSelect) {
     motivoSelect.innerHTML = '';
@@ -60,8 +75,9 @@ async function handleChange({ funcionarioSelect, equipamentoSelect, motivoSelect
             }
         }
     }
-    
+
     defaultMotivoOption.textContent = "Selecione um motivo..."
+    aplicarRegraControlarUso(equipamentoSelect);
 }
 
 // Configura os listeners de change
@@ -111,6 +127,7 @@ export function loadFormDataRequest() {
                 const option = document.createElement('option');
                 option.value = equipamento.id;
                 option.textContent = `${equipamento.codigo} - ${equipamento.nome}`;
+                option.dataset.temVidaUtil = equipamento.tem_vida_util;
                 equipamentoSelect.appendChild(option);
             });
 

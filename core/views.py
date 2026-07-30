@@ -219,7 +219,7 @@ def alter_solicitacao(request, id):
                 'dados_solicitacao__equipamento'
             ).get(id=id)
             
-            equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo').order_by("id")
+            equipamentos = Equipamento.objects.filter(ativo=True).values('id', 'nome', 'codigo', 'tem_vida_util').order_by("id")
         
             dados_solicitacao = []
             for dado in solicitacao.dados_solicitacao.all():
@@ -230,6 +230,7 @@ def alter_solicitacao(request, id):
                     'quantidade': dado.quantidade,
                     'motivo': dado.motivo,
                     'observacoes': dado.observacoes,
+                    'controlar_uso': dado.controlar_uso,
                 })
             
             return JsonResponse({
@@ -336,7 +337,8 @@ def alter_solicitacao(request, id):
                             defaults={
                                 'quantidade': dado['quantidade'],
                                 'motivo': dado['motivo'],
-                                'observacoes': dado.get('observacoes', '')
+                                'observacoes': dado.get('observacoes', ''),
+                                'controlar_uso': dado.get('controlar_uso', True)
                             }
                         )
                 
@@ -900,7 +902,7 @@ def api_controle_trocas(request):
         .annotate(
             total_devolvido=Sum('dados_solicitacao_devolucao__quantidade_devolvida')
         )
-        .filter(solicitacao__status='Entregue', solicitacao__funcionario__ativo=True)
+        .filter(solicitacao__status='Entregue', solicitacao__funcionario__ativo=True, controlar_uso=True, equipamento__tem_vida_util=True)
         .filter(
             Q(total_devolvido__isnull=True) | Q(total_devolvido__lt=F('quantidade'))
         )
@@ -943,6 +945,7 @@ def api_controle_trocas(request):
             status = 'ok'
 
         result.append({
+            'id': item.id,
             'funcionario_nome': item.solicitacao.funcionario.nome,
             'funcionario_matricula': item.solicitacao.funcionario.matricula,
             'setor': item.solicitacao.funcionario.setor.nome if item.solicitacao.funcionario.setor else '',
@@ -953,6 +956,7 @@ def api_controle_trocas(request):
             'data_troca': data_troca.strftime('%d/%m/%Y'),
             'dias_restantes': dias_restantes,
             'status': status,
+            'controlar_uso': item.controlar_uso,
         })
 
     if status_filter:
@@ -981,3 +985,24 @@ def api_controle_trocas(request):
             'em_dia': em_dia,
         }
     })
+
+
+@login_required
+@somente_master
+@require_http_methods(["PATCH"])
+def atualizar_controlar_uso(request, id):
+    try:
+        data = json.loads(request.body)
+        controlar_uso = bool(data.get('controlar_uso'))
+
+        dado = DadosSolicitacao.objects.get(id=id)
+        dado.controlar_uso = controlar_uso
+        dado.save(update_fields=['controlar_uso'])
+
+        return JsonResponse({'success': True, 'controlar_uso': dado.controlar_uso})
+    except DadosSolicitacao.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Item não encontrado'}, status=404)
+    except (json.JSONDecodeError, KeyError):
+        return JsonResponse({'success': False, 'message': 'Dados inválidos'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)

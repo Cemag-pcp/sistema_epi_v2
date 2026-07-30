@@ -19,9 +19,10 @@ document.getElementById('form-card-solict').addEventListener("submit", (event) =
     const funcionarios = document.querySelectorAll('.funcionario');
     const observacoes = document.querySelectorAll('.observacoes');
     const motivos = document.querySelectorAll('.motivo');
-    let padrao = document.getElementById('padrao-select'); 
-    const padraoSelecionado = padrao.value; 
-    
+    const controlarUso = document.querySelectorAll('.controlar-uso');
+    let padrao = document.getElementById('padrao-select');
+    const padraoSelecionado = padrao.value;
+
     const listaSolicitacoes = [];
 
     for (let i = 0; i < equipamentos.length; i++) {
@@ -30,7 +31,8 @@ document.getElementById('form-card-solict').addEventListener("submit", (event) =
             'quantidades': parseInt(quantidades[i]?.value) || 1,
             'funcionario_id': funcionarios[i]?.value || '',
             'observacoes': observacoes[i]?.value || '',
-            'motivos': motivos[i]?.value || ''
+            'motivos': motivos[i]?.value || '',
+            'controlar_uso': controlarUso[i]?.checked ?? true
         };
         listaSolicitacoes.push(solicitacao);
     }

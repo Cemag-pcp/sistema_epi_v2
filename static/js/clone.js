@@ -47,6 +47,8 @@ export function setupCloneForms(config) {
         inputs.forEach(input => {
             if (input.tagName === "SELECT") {
                 input.selectedIndex = 0;
+            } else if (input.type === "checkbox") {
+                input.checked = true;
             } else if (input.type !== "submit") {
                 if(!input.classList.contains('requestName')){
                     input.value = "";

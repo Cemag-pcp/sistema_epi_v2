@@ -1,4 +1,4 @@
-import { loadFormDataRequest, verificarMultiplosEquipamentos, setupChangeListeners } from "./get_solicitacoes.js";
+import { loadFormDataRequest, verificarMultiplosEquipamentos, setupChangeListeners, aplicarRegraControlarUso } from "./get_solicitacoes.js";
 import { updateRequestNumbers } from "../../../static/js/clone.js";
 import { ToastBottomEnd } from "../../../static/js/scripts.js";
 
@@ -126,6 +126,8 @@ async function fillPadraoData(padraoData) {
     inputs.forEach(input => {
         if (input.tagName === "SELECT") {
             input.selectedIndex = 0;
+        } else if (input.type === "checkbox") {
+            input.checked = true;
         } else if (input.type !== "submit") {
             if(!input.classList.contains('requestName')){
                 input.value = "";
@@ -240,6 +242,7 @@ async function fillPadraoData(padraoData) {
             if (equipamentoSelect) {
                 equipamentoSelect.value = equipamento.equipamento_id;
                 $(equipamentoSelect).trigger('change');
+                aplicarRegraControlarUso(equipamentoSelect);
             }
             
             const quantidadeInput = form.querySelector('.quantidade');
@@ -333,6 +336,7 @@ function updateAvailableOptions(equipamentos, funcionarios) {
             const option = document.createElement('option');
             option.value = equipamento.id;
             option.textContent = `${equipamento.codigo} - ${equipamento.nome}`;
+            option.dataset.temVidaUtil = equipamento.tem_vida_util;
             select.appendChild(option);
         });
     });

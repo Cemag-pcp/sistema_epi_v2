@@ -23,8 +23,8 @@ export function adicionarLinhaTabela(equipamento) {
                 </div>
             </div>
         </td>
-        <td style="align-content:center;" data-order="${equipamento.vida_util_dias}">
-            <p class="fw-normal mb-1 vida-util-equipamento">${equipamento.vida_util_dias} dias</p>
+        <td style="align-content:center;" data-order="${equipamento.vida_util_dias || '0'}">
+            <p class="fw-normal mb-1 vida-util-equipamento">${equipamento.tem_vida_util ? `${equipamento.vida_util_dias} dias` : 'Não controla'}</p>
         </td>
         <td style="align-content:center;" class="ca-equipamento" data-order="${equipamento.ca || '0'}">
             ${equipamento.ca === null ? 'Não informado' : equipamento.ca}
@@ -45,6 +45,7 @@ export function adicionarLinhaTabela(equipamento) {
                             data-nome="${equipamento.nome}"
                             data-codigo="${equipamento.codigo}"
                             data-ca="${equipamento.ca}"
+                            data-tem-vida-util="${equipamento.tem_vida_util}"
                             data-vida-util-dias="${equipamento.vida_util_dias}"
                             class="dropdown-item g-4 abrirModalEditarEquipamento" style="cursor: pointer;">
                             <i class="bi bi-pencil-square" style="margin-right: 8px; pointer-events: none;"></i>

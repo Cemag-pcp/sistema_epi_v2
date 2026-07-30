@@ -229,7 +229,7 @@ def alter_padrao(request, id):
                 ).get(id=id)
                 
                 # Otimização: Query única para equipamentos ativos com apenas os campos necessários
-                equipamentos = Equipamento.objects.filter(ativo=True).only('id', 'nome', 'codigo').order_by('id')
+                equipamentos = Equipamento.objects.filter(ativo=True).only('id', 'nome', 'codigo', 'tem_vida_util').order_by('id')
                 
                 # Otimização: Query condicional simplificada
                 setor_filter = padrao.setor if request.user.is_superuser else request.user.funcionario.setor
@@ -264,7 +264,7 @@ def alter_padrao(request, id):
                     })
                 
                 # Otimização: Converter para lista apenas uma vez no final
-                equipamentos_list = list(equipamentos.values('id', 'nome', 'codigo'))
+                equipamentos_list = list(equipamentos.values('id', 'nome', 'codigo', 'tem_vida_util'))
                 funcionarios_list = list(funcionarios.values('id', 'matricula', 'nome'))
                 
                 response_data = {
@@ -396,7 +396,7 @@ def equipaments_padrao(request):
 
     if request.method == 'GET':
 
-        equipamentos = list(Equipamento.objects.filter(ativo=True).values("id","codigo","nome").order_by("id"))
+        equipamentos = list(Equipamento.objects.filter(ativo=True).values("id","codigo","nome","tem_vida_util").order_by("id"))
 
         motivos = [{'id': reason[0], 'nome': reason[1]} for reason in PadraoEquipamento.REASON_CHOICES if reason[0] != 'primeira entrega']
 

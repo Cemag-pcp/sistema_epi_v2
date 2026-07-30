@@ -5,6 +5,21 @@ let currentPerPage = 25;
 let debounceTimer = null;
 let lastStats = {};
 
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 function getFilters() {
     return {
         search: document.getElementById('searchInput').value.trim(),
@@ -75,6 +90,16 @@ function renderTable(rows) {
             <td>${r.data_troca}</td>
             <td class="${diasClass}">${diasLabel}</td>
             <td><span class="status-badge ${badgeClass}">${labelMap[r.status]}</span></td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-controlar-uso"
+                        title="Controlar uso"
+                        data-id="${r.id}"
+                        data-controlar-uso="${r.controlar_uso}"
+                        data-equipamento="${r.equipamento_nome}"
+                        data-funcionario="${r.funcionario_nome}">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </td>
         </tr>`;
     }).join('');
 }
@@ -188,6 +213,77 @@ document.getElementById('pageSize').addEventListener('change', (e) => {
     currentPerPage = parseInt(e.target.value);
     currentPage = 1;
     loadData();
+});
+
+// Modal Controlar Uso
+const modalControlarUsoEl = document.getElementById('modal-controlar-uso');
+const modalControlarUso = new bootstrap.Modal(modalControlarUsoEl);
+const salvarControlarUsoBtn = document.getElementById('salvarControlarUsoBtn');
+const salvarControlarUsoSpinner = document.getElementById('salvarControlarUsoSpinner');
+let itemControlarUsoAtual = null;
+
+document.getElementById('tableBody').addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-controlar-uso');
+    if (!btn) return;
+
+    itemControlarUsoAtual = btn.dataset.id;
+
+    document.getElementById('modalControlarUsoEquipamento').textContent = btn.dataset.equipamento;
+    document.getElementById('modalControlarUsoFuncionario').textContent = btn.dataset.funcionario;
+    document.getElementById('modalControlarUsoCheckbox').checked = btn.dataset.controlarUso === 'true';
+
+    modalControlarUso.show();
+});
+
+salvarControlarUsoBtn.addEventListener('click', async () => {
+    if (!itemControlarUsoAtual) return;
+
+    const controlarUso = document.getElementById('modalControlarUsoCheckbox').checked;
+
+    salvarControlarUsoBtn.disabled = true;
+    salvarControlarUsoSpinner.classList.remove('d-none');
+
+    try {
+        const resp = await fetch(`${API_URL}${itemControlarUsoAtual}/controlar-uso/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ controlar_uso: controlarUso }),
+        });
+
+        const data = await resp.json();
+        if (!resp.ok || !data.success) {
+            throw new Error(data.message || 'Erro ao atualizar o controle de uso');
+        }
+
+        modalControlarUso.hide();
+        loadData();
+        Swal.fire({
+            toast: true,
+            position: 'bottom-end',
+            icon: 'success',
+            title: 'Controle de uso atualizado!',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+        });
+    } catch (e) {
+        console.error(e);
+        Swal.fire({
+            toast: true,
+            position: 'bottom-end',
+            icon: 'error',
+            title: e.message || 'Erro ao atualizar o controle de uso',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+        });
+    } finally {
+        salvarControlarUsoBtn.disabled = false;
+        salvarControlarUsoSpinner.classList.add('d-none');
+    }
 });
 
 // Initial load

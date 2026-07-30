@@ -54,8 +54,10 @@
           </div>
         </div>
       </td>
-      <td style="align-content:center;" data-order="{{ equipamento.vida_util_dias }}">
-        <p class="fw-normal mb-1 vida-util-equipamento">{{ equipamento.vida_util_dias }} dias</p>
+      <td style="align-content:center;" data-order="{{ equipamento.vida_util_dias|default:'0' }}">
+        <p class="fw-normal mb-1 vida-util-equipamento">
+          {% if equipamento.tem_vida_util %}{{ equipamento.vida_util_dias }} dias{% else %}Não controla{% endif %}
+        </p>
       </td>
       <td style="align-content:center;" class="ca-equipamento" data-order="{{ equipamento.ca|default:'0' }}">
         {% if equipamento.ca == None %}
@@ -82,6 +84,7 @@
                       data-nome="{{equipamento.nome}}"
                       data-codigo="{{equipamento.codigo}}"
                       data-ca="{{equipamento.ca}}"
+                      data-tem-vida-util="{{equipamento.tem_vida_util|yesno:'true,false'}}"
                       data-vida-util-dias="{{equipamento.vida_util_dias}}"
                       class="dropdown-item g-4 abrirModalEditarEquipamento" style="cursor: pointer;">
                       <i class="bi bi-pencil-square" style="margin-right: 8px; pointer-events: none;"></i>

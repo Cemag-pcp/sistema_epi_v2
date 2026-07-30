@@ -41,6 +41,7 @@ class DadosSolicitacao(models.Model):
         max_length=20, choices=REASON_CHOICES, default="substituicao"
     )
     observacoes = models.CharField(max_length=255, blank=True, null=True)
+    controlar_uso = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ("equipamento", "solicitacao")

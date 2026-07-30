@@ -103,7 +103,8 @@ def solicitacao_template(request):
                             equipamento=equipamento,
                             quantidade=item['quantidades'],
                             observacoes=item['observacoes'],
-                            motivo=item['motivos']
+                            motivo=item['motivos'],
+                            controlar_uso=item.get('controlar_uso', True)
                         )
 
                 return JsonResponse({
@@ -132,7 +133,7 @@ def solicitacao(request):
     else:
         funcionarios = list(Funcionario.objects.filter(setor=request.user.funcionario.setor, ativo=True).values('id', 'nome', 'matricula'))
 
-    equipamentos = list(Equipamento.objects.values('id', 'nome', 'codigo'))
+    equipamentos = list(Equipamento.objects.values('id', 'nome', 'codigo', 'tem_vida_util'))
     
     return JsonResponse({
         'funcionarios': funcionarios,

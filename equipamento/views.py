@@ -24,7 +24,7 @@ def equipamento(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            
+
             # Validação básica
             required_fields = ['nome', 'codigo']
             if not all(field in data for field in required_fields):
@@ -33,19 +33,43 @@ def equipamento(request):
                     'message': 'Campos obrigatórios faltando',
                     'errors': {field: 'Este campo é obrigatório' for field in required_fields if field not in data}
                 }, status=400)
-            
+
+            if 'tem_vida_util' not in data:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Informe se o equipamento possui vida útil'
+                }, status=400)
+
+            tem_vida_util = bool(data['tem_vida_util'])
+
+            if tem_vida_util:
+                if data.get('vida_util_dias') in (None, ''):
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Vida útil é obrigatória para equipamentos que possuem vida útil'
+                    }, status=400)
+                vida_util_dias = int(data['vida_util_dias'])
+                if vida_util_dias <= 0:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'A vida útil deve ser maior que 0'
+                    }, status=400)
+            else:
+                vida_util_dias = None
+
             # Cria o novo equipamento
             equipamento = Equipamento(
                 nome=data['nome'],
                 codigo=data['codigo'],
-                vida_util_dias=data['vida_util_dias'],
+                tem_vida_util=tem_vida_util,
+                vida_util_dias=vida_util_dias,
                 ca=data['ca'] if data['ca'] != '' else 0,
                 ativo=data.get('ativo', True)
             )
-            
+
             equipamento.full_clean()
             equipamento.save()
-            
+
             return JsonResponse({
                 'success': True,
                 'message': 'Equipamento criado com sucesso',
@@ -53,6 +77,7 @@ def equipamento(request):
                     'id': equipamento.id,
                     'nome': equipamento.nome,
                     'codigo': equipamento.codigo,
+                    'tem_vida_util': equipamento.tem_vida_util,
                     'vida_util_dias': equipamento.vida_util_dias,
                     'ca': equipamento.ca,
                     'ativo': equipamento.ativo
@@ -90,31 +115,50 @@ def alter_equipamento(request, id):
         if request.method == 'PUT':
             try:
                 data = json.loads(request.body) if request.body else {}
-                
+
                 # Validação básica dos campos
-                required_fields = ['nome', 'codigo', 'vida_util_dias', 'ca']
+                required_fields = ['nome', 'codigo', 'tem_vida_util', 'ca']
                 if not all(field in data for field in required_fields):
                     return JsonResponse(
                         {'success': False, 'message': 'Campos obrigatórios faltando'},
                         status=400
                     )
 
+                tem_vida_util = bool(data['tem_vida_util'])
+
+                if tem_vida_util:
+                    if data.get('vida_util_dias') in (None, ''):
+                        return JsonResponse(
+                            {'success': False, 'message': 'Vida útil é obrigatória para equipamentos que possuem vida útil'},
+                            status=400
+                        )
+                    vida_util_dias = int(data['vida_util_dias'])
+                    if vida_util_dias <= 0:
+                        return JsonResponse(
+                            {'success': False, 'message': 'A vida útil deve ser maior que 0'},
+                            status=400
+                        )
+                else:
+                    vida_util_dias = None
+
                 # Atualização dos campos
                 equipamento.nome = data.get('nome', equipamento.nome)
                 equipamento.codigo = data.get('codigo', equipamento.codigo)
-                equipamento.vida_util_dias = int(data.get('vida_util_dias', equipamento.vida_util_dias))
+                equipamento.tem_vida_util = tem_vida_util
+                equipamento.vida_util_dias = vida_util_dias
                 equipamento.ca = data.get('ca', equipamento.ca)
-                
+
                 equipamento.full_clean()  # Valida o modelo antes de salvar
                 equipamento.save()
-                
+
                 return JsonResponse({
-                    'success': True, 
+                    'success': True,
                     'message': 'Equipamento atualizado com sucesso',
                     'data': {
                         'id': equipamento.id,
                         'nome': equipamento.nome,
                         'codigo': equipamento.codigo,
+                        'tem_vida_util': equipamento.tem_vida_util,
                         'vida_util_dias': equipamento.vida_util_dias,
                         'ca': equipamento.ca,
                         'ativo': equipamento.ativo

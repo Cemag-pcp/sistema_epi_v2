@@ -15,4 +15,5 @@ urlpatterns = [
     path('dashboard/cards/', views.dashboard, name='dashboard_cards'),
     path('controle-trocas/', views.controle_trocas, name='controle_trocas'),
     path('controle-trocas/api/', views.api_controle_trocas, name='api_controle_trocas'),
+    path('controle-trocas/api/<int:id>/controlar-uso/', views.atualizar_controlar_uso, name='atualizar_controlar_uso'),
 ]

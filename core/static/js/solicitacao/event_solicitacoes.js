@@ -94,13 +94,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const quantidade = formClone.querySelector('input[name="quantity"]').value;
                 const observacoes = formClone.querySelector('textarea[name="observation"]').value;
                 const motivo = formClone.querySelector('select[name="reason"]').value;
-                
+                const controlarUso = formClone.querySelector('.controlar-uso')?.checked ?? true;
+
                 dadosSolicitacao.push({
                     equipamento_id: equipamentoId,
                     funcionario_id: funcionarioId,
                     quantidade: quantidade,
                     observacoes: observacoes,
-                    motivo: motivo
+                    motivo: motivo,
+                    controlar_uso: controlarUso
                 });
             });
 

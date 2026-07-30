@@ -181,6 +181,7 @@
                                     <th><i class="fas fa-calendar-times me-1"></i>Troca Prevista</th>
                                     <th><i class="fas fa-calendar-day me-1"></i>Dias Restantes</th>
                                     <th><i class="fas fa-flag me-1"></i>Status</th>
+                                    <th class="text-center"><i class="fas fa-cog me-1"></i>Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
@@ -210,6 +211,41 @@
         </div>
     </div>
 
+</div>
+
+<!-- Modal Controlar Uso -->
+<div class="modal fade" id="modal-controlar-uso" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-cog me-2"></i>Controlar Uso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">
+                    <span class="fw-semibold" id="modalControlarUsoEquipamento"></span>
+                    <br>
+                    <span class="text-muted" id="modalControlarUsoFuncionario"></span>
+                </p>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="modalControlarUsoCheckbox">
+                    <label class="form-check-label" for="modalControlarUsoCheckbox">
+                        Controlar uso deste item
+                    </label>
+                </div>
+                <div class="form-text mt-2">
+                    Se desmarcado, este item deixará de aparecer no controle de trocas.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="salvarControlarUsoBtn">
+                    <span class="spinner-border spinner-border-sm d-none" id="salvarControlarUsoSpinner" role="status"></span>
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 

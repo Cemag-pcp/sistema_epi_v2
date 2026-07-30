@@ -1,5 +1,30 @@
 import { ToastBottomEnd } from "../../../../static/js/scripts.js";
 
+// Desabilita/força "Controlar uso" quando o equipamento selecionado não tem vida útil
+function sincronizarControlarUso(itemSelect, { forcarChecked = false } = {}) {
+    if (!itemSelect || !itemSelect.value) return;
+
+    const form = itemSelect.closest('.clone-form-solicitacao');
+    const controlarUso = form?.querySelector('.controlar-uso');
+    if (!controlarUso) return;
+
+    const selectedOption = itemSelect.selectedOptions[0];
+    const temVidaUtil = selectedOption?.dataset.temVidaUtil === 'true';
+
+    controlarUso.disabled = !temVidaUtil;
+    if (!temVidaUtil) {
+        controlarUso.checked = false;
+    } else if (forcarChecked) {
+        controlarUso.checked = true;
+    }
+}
+
+document.addEventListener('change', (event) => {
+    if (event.target.matches('#modal-editar-solicitacao select[name="item"]')) {
+        sincronizarControlarUso(event.target, { forcarChecked: true });
+    }
+});
+
 // Função para adicionar novo formulário clonado para solicitação
 export function addSolicitacaoClone(equipamento= '', matricula='', nome='', funcionario_id='') {
     const cloneContainer = document.getElementById('clone-container-solicitacao');
@@ -45,6 +70,8 @@ export function addSolicitacaoClone(equipamento= '', matricula='', nome='', func
             } else {
                 input.selectedIndex = 0;
             }
+        } else if (input.type === 'checkbox') {
+            input.checked = true;
         } else if (input.type !== 'submit') {
             input.value = '';
             if (input.name === 'quantity') input.value = 1;
@@ -203,6 +230,7 @@ export async function preencherModalEdicaoSolicitacao(data) {
                 const option = document.createElement('option');
                 option.value = equip.id;
                 option.textContent = equip.nome;
+                option.dataset.temVidaUtil = equip.tem_vida_util;
                 if (equip.id === primeiroItem.equipamento_id) option.selected = true;
                 itemSelect.appendChild(option);
             });
@@ -238,7 +266,11 @@ export async function preencherModalEdicaoSolicitacao(data) {
         
         const obsInput = firstForm.querySelector('textarea[name="observation"]');
         if (obsInput) obsInput.value = primeiroItem.observacoes || '';
-        
+
+        const controlarUsoInput = firstForm.querySelector('.controlar-uso');
+        if (controlarUsoInput) controlarUsoInput.checked = primeiroItem.controlar_uso !== false;
+        sincronizarControlarUso(itemSelect);
+
         // Adicionar clones para os demais itens
         data.solicitacao.dados_solicitacao.forEach((item, index) => {
             if (index > 0) {
@@ -275,6 +307,10 @@ export async function preencherModalEdicaoSolicitacao(data) {
                     
                     const currentMotivoSelect = currentForm.querySelector('select[name="reason"]');
                     if (currentMotivoSelect) currentMotivoSelect.value = item.motivo || '';
+
+                    const currentControlarUsoInput = currentForm.querySelector('.controlar-uso');
+                    if (currentControlarUsoInput) currentControlarUsoInput.checked = item.controlar_uso !== false;
+                    sincronizarControlarUso(currentItemSelect);
                 }
             }
         });
