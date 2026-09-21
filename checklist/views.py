@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from usuario.decorators import somente_master, master_solicit
 from django.http import JsonResponse, HttpResponse
@@ -7,20 +7,174 @@ from django.db.models import Count, Case, When, IntegerField, Q, Prefetch
 from django.db import transaction
 from django.utils.dateparse import parse_date
 from django.utils import timezone
+from django.core.cache import cache
 from .models import Checklist, Pergunta, Inspecao, ItemResposta, FotoResposta
 from usuario.models import Setor
 import json
 import base64
 import uuid
+import urllib.request
+import urllib.parse
+import urllib.error
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
+from xml.sax.saxutils import escape
 from django.core.files.base import ContentFile
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image as RLImage, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+MAQUINAS_API_URL = 'https://www.manutencaocemag.com.br/api/public/maquinas/'
+MAQUINAS_CACHE_KEY = 'checklist_maquinas'
+MAQUINAS_CACHE_TTL = 300
+MAQUINAS_PAGE_SIZE = 500
+
+
+def _buscar_maquinas():
+    """Retorna as máquinas do sistema de manutenção (API paginada), com cache curto."""
+    maquinas = cache.get(MAQUINAS_CACHE_KEY)
+    if maquinas is not None:
+        return maquinas
+
+    maquinas = []
+    offset = 0
+    while True:
+        query = urllib.parse.urlencode({'limit': MAQUINAS_PAGE_SIZE, 'offset': offset})
+        req = urllib.request.Request(
+            f'{MAQUINAS_API_URL}?{query}',
+            headers={'User-Agent': 'Mozilla/5.0 (compatible; SistemaEPI/1.0)'},
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            payload = json.loads(resp.read().decode('utf-8'))
+
+        results = payload.get('results', [])
+        maquinas.extend(
+            {
+                'id': m['id'],
+                'codigo': m.get('codigo') or '',
+                'descricao': m.get('descricao') or '',
+                'setor': m.get('setor') or '',
+            }
+            for m in results
+        )
+        offset += len(results)
+        if not results or offset >= payload.get('count', 0):
+            break
+
+    maquinas.sort(key=lambda m: m['codigo'].lower())
+    cache.set(MAQUINAS_CACHE_KEY, maquinas, MAQUINAS_CACHE_TTL)
+    return maquinas
+
+
+ORDENS_API_URL = 'https://www.manutencaocemag.com.br/api/public/ordens/'
+OS_DESCRICAO_PADRAO = 'OS aberta a partir do preenchimento do checklist do SESMT.'
+OS_DESCRICAO_MAX = 1000  # limite do texto do usuário, para não estourar o campo do outro sistema
+
+
+def _mensagem_erro_api(corpo):
+    """Extrai uma mensagem legível do corpo de erro da API ({"error": "..."} ou erros por campo)."""
+    try:
+        dados = json.loads(corpo)
+    except ValueError:
+        return None
+    if not isinstance(dados, dict):
+        return None
+    for chave in ('error', 'erro', 'detail', 'message', 'mensagem'):
+        if dados.get(chave):
+            return str(dados[chave])
+    partes = []
+    for campo, mensagens in dados.items():
+        if isinstance(mensagens, (list, tuple)):
+            mensagens = ', '.join(str(m) for m in mensagens)
+        partes.append(f'{campo}: {mensagens}')
+    return '; '.join(partes) or None
+
+
+def _numero_os(resposta):
+    """Procura o número/identificador da OS na resposta da API (o formato não é garantido)."""
+    if not isinstance(resposta, dict):
+        return None
+    candidatos = [resposta] + [v for v in resposta.values() if isinstance(v, dict)]
+    for dados in candidatos:
+        for chave in ('numero', 'numero_os', 'codigo', 'id', 'pk'):
+            valor = dados.get(chave)
+            if valor not in (None, ''):
+                return str(valor)
+    return None
+
+
+def _descricao_os(checklist, inspecao, texto_usuario):
+    return (
+        f'{OS_DESCRICAO_PADRAO} Checklist: {checklist.nome} (inspeção #{inspecao.id}).\n'
+        f'{texto_usuario}'
+    )
+
+
+def _abrir_ordem_servico(matricula, maquina_id, descricao):
+    """Abre uma OS no sistema de manutenção. Nunca levanta: devolve o resultado para o front."""
+    payload = {
+        'matricula': str(matricula),
+        'area': 'producao',
+        'maquina': maquina_id,
+        'descricao': descricao,
+        'impacto_producao': 'medio',
+        'maq_parada': False,
+    }
+    req = urllib.request.Request(
+        ORDENS_API_URL,
+        data=json.dumps(payload).encode('utf-8'),
+        headers={
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (compatible; SistemaEPI/1.0)',
+        },
+        method='POST',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            corpo = resp.read().decode('utf-8')
+    except urllib.error.HTTPError as exc:
+        corpo_erro = exc.read().decode('utf-8', errors='replace')
+        print(f'[CHECKLIST] Falha ao abrir OS: HTTP {exc.code}: {corpo_erro}')
+        return {
+            'aberta': False,
+            'numero': None,
+            'erro': _mensagem_erro_api(corpo_erro) or f'o sistema de manutenção respondeu com erro {exc.code}',
+        }
+    except Exception as exc:
+        print(f'[CHECKLIST] Falha ao abrir OS: {exc}')
+        return {'aberta': False, 'numero': None, 'erro': 'não foi possível se comunicar com o sistema de manutenção'}
+
+    try:
+        resposta = json.loads(corpo) if corpo else {}
+    except ValueError:
+        resposta = {}
+    return {'aberta': True, 'numero': _numero_os(resposta), 'erro': None}
+
+
+def _nome_maquina(maquina):
+    if maquina['descricao'] and maquina['descricao'] != maquina['codigo']:
+        return f"{maquina['codigo']} - {maquina['descricao']}"
+    return maquina['codigo']
+
+
+@login_required
+@somente_master
+def maquinas_api(request):
+    try:
+        maquinas = _buscar_maquinas()
+    except Exception as exc:
+        print(f'[CHECKLIST] Falha ao buscar máquinas: {exc}')
+        return JsonResponse(
+            {"error": "Não foi possível carregar as máquinas no momento"}, status=502
+        )
+
+    return JsonResponse(
+        {"maquinas": [{**m, "nome": _nome_maquina(m)} for m in maquinas]}
+    )
 
 
 @login_required
@@ -62,10 +216,29 @@ def edit_inspection_template(request, id):
 
 @login_required
 @somente_master
+def maquinas_em_uso_api(request):
+    """Máquinas que possuem checklist ativo (opções do filtro da listagem)."""
+    maquinas = {}
+    linhas = (
+        Checklist.objects.filter(ativo=True, maquina_id__isnull=False)
+        .order_by("maquina_nome")
+        .values("maquina_id", "maquina_nome")
+    )
+    for linha in linhas:
+        maquinas.setdefault(linha["maquina_id"], linha["maquina_nome"])
+
+    return JsonResponse(
+        {"maquinas": [{"id": id_, "nome": nome} for id_, nome in maquinas.items()]}
+    )
+
+
+@login_required
+@somente_master
 def checklist_cards_data_api(request):
     # Obter parâmetros de filtro
     setor_filter = request.GET.get("setor", "")
     nome_filter = request.GET.get("nome", "")
+    maquina_filter = request.GET.get("maquina_id", "")
     page_number = request.GET.get("page", 1)
 
     # Buscar checklists ativos com filtros
@@ -82,6 +255,9 @@ def checklist_cards_data_api(request):
 
     if nome_filter:
         checklists = checklists.filter(nome__icontains=nome_filter)
+
+    if maquina_filter.isdigit():
+        checklists = checklists.filter(maquina_id=int(maquina_filter))
 
     # Paginação
     checklists = checklists.order_by("-created_at")
@@ -102,6 +278,7 @@ def checklist_cards_data_api(request):
             "tempo_min": tempo_estimado_min,
             "tempo_max": tempo_estimado_max,
             "setor": checklist.setor.nome if checklist.setor else "Geral",
+            "maquina": checklist.maquina_nome,
             "url_edit": f"/checklists/edit/{checklist.id}",
             "url_inspection": f"/checklists/inspection/{checklist.id}",
         }
@@ -217,8 +394,8 @@ def inspection_send_checklist_api(request):
             data = json.loads(request.body)
             checklist_id = data.get("checklist")
             respostas_data = data.get("respostas", [])
-            print(data)
-            print(respostas_data)
+            abrir_os = bool(data.get("abrir_os"))
+            descricao_os = str(data.get("descricao_os") or "").strip()
 
             # Validar dados obrigatórios
             if not checklist_id:
@@ -237,6 +414,23 @@ def inspection_send_checklist_api(request):
                     {"error": "Checklist não encontrado ou inativo"}, status=404
                 )
 
+            # A OS é validada antes de salvar qualquer coisa: a máquina vem do checklist (não do cliente)
+            if abrir_os:
+                if not checklist.maquina_id:
+                    return JsonResponse(
+                        {"error": "Este checklist não tem máquina vinculada para abrir a ordem de serviço"},
+                        status=400,
+                    )
+                if not descricao_os:
+                    return JsonResponse(
+                        {"error": "Descreva o problema para abrir a ordem de serviço"}, status=400
+                    )
+                if len(descricao_os) > OS_DESCRICAO_MAX:
+                    return JsonResponse(
+                        {"error": f"A descrição da ordem de serviço deve ter no máximo {OS_DESCRICAO_MAX} caracteres"},
+                        status=400,
+                    )
+
             # Criar a inspeção
             inspecao = Inspecao.objects.create(
                 checklist=checklist,
@@ -246,6 +440,9 @@ def inspection_send_checklist_api(request):
                     else None
                 ),
             )
+
+            # Uma consulta só para todas as perguntas (cada ida ao banco custa ~90 ms)
+            perguntas_por_id = {p.id: p for p in Pergunta.objects.filter(checklist=checklist)}
 
             # Processar cada resposta
             for resposta_data in respostas_data:
@@ -264,10 +461,7 @@ def inspection_send_checklist_api(request):
                     continue  # Pular respostas inválidas
 
                 # Buscar a pergunta
-                try:
-                    pergunta = Pergunta.objects.get(id=pergunta_id, checklist=checklist)
-                except Pergunta.DoesNotExist:
-                    pergunta = None
+                pergunta = perguntas_por_id.get(pergunta_id)
 
                 # Criar o item de resposta
                 item_resposta = ItemResposta.objects.create(
@@ -312,12 +506,22 @@ def inspection_send_checklist_api(request):
                         print(f"Erro ao processar foto: {str(e)}")
                         continue
 
+            # A inspeção já está salva: uma falha na OS não pode desfazê-la, só é avisada ao usuário
+            ordem_servico = None
+            if abrir_os:
+                ordem_servico = _abrir_ordem_servico(
+                    request.user.matricula,
+                    checklist.maquina_id,
+                    _descricao_os(checklist, inspecao, descricao_os),
+                )
+
             # Retornar sucesso
             return JsonResponse(
                 {
                     "success": True,
                     "message": "Inspeção registrada com sucesso",
                     "inspecao_id": inspecao.id,
+                    "os": ordem_servico,
                 }
             )
 
@@ -464,6 +668,11 @@ def inspection_checklist_api(request, id):
                 if checklist.setor
                 else None
             ),
+            "maquina": (
+                {"id": checklist.maquina_id, "nome": checklist.maquina_nome}
+                if checklist.maquina_id
+                else None
+            ),
             "perguntas": list(perguntas),
         }
 
@@ -496,6 +705,29 @@ def edit_checklist_api(request, id):
                 return JsonResponse({"error": "Setor não encontrado"}, status=400)
         else:
             checklist.setor = None
+
+        # Máquina: sem a chave no corpo, mantém a atual; vazio remove; id novo é validado na API
+        if "maquina_id" in data:
+            maquina_id = data.get("maquina_id")
+            if not maquina_id:
+                checklist.maquina_id = None
+                checklist.maquina_nome = None
+            elif str(maquina_id) != str(checklist.maquina_id):
+                try:
+                    maquina = next(
+                        (m for m in _buscar_maquinas() if str(m["id"]) == str(maquina_id)),
+                        None,
+                    )
+                except Exception as exc:
+                    print(f"[CHECKLIST] Falha ao validar máquina: {exc}")
+                    return JsonResponse(
+                        {"error": "Não foi possível validar a máquina no momento. Tente novamente."},
+                        status=502,
+                    )
+                if maquina is None:
+                    return JsonResponse({"error": "Máquina não encontrada"}, status=400)
+                checklist.maquina_id = maquina["id"]
+                checklist.maquina_nome = _nome_maquina(maquina)
 
         checklist.save()
 
@@ -541,6 +773,11 @@ def edit_checklist_api(request, id):
             "setor": (
                 {"id": checklist.setor.id, "nome": checklist.setor.nome}
                 if checklist.setor
+                else None
+            ),
+            "maquina": (
+                {"id": checklist.maquina_id, "nome": checklist.maquina_nome}
+                if checklist.maquina_id
                 else None
             ),
             "ativo": checklist.ativo,
@@ -589,12 +826,32 @@ def delete_checklist_api(request, id):
 
 @login_required
 @somente_master
+def historico_maquinas_api(request):
+    """Máquinas de checklists que já tiveram inspeção (opções do filtro do histórico)."""
+    maquinas = {}
+    linhas = (
+        Checklist.objects.filter(maquina_id__isnull=False, inspecao__isnull=False)
+        .order_by("maquina_nome")
+        .values("maquina_id", "maquina_nome")
+        .distinct()
+    )
+    for linha in linhas:
+        maquinas.setdefault(linha["maquina_id"], linha["maquina_nome"])
+
+    return JsonResponse(
+        {"maquinas": [{"id": id_, "nome": nome} for id_, nome in maquinas.items()]}
+    )
+
+
+@login_required
+@somente_master
 def historico_api(request):
     # Obter parâmetros de filtro
     search_term = request.GET.get("search", "").lower()
     compliance_filter = request.GET.get("compliance", "all")
     start_date = request.GET.get("start_date", "")
     end_date = request.GET.get("end_date", "")
+    maquina_filter = request.GET.get("maquina_id", "")
     page_number = request.GET.get("page", 1)
 
     # Annotate com contagem de itens não conformes
@@ -619,6 +876,9 @@ def historico_api(request):
             | Q(checklist__descricao__icontains=search_term)
             | Q(inspetor__nome__icontains=search_term)
         )
+
+    if maquina_filter.isdigit():
+        inspecoes = inspecoes.filter(checklist__maquina_id=int(maquina_filter))
 
     parsed_start_date = parse_date(start_date) if start_date else None
     parsed_end_date = parse_date(end_date) if end_date else None
@@ -664,6 +924,7 @@ def historico_api(request):
                     "id": inspecao.checklist.id,
                     "nome": inspecao.checklist.nome,
                     "descricao": inspecao.checklist.descricao,
+                    "maquina": inspecao.checklist.maquina_nome,
                 },
                 "inspetor": {
                     "id": inspecao.inspetor.id if inspecao.inspetor else None,
@@ -1020,6 +1281,271 @@ def export_non_compliance_pdf(request):
     return response
 
 
+def _dados_relatorio_inspecao(inspecao):
+    """Reúne o que a página e o PDF do relatório de uma inspeção precisam."""
+    checklist = inspecao.checklist
+    itens = []
+    respostas = inspecao.itens_resposta.prefetch_related("fotos").order_by("id")
+    for numero, resposta in enumerate(respostas, start=1):
+        itens.append(
+            {
+                "numero": numero,
+                "texto": resposta.texto_pergunta_historico
+                or (resposta.pergunta.texto if resposta.pergunta else "Item não identificado"),
+                "conforme": resposta.conformidade,
+                "causas": resposta.causas_reprovacao or "",
+                "acoes": resposta.acoes_corretivas or "",
+                "observacao": resposta.observacao or "",
+                "fotos": list(resposta.fotos.all()),
+            }
+        )
+
+    total = len(itens)
+    conformes = sum(1 for item in itens if item["conforme"])
+    return {
+        "id": inspecao.id,
+        "codigo": f"INS-{inspecao.id:06d}",
+        "checklist_nome": checklist.nome if checklist else "Checklist removido",
+        "descricao": (checklist.descricao or "") if checklist else "",
+        "setor": checklist.setor.nome if checklist and checklist.setor else "Geral",
+        "maquina": (checklist.maquina_nome if checklist else None) or "Não informada",
+        "inspetor": inspecao.inspetor.nome if inspecao.inspetor else "N/A",
+        "data": timezone.localtime(inspecao.data_inspecao),
+        "total": total,
+        "conformes": conformes,
+        "nao_conformes": total - conformes,
+        "percentual": round(conformes / total * 100) if total else 0,
+        "itens": itens,
+    }
+
+
+def _buscar_inspecao_relatorio(id):
+    return get_object_or_404(
+        Inspecao.objects.select_related("checklist__setor", "inspetor"), id=id
+    )
+
+
+def _imagem_para_pdf(foto, max_lado=900):
+    """Lê a foto do storage e devolve (buffer JPEG reduzido, (largura, altura)) ou None."""
+    try:
+        with foto.foto.open("rb") as arquivo:
+            imagem = ImageOps.exif_transpose(Image.open(arquivo)).convert("RGB")
+        imagem.thumbnail((max_lado, max_lado))
+        buffer = BytesIO()
+        imagem.save(buffer, "JPEG", quality=75)
+        buffer.seek(0)
+        return buffer, imagem.size
+    except Exception as exc:
+        print(f"[CHECKLIST] Foto {foto.id} indisponível para o relatório: {exc}")
+        return None
+
+
+def build_inspection_pdf(relatorio, generated_at=None):
+    generated_at = generated_at or timezone.localtime()
+
+    # As fotos ficam no S3: baixa todas em paralelo para não somar a latência de cada uma
+    todas_fotos = [foto for item in relatorio["itens"] for foto in item["fotos"]]
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        imagens = dict(zip((f.id for f in todas_fotos), pool.map(_imagem_para_pdf, todas_fotos)))
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=12 * mm,
+        rightMargin=12 * mm,
+        topMargin=12 * mm,
+        bottomMargin=14 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="ReportTitle", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=14, leading=18, alignment=TA_LEFT))
+    styles.add(ParagraphStyle(name="ReportSection", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=11, leading=14, spaceBefore=4, spaceAfter=4))
+    styles.add(ParagraphStyle(name="ReportBody", parent=styles["Normal"], fontName="Helvetica", fontSize=9, leading=12, alignment=TA_LEFT))
+    styles.add(ParagraphStyle(name="TableHeader", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=8, leading=10, alignment=TA_LEFT))
+    styles.add(ParagraphStyle(name="TableCell", parent=styles["Normal"], fontName="Helvetica", fontSize=8, leading=10, alignment=TA_LEFT))
+
+    def texto(valor):
+        # Paragraph interpreta marcação; o texto digitado pelo usuário precisa ser escapado
+        return escape(str(valor)).replace("\n", "<br/>")
+
+    def estilo_tabela(cabecalho=True, padding=6):
+        comandos = [
+            ("BOX", (0, 0), (-1, -1), 1, colors.black),
+            ("GRID", (0, 0), (-1, -1), 0.7, colors.black),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), padding),
+            ("RIGHTPADDING", (0, 0), (-1, -1), padding),
+            ("TOPPADDING", (0, 0), (-1, -1), padding),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), padding),
+        ]
+        if cabecalho:
+            comandos.append(("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f2f2f2")))
+        return TableStyle(comandos)
+
+    story = []
+
+    header_table = Table(
+        [[
+            Paragraph(
+                "RELATÓRIO DE INSPEÇÃO<br/><font size='9'>Checklist</font>",
+                styles["ReportTitle"],
+            ),
+            Paragraph(
+                f"<b>Código:</b> {relatorio['codigo']}<br/>"
+                f"<b>Emissão:</b> {generated_at.strftime('%d/%m/%Y %H:%M')}",
+                styles["ReportBody"],
+            ),
+        ]],
+        colWidths=[120 * mm, 66 * mm],
+    )
+    header_table.setStyle(TableStyle([
+        ("BOX", (0, 0), (-1, -1), 1, colors.black),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 8))
+
+    story.append(Paragraph("1. Dados da inspeção", styles["ReportSection"]))
+    info_table = Table(
+        [
+            [
+                Paragraph("Checklist", styles["TableHeader"]), Paragraph(texto(relatorio["checklist_nome"]), styles["TableCell"]),
+                Paragraph("Data", styles["TableHeader"]), Paragraph(relatorio["data"].strftime("%d/%m/%Y %H:%M"), styles["TableCell"]),
+            ],
+            [
+                Paragraph("Setor", styles["TableHeader"]), Paragraph(texto(relatorio["setor"]), styles["TableCell"]),
+                Paragraph("Inspetor", styles["TableHeader"]), Paragraph(texto(relatorio["inspetor"]), styles["TableCell"]),
+            ],
+            [
+                Paragraph("Máquina", styles["TableHeader"]), Paragraph(texto(relatorio["maquina"]), styles["TableCell"]),
+                Paragraph("Descrição", styles["TableHeader"]), Paragraph(texto(relatorio["descricao"] or "—"), styles["TableCell"]),
+            ],
+        ],
+        colWidths=[24 * mm, 69 * mm, 24 * mm, 69 * mm],
+    )
+    info_table.setStyle(estilo_tabela(cabecalho=False))
+    info_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f2f2f2")), ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#f2f2f2"))]))
+    story.append(info_table)
+    story.append(Spacer(1, 8))
+
+    story.append(Paragraph("2. Resumo", styles["ReportSection"]))
+    summary_table = Table(
+        [
+            [Paragraph(t, styles["TableHeader"]) for t in ("Itens", "Conformes", "Não conformes", "Conformidade")],
+            [Paragraph(str(v), styles["TableCell"]) for v in (
+                relatorio["total"], relatorio["conformes"], relatorio["nao_conformes"], f"{relatorio['percentual']}%",
+            )],
+        ],
+        colWidths=[46.5 * mm] * 4,
+    )
+    summary_table.setStyle(estilo_tabela())
+    story.append(summary_table)
+    story.append(Spacer(1, 8))
+
+    story.append(Paragraph("3. Itens inspecionados", styles["ReportSection"]))
+    if not relatorio["itens"]:
+        story.append(Paragraph("Nenhum item respondido nesta inspeção.", styles["ReportBody"]))
+    else:
+        rows = [[Paragraph(t, styles["TableHeader"]) for t in ("N", "Item", "Status", "Detalhes")]]
+        for item in relatorio["itens"]:
+            status = (
+                "<font color='#198754'><b>Conforme</b></font>"
+                if item["conforme"]
+                else "<font color='#dc3545'><b>Não conforme</b></font>"
+            )
+            detalhes = [
+                f"<b>{rotulo}:</b> {texto(valor)}"
+                for rotulo, valor in (
+                    ("Causa", item["causas"]),
+                    ("Ação", item["acoes"]),
+                    ("Obs.", item["observacao"]),
+                )
+                if valor
+            ]
+            rows.append([
+                Paragraph(str(item["numero"]), styles["TableCell"]),
+                Paragraph(texto(item["texto"]), styles["TableCell"]),
+                Paragraph(status, styles["TableCell"]),
+                Paragraph("<br/>".join(detalhes) or "—", styles["TableCell"]),
+            ])
+        items_table = Table(rows, colWidths=[10 * mm, 66 * mm, 26 * mm, 84 * mm], repeatRows=1)
+        items_table.setStyle(estilo_tabela(padding=5))
+        story.append(items_table)
+
+    itens_com_foto = [item for item in relatorio["itens"] if item["fotos"]]
+    if itens_com_foto:
+        story.append(Spacer(1, 8))
+        story.append(Paragraph("4. Registro fotográfico", styles["ReportSection"]))
+        largura_max, altura_max, por_linha = 58 * mm, 45 * mm, 3
+        for item in itens_com_foto:
+            celulas = []
+            for foto in item["fotos"]:
+                imagem = imagens.get(foto.id)
+                if imagem is None:
+                    celulas.append(Paragraph("Foto indisponível", styles["TableCell"]))
+                    continue
+                buffer_foto, (largura, altura) = imagem
+                escala = min(largura_max / largura, altura_max / altura)
+                celulas.append(RLImage(buffer_foto, width=largura * escala, height=altura * escala))
+
+            linhas = [celulas[i:i + por_linha] for i in range(0, len(celulas), por_linha)]
+            linhas = [linha + [""] * (por_linha - len(linha)) for linha in linhas]
+            fotos_table = Table(linhas, colWidths=[62 * mm] * por_linha)
+            fotos_table.setStyle(TableStyle([
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            story.append(KeepTogether([
+                Paragraph(f"Item {item['numero']} - {texto(item['texto'])}", styles["ReportBody"]),
+                Spacer(1, 3),
+                fotos_table,
+                Spacer(1, 6),
+            ]))
+
+    def draw_page(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 8)
+        canvas.line(doc.leftMargin, 12 * mm, A4[0] - doc.rightMargin, 12 * mm)
+        canvas.drawString(doc.leftMargin, 8 * mm, f"Emitido em {generated_at.strftime('%d/%m/%Y %H:%M')}")
+        canvas.drawRightString(A4[0] - doc.rightMargin, 8 * mm, f"Página {canvas.getPageNumber()} | Documento {relatorio['codigo']}")
+        canvas.restoreState()
+
+    doc.build(story, onFirstPage=draw_page, onLaterPages=draw_page)
+    buffer.seek(0)
+    return buffer
+
+
+@login_required
+@somente_master
+def inspection_report_template(request, id):
+    inspecao = _buscar_inspecao_relatorio(id)
+    return render(
+        request,
+        "checklist/report_inspection.html",
+        {"relatorio": _dados_relatorio_inspecao(inspecao)},
+    )
+
+
+@login_required
+@somente_master
+def inspection_report_pdf(request, id):
+    inspecao = _buscar_inspecao_relatorio(id)
+    relatorio = _dados_relatorio_inspecao(inspecao)
+    pdf_buffer = build_inspection_pdf(relatorio, generated_at=timezone.localtime())
+    response = HttpResponse(pdf_buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="relatorio-{relatorio["codigo"].lower()}-{relatorio["data"].strftime("%Y%m%d")}.pdf"'
+    )
+    return response
+
+
 @login_required
 @somente_master
 def create_checklist_api(request):
@@ -1029,6 +1555,7 @@ def create_checklist_api(request):
             nome = data.get("nome")
             descricao = data.get("descricao", "")  # Descrição agora é opcional
             setor_id = data.get("setor_id")
+            maquina_id = data.get("maquina_id")
             perguntas = data.get("perguntas", [])
 
             # Validar apenas dados obrigatórios (nome)
@@ -1051,11 +1578,30 @@ def create_checklist_api(request):
                 except Setor.DoesNotExist:
                     return JsonResponse({"error": "Setor não encontrado"}, status=400)
 
+            # Validar a máquina na API de manutenção (o nome vem de lá, não do cliente)
+            maquina = None
+            if maquina_id:
+                try:
+                    maquina = next(
+                        (m for m in _buscar_maquinas() if str(m["id"]) == str(maquina_id)),
+                        None,
+                    )
+                except Exception as exc:
+                    print(f"[CHECKLIST] Falha ao validar máquina: {exc}")
+                    return JsonResponse(
+                        {"error": "Não foi possível validar a máquina no momento. Tente novamente."},
+                        status=502,
+                    )
+                if maquina is None:
+                    return JsonResponse({"error": "Máquina não encontrada"}, status=400)
+
             # Criar o checklist (descrição pode ser vazia)
             checklist = Checklist.objects.create(
                 nome=nome,
                 descricao=descricao,  # Pode ser string vazia
                 setor=setor,
+                maquina_id=maquina["id"] if maquina else None,
+                maquina_nome=_nome_maquina(maquina) if maquina else None,
                 ativo=True,
             )
 
@@ -1075,6 +1621,7 @@ def create_checklist_api(request):
                         "nome": checklist.nome,
                         "descricao": checklist.descricao,
                         "setor": checklist.setor.nome if checklist.setor else None,
+                        "maquina": checklist.maquina_nome,
                         "perguntas_count": checklist.perguntas.count(),
                     },
                 }

@@ -14,6 +14,10 @@ class Checklist(models.Model):
     )
     nome = models.CharField(max_length=100, unique=True)
     descricao = models.TextField(blank=True, null=True)
+    # A máquina vive no sistema de manutenção (API externa), por isso não há FK:
+    # guardamos o id de lá e o nome no momento da atribuição.
+    maquina_id = models.PositiveIntegerField(null=True, blank=True)
+    maquina_nome = models.CharField(max_length=255, null=True, blank=True)
     ativo = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     update_at = models.DateTimeField(auto_now=True)

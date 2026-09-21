@@ -12,6 +12,7 @@ urlpatterns = [
     path('checklists/edit/<int:id>/', views.edit_checklist_template, name='edit-checklist'),
     path('checklists/inspection/<int:id>/', views.inspection_checklist_template, name='inspection-checklist'),
     path('checklists/history/', views.history_template, name='history-checklist'),
+    path('checklists/history/report/<int:id>/', views.inspection_report_template, name='inspection-report'),
     path('checklists/inspection/edit/<int:id>/', views.edit_inspection_template, name='edit-inspection'),
 ]
 
@@ -21,11 +22,15 @@ urlpatterns += [
     path('api/checklists/duplicate/', views.duplicate_checklist_api, name='duplicate-checklist-api'),
     path('api/checklists/inspection/', views.inspection_send_checklist_api, name='inspection-send-checklist-api'),
     path('api/checklists/inspection/<int:id>/', views.inspection_checklist_api, name='inspection-checklist-api'),
+    path('api/checklists/maquinas/', views.maquinas_api, name='maquinas-api'),
+    path('api/checklists/maquinas-em-uso/', views.maquinas_em_uso_api, name='maquinas-em-uso-api'),
     path('api/checklists/add/', views.create_checklist_api, name='add-checklist-api'),
     path('api/checklists/edit/<int:id>/', views.edit_checklist_api, name='edit-checklist-api'),
     path('api/checklists/delete/<int:id>/', views.delete_checklist_api, name='delete-checklist-api'),
     path('api/checklists/history/', views.historico_api, name='historico-api'),
+    path('api/checklists/history/maquinas/', views.historico_maquinas_api, name='historico-maquinas-api'),
     path('api/checklists/history/export-non-compliance/', views.export_non_compliance_pdf, name='export-non-compliance-pdf'),
+    path('api/checklists/history/report/<int:id>/pdf/', views.inspection_report_pdf, name='inspection-report-pdf'),
     path('api/checklists/inspection/data/<int:id>/', views.inspection_data_api, name='inspection-data-api'),
     path('api/checklists/inspection/update/', views.update_inspection_api, name='update-inspection-api'),
 ] 

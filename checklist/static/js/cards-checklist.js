@@ -1,7 +1,9 @@
 // Variáveis para armazenar os filtros atuais
 let filtrosAtuais = {
     nome: '',
-    setor: ''
+    setor: '',
+    maquina: '',
+    maquinaNome: ''
 };
 
 let paginacaoAtual = {
@@ -29,6 +31,13 @@ function getIconePorSetor(setorNome) {
     return iconesPorSetor[Math.floor(Math.random() * iconesPorSetor.length)];
 }
 
+// Escapa texto vindo de fora (ex.: nome da máquina, que vem da API de manutenção)
+function escapeHtml(texto) {
+    const div = document.createElement('div');
+    div.textContent = texto;
+    return div.innerHTML;
+}
+
 // Função para formatar a descrição
 function formatarDescricao(descricao) {
     if (!descricao || descricao.trim() === '') {
@@ -51,6 +60,10 @@ export function carregarCardsChecklist(page = 1) {
 
     if (filtrosAtuais.setor) {
         params.append('setor', filtrosAtuais.setor);
+    }
+
+    if (filtrosAtuais.maquina) {
+        params.append('maquina_id', filtrosAtuais.maquina);
     }
 
     // Adicionar parâmetro de página
@@ -124,6 +137,7 @@ export function carregarCardsChecklist(page = 1) {
                                                 <div>
                                                     <h3 class="h5 fw-semibold mb-1">${checklist.nome}</h3>
                                                     <small class="text-muted">${checklist.setor}</small>
+                                                    ${checklist.maquina ? `<small class="text-muted d-block"><i class="bi bi-gear-wide-connected"></i> ${escapeHtml(checklist.maquina)}</small>` : ''}
                                                 </div>
                                             </div>
                                         </div>
@@ -183,6 +197,13 @@ export function carregarCardsChecklist(page = 1) {
                     document.getElementById('itens-filtrados-setor-checklist').textContent = `Setor: ${filtrosAtuais.setor}`;
                 } else {
                     document.getElementById('itens-filtrados-setor-checklist').style.display = 'none';
+                }
+
+                if (filtrosAtuais.maquina) {
+                    document.getElementById('itens-filtrados-maquina-checklist').style.display = 'inline-block';
+                    document.getElementById('itens-filtrados-maquina-checklist').textContent = `Máquina: ${filtrosAtuais.maquinaNome}`;
+                } else {
+                    document.getElementById('itens-filtrados-maquina-checklist').style.display = 'none';
                 }
             } else {
                 // Mensagem caso não haja checklists
@@ -412,6 +433,37 @@ export function mostrarPlaceholdersCards() {
     }
 }
 
+// Carrega as máquinas com checklist ativo no select2 do filtro
+async function carregarMaquinasFiltro() {
+    const select = document.getElementById('pesquisar-maquina');
+    try {
+        const response = await fetch('/api/checklists/maquinas-em-uso/');
+        if (!response.ok) throw new Error('Erro ao carregar máquinas');
+        const { maquinas } = await response.json();
+
+        maquinas.forEach(maquina => {
+            const option = document.createElement('option');
+            option.value = maquina.id;
+            option.textContent = maquina.nome;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Erro:', error);
+    }
+
+    if (window.jQuery && jQuery.fn.select2) {
+        // dropdownParent evita que o dropdown do Bootstrap feche ao clicar nas opções do select2
+        jQuery(select).select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            allowClear: true,
+            placeholder: 'Pesquisar por máquina...',
+            dropdownParent: jQuery('#filtro-checklists-menu'),
+            language: { noResults: () => 'Nenhuma máquina encontrada' },
+        });
+    }
+}
+
 // Configurar eventos quando o documento estiver pronto
 document.addEventListener('DOMContentLoaded', function() {
     // Carregar cards inicialmente
@@ -422,6 +474,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Obter valores dos campos de filtro
         filtrosAtuais.nome = document.getElementById('pesquisar-nome').value;
         filtrosAtuais.setor = document.getElementById('pesquisar-setor').value;
+        filtrosAtuais.maquina = document.getElementById('pesquisar-maquina').value;
+        const maquinaSelecionada = document.getElementById('pesquisar-maquina').selectedOptions[0];
+        filtrosAtuais.maquinaNome = filtrosAtuais.maquina && maquinaSelecionada ? maquinaSelecionada.textContent : '';
         
         // Fechar o dropdown
         const dropdown = document.getElementById('dropdownMenuButton');
@@ -437,11 +492,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Limpar campos de filtro
         document.getElementById('pesquisar-nome').value = '';
         document.getElementById('pesquisar-setor').value = '';
+        if (window.jQuery) {
+            jQuery('#pesquisar-maquina').val(null).trigger('change');
+        } else {
+            document.getElementById('pesquisar-maquina').value = '';
+        }
         
         // Limpar filtros atuais
         filtrosAtuais = {
             nome: '',
-            setor: ''
+            setor: '',
+            maquina: '',
+            maquinaNome: ''
         };
         
         // Fechar o dropdown
@@ -467,4 +529,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('btn-filtrar-checklists').click();
         }
     });
+
+    carregarMaquinasFiltro();
 });

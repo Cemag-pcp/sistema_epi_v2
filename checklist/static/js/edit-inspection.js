@@ -1,4 +1,5 @@
-import { getCookie, toggleSpinner, ToastBottomEnd, fileToBase64 } from "../../../static/js/scripts.js";
+import { getCookie, toggleSpinner, ToastBottomEnd } from "../../../static/js/scripts.js";
+import { compressImage } from "./image-utils.js";
 
 // Obter o ID da inspeção da URL
 const pathParts = window.location.pathname.split('/');
@@ -273,7 +274,7 @@ async function handlePhotoUpload(files, questionId) {
     
     try {
         for (let file of validFiles) {
-            const base64Data = await fileToBase64(file);
+            const base64Data = await compressImage(file);
             newPhotos[questionId].push({
                 file: file,
                 base64: base64Data,
