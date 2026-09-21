@@ -4,10 +4,11 @@
 {% block links %}
     <link rel="stylesheet" href="/static/css/select2.css">
     <link rel="stylesheet" href="/static/css/checklist.css">
+    <link rel="stylesheet" href="{% static 'css/inspection.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid" id="inspection-root" data-user-id="{{ request.user.id }}">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10">
             <!-- Cabeçalho -->
@@ -20,6 +21,12 @@
                     <p class="text-muted mb-0" id="checklist-description"></p>
                     <p class="text-muted mb-0" id="questions-info">0 questões</p>
                 </div>
+            </div>
+
+            <!-- Rascunho recuperado -->
+            <div class="alert alert-info draft-banner d-none align-items-center justify-content-between gap-2 flex-wrap" id="draft-banner" role="status">
+                <span id="draft-banner-text"></span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="discard-draft-btn">Descartar rascunho</button>
             </div>
 
             <!-- Alerta de erro -->
@@ -39,18 +46,22 @@
             </div>
 
             <!-- Rodapé com estatísticas e botão de envio -->
-            <div class="card mt-4 d-none" id="footer-card">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <p class="fw-medium text-dark mb-1" id="progress-text">0 de 0 questões respondidas</p>
-                            <p class="small text-muted mb-0">
-                                <span id="compliant-count">0</span> conformes • 
+            <div class="card mt-4 d-none inspection-footer" id="footer-card">
+                <div class="card-body py-2 px-3 p-md-4">
+                    <div class="progress mb-2">
+                        <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div style="min-width: 0;">
+                            <p class="fw-medium text-dark mb-0" id="progress-text">0 de 0 questões respondidas</p>
+                            <p class="small text-muted mb-0 d-none d-sm-block">
+                                <span id="compliant-count">0</span> conformes •
                                 <span id="non-compliant-count">0</span> não conformes
                             </p>
+                            <p class="small text-muted mb-0 d-none" id="draft-status"></p>
                         </div>
-                        <button class="btn btn-primary btn-lg" id="submit-btn">
-                            <span class="button-text"><i class="bi bi-save me-2"></i>Enviar Inspeção</span>
+                        <button class="btn btn-primary btn-lg flex-shrink-0" id="submit-btn">
+                            <span class="button-text"><i class="bi bi-save me-2"></i>Enviar<span class="d-none d-sm-inline"> Inspeção</span></span>
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                         </button>
                     </div>
@@ -69,6 +80,7 @@
             </div>
             <div class="modal-body">
                 <p id="checklist-complete-title" class="text-muted"></p>
+                <div id="os-result" class="alert d-none" role="status"></div>
                 
                 <div class="row text-center my-4">
                     <div class="col-4">
@@ -123,7 +135,7 @@
 </div>
 
 <div class="modal fade" id="imageViewerModal" tabindex="-1" aria-labelledby="imageViewerModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="imageViewerModalLabel">Visualizar Imagem</h5>
@@ -131,6 +143,72 @@
             </div>
             <div class="modal-body text-center">
                 <img src="" id="modal-image-content" class="img-fluid" alt="Imagem expandida">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="os-modal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="osModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="osModalLabel">Abrir ordem de serviço?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1">Máquina: <strong id="os-machine-name"></strong></p>
+                <p class="small text-danger mb-3 d-none" id="os-nc-hint"></p>
+
+                <div class="btn-group w-100 mb-3" role="group" aria-label="Abrir ordem de serviço">
+                    <input type="radio" class="btn-check" name="os-choice" id="os-choice-no" value="no" checked>
+                    <label class="btn btn-outline-secondary" for="os-choice-no">Não abrir OS</label>
+                    <input type="radio" class="btn-check" name="os-choice" id="os-choice-yes" value="yes">
+                    <label class="btn btn-outline-danger" for="os-choice-yes">Abrir OS</label>
+                </div>
+
+                <div id="os-fields" class="d-none">
+                    <label for="os-description" class="form-label">Descreva o problema *</label>
+                    <textarea id="os-description" class="form-control" rows="4" maxlength="1000" placeholder="Ex.: Vazamento de óleo na mangueira de retorno."></textarea>
+                    <div class="form-text">
+                        A OS é aberta com "OS aberta a partir do preenchimento do checklist do SESMT." seguida do que você escrever.
+                        Impacto na produção: médio.
+                    </div>
+                    <div class="text-danger small mt-2 d-none" id="os-error" role="alert"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar</button>
+                <button type="button" class="btn btn-primary" id="os-confirm-btn">
+                    <span class="button-text"><i class="bi bi-save me-2"></i>Enviar inspeção</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cameraModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cameraModalLabel">Tirar foto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body p-0 bg-dark position-relative">
+                <video id="camera-video" class="camera-video" autoplay playsinline muted></video>
+                <div id="camera-flash" class="camera-flash"></div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <small class="text-muted" id="camera-count">Nenhuma foto tirada ainda</small>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary d-none" id="camera-switch-btn" title="Trocar de câmera">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Concluir</button>
+                    <button type="button" class="btn btn-primary" id="camera-capture-btn" disabled>
+                        <i class="bi bi-camera me-1"></i>Capturar
+                    </button>
+                </div>
             </div>
         </div>
     </div>

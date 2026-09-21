@@ -21,7 +21,7 @@
           <i class="bi bi-funnel"></i> Filtrar
       </button>
       <form id="form-filtrar-checklists">
-          <div class="dropdown-menu p-3" style="width: 300px;">
+          <div class="dropdown-menu p-3" id="filtro-checklists-menu" style="width: 300px;">
               <p class="fw-bold mx-2 my-1">Filtrar Checklists</p>
               <hr>
               
@@ -30,6 +30,11 @@
               
               <h6 class="mt-3">Pesquisar Setor</h6>
               <input type="text" class="form-control mb-3" id="pesquisar-setor" placeholder="Pesquisar por setor...">
+              
+              <h6 class="mt-3">Pesquisar Máquina</h6>
+              <select class="form-select mb-3" id="pesquisar-maquina">
+                  <option value=""></option>
+              </select>
               
               <div class="d-flex justify-content-between mt-3">
                   <button type="button" id="btn-limpar-checklists" class="btn btn-outline-secondary">Limpar</button>
@@ -42,6 +47,7 @@
   <div class="d-flex justify-content-start flex-wrap gap-2 my-4">
       <span id="itens-filtrados-nome-checklist" class="rounded-pill py-1 px-2" style="background-color: #ebebeb; color: #3d3d3d; font-weight: 600; font-size: 0.75rem; display: none;"></span>
       <span id="itens-filtrados-setor-checklist" class="rounded-pill py-1 px-2" style="background-color: #ebebeb; color: #3d3d3d; font-weight: 600; font-size: 0.75rem; display: none;"></span>
+      <span id="itens-filtrados-maquina-checklist" class="rounded-pill py-1 px-2" style="background-color: #ebebeb; color: #3d3d3d; font-weight: 600; font-size: 0.75rem; display: none;"></span>
   </div>
 
   <div class="row g-4" id="checklist-cards-container">

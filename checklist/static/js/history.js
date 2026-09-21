@@ -20,6 +20,13 @@ function formatDate(dateString) {
     });
 }
 
+// Escapa texto vindo de fora (ex.: nome da máquina, que vem da API de manutenção)
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function formatPeriodLabel(startDate, endDate) {
     if (startDate && endDate) {
         return `${startDate.split('-').reverse().join('/')} até ${endDate.split('-').reverse().join('/')}`;
@@ -69,7 +76,8 @@ function getCurrentFilters() {
         searchTerm: document.getElementById('searchInput').value.trim(),
         complianceFilter: document.getElementById('complianceFilter').value,
         startDate: document.getElementById('startDateFilter').value,
-        endDate: document.getElementById('endDateFilter').value
+        endDate: document.getElementById('endDateFilter').value,
+        machineId: document.getElementById('machineFilter').value
     };
 }
 
@@ -124,6 +132,7 @@ async function fetchChecklists(filters, page = 1, signal = null) {
     if (filters.complianceFilter !== 'all') params.append('compliance', filters.complianceFilter);
     if (filters.startDate) params.append('start_date', filters.startDate);
     if (filters.endDate) params.append('end_date', filters.endDate);
+    if (filters.machineId) params.append('maquina_id', filters.machineId);
     params.append('page', page);
 
     const fetchOptions = {};
@@ -199,6 +208,11 @@ function renderChecklists(data) {
                                 <i class="bi bi-person me-1"></i>
                                 <span>${checklist.inspetor.nome}</span>
                             </div>
+                            ${checklist.checklist.maquina ? `
+                            <div class="d-flex align-items-center me-3">
+                                <i class="bi bi-gear-wide-connected me-1"></i>
+                                <span>${escapeHtml(checklist.checklist.maquina)}</span>
+                            </div>` : ''}
                             <div class="d-flex align-items-center me-3">
                                 <i class="bi bi-check-circle text-success me-1"></i>
                                 <span>${checklist.stats.compliant} conformes</span>
@@ -212,8 +226,11 @@ function renderChecklists(data) {
                                 <div class="progress-bar ${complianceStatus.color}" role="progressbar" style="width: ${compliancePercentage}%" aria-valuenow="${compliancePercentage}" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
-                        <div class="position-absolute top-0 end-0 m-2">
-                            <a href="/checklists/inspection/edit/${checklist.id}/" class="btn btn-white">
+                        <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
+                            <a href="/checklists/history/report/${checklist.id}/" class="btn btn-white" title="Visualizar relatório">
+                                <i class="bi bi-file-earmark-text me-1"></i>Relatório
+                            </a>
+                            <a href="/checklists/inspection/edit/${checklist.id}/" class="btn btn-white" title="Editar inspeção">
                                 <i class="bi bi-pencil"></i>
                             </a>
                         </div>
@@ -311,6 +328,40 @@ function atualizarPaginacao() {
     });
 }
 
+// Carrega as máquinas com inspeções no select2 do filtro
+async function loadMachineFilter() {
+    const select = document.getElementById('machineFilter');
+
+    try {
+        const response = await fetch('/api/checklists/history/maquinas/');
+        if (!response.ok) throw new Error('Erro ao carregar máquinas');
+        const { maquinas } = await response.json();
+
+        maquinas.forEach(maquina => {
+            const option = document.createElement('option');
+            option.value = maquina.id;
+            option.textContent = maquina.nome;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Erro:', error);
+    }
+
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery(select).select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            allowClear: true,
+            placeholder: 'Todas as máquinas',
+            language: { noResults: () => 'Nenhuma máquina encontrada' },
+        });
+        // select2 dispara o change via jQuery, que não chega em addEventListener nativo
+        jQuery(select).on('change', () => filterChecklists(1));
+    } else {
+        select.addEventListener('change', () => filterChecklists(1));
+    }
+}
+
 async function filterChecklists(page = 1) {
     if (currentController) {
         currentController.abort();
@@ -343,6 +394,7 @@ async function filterChecklists(page = 1) {
 document.addEventListener('DOMContentLoaded', function() {
     exportModalInstance = new bootstrap.Modal(document.getElementById('nonComplianceExportModal'));
 
+    loadMachineFilter();
     filterChecklists();
 
     document.getElementById('searchInput').addEventListener('input', function() {

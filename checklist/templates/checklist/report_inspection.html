@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block links %}
+<link rel="stylesheet" href="/static/css/checklist.css">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-md-12">
+            <!-- Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+                <div>
+                    <a href="{% url 'checklist:history-checklist' %}" class="btn btn-white mb-3">
+                        <i class="bi bi-arrow-left me-2"></i>Voltar para o Histórico
+                    </a>
+                    <h1 class="h2 fw-bold text-dark">Relatório de Inspeção</h1>
+                    <p class="text-muted mb-0">{{ relatorio.codigo }}</p>
+                </div>
+                <a href="{% url 'checklist:inspection-report-pdf' relatorio.id %}" class="btn btn-danger">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>Exportar PDF
+                </a>
+            </div>
+
+            <!-- Dados da inspeção -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h2 class="h5 fw-bold mb-0">{{ relatorio.checklist_nome }}</h2>
+                    {% if relatorio.descricao %}
+                    <p class="text-muted small mb-0 mt-1">{{ relatorio.descricao }}</p>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-6">
+                            <p class="text-muted text-uppercase small fw-semibold mb-1">Data</p>
+                            <div>{{ relatorio.data|date:"d/m/Y H:i" }}</div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <p class="text-muted text-uppercase small fw-semibold mb-1">Inspetor</p>
+                            <div>{{ relatorio.inspetor }}</div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <p class="text-muted text-uppercase small fw-semibold mb-1">Setor</p>
+                            <div>{{ relatorio.setor }}</div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <p class="text-muted text-uppercase small fw-semibold mb-1">Máquina</p>
+                            <div>{{ relatorio.maquina }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumo -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3 col-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <p class="text-muted text-uppercase small fw-semibold mb-2">Itens</p>
+                            <div class="h2 fw-bold text-dark mb-0">{{ relatorio.total }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <p class="text-muted text-uppercase small fw-semibold mb-2">Conformes</p>
+                            <div class="h2 fw-bold text-success mb-0">{{ relatorio.conformes }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <p class="text-muted text-uppercase small fw-semibold mb-2">Não conformes</p>
+                            <div class="h2 fw-bold text-danger mb-0">{{ relatorio.nao_conformes }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <p class="text-muted text-uppercase small fw-semibold mb-2">Conformidade</p>
+                            <div class="h2 fw-bold text-dark mb-2">{{ relatorio.percentual }}%</div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar {% if relatorio.nao_conformes %}bg-danger{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ relatorio.percentual }}%" aria-valuenow="{{ relatorio.percentual }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Itens -->
+            <h2 class="h5 fw-bold mb-3">Itens inspecionados</h2>
+            {% for item in relatorio.itens %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-dark align-self-start">#{{ item.numero }}</span>
+                            <h3 class="h6 fw-semibold mb-0">{{ item.texto }}</h3>
+                        </div>
+                        {% if item.conforme %}
+                        <span class="badge bg-success flex-shrink-0">Conforme</span>
+                        {% else %}
+                        <span class="badge bg-danger flex-shrink-0">Não conforme</span>
+                        {% endif %}
+                    </div>
+
+                    {% if item.causas or item.acoes or item.observacao %}
+                    <dl class="row small mb-0 mt-3">
+                        {% if item.causas %}
+                        <dt class="col-sm-3 text-muted">Causa(s) de reprovação</dt>
+                        <dd class="col-sm-9">{{ item.causas|linebreaksbr }}</dd>
+                        {% endif %}
+                        {% if item.acoes %}
+                        <dt class="col-sm-3 text-muted">Ação(ões) corretiva(s)</dt>
+                        <dd class="col-sm-9">{{ item.acoes|linebreaksbr }}</dd>
+                        {% endif %}
+                        {% if item.observacao %}
+                        <dt class="col-sm-3 text-muted">Observações</dt>
+                        <dd class="col-sm-9">{{ item.observacao|linebreaksbr }}</dd>
+                        {% endif %}
+                    </dl>
+                    {% endif %}
+
+                    {% if item.fotos %}
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        {% for foto in item.fotos %}
+                        <a href="{{ foto.foto.url }}" target="_blank" rel="noopener">
+                            <img src="{{ foto.foto.url }}" alt="{{ foto.descricao|default:'Foto do item' }}" class="img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;" loading="lazy">
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="card">
+                <div class="card-body text-center text-muted py-5">Nenhum item respondido nesta inspeção.</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

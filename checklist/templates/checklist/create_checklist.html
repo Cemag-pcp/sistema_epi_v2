@@ -54,6 +54,13 @@
                 </select>
             </div>
             <div class="mb-3">
+                <label for="maquina" class="form-label">Máquina</label>
+                <select class="form-select" id="maquina">
+                    <option value="">Carregando máquinas...</option>
+                </select>
+                <div class="form-text">Opcional. Máquinas cadastradas no sistema de manutenção.</div>
+            </div>
+            <div class="mb-3">
                 <label for="description" class="form-label">Descrição</label>
                 <textarea class="form-control" id="description" rows="3" placeholder="Descrição do checklist (opcional)"></textarea>
             </div>
@@ -71,6 +78,7 @@
             <div class="mb-3">
               <label for="question-text" class="form-label">Texto da Pergunta *</label>
               <input type="text" class="form-control" id="question-text" placeholder="Digite sua pergunta...">
+              <div class="form-text">Dica: cole uma lista (numerada ou uma pergunta por linha) para adicionar várias perguntas de uma vez.</div>
             </div>
             <div class="mb-3">
               <label for="question-description" class="form-label">Descrição (Opcional)</label>

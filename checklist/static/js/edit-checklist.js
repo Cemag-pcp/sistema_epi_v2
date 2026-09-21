@@ -1,4 +1,5 @@
 import { getCookie, ToastBottomEnd, toggleSpinner } from "../../../static/js/scripts.js";
+import { parseQuestionList, isMultilineText } from "./question-list.js";
 
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
@@ -7,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const titleInput = document.getElementById('title');
     const descriptionInput = document.getElementById('description');
     const setorSelect = document.getElementById('setor');
+    const maquinaSelect = document.getElementById('maquina');
     const questionTextInput = document.getElementById('question-text');
     const addQuestionBtn = document.getElementById('addQuestionBtn');
     const questionsContainer = document.getElementById('questionsContainer');
@@ -30,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentDeletingId = null;
     let checklistId = null;
     let setores = [];
+    let maquinaAtual = null;
     
     // Função para mostrar o spinner e ocultar o conteúdo
     function showSpinner() {
@@ -58,6 +61,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Load checklist data if editing
             if (checklistId) {
                 await loadChecklistData();
+                // Sem await: a lista vem de outro sistema e não deve atrasar a tela
+                loadMaquinas();
             } else {
                 // New checklist
                 updateQuestionsCount();
@@ -106,6 +111,8 @@ document.addEventListener('DOMContentLoaded', function() {
             titleInput.value = checklist.nome;
             descriptionInput.value = checklist.descricao;
             setorSelect.value = checklist.setor ? checklist.setor.id : '';
+            maquinaAtual = checklist.maquina || null;
+            preencherMaquinas([], maquinaAtual ? String(maquinaAtual.id) : '');
             
             // Load questions from the inspection API response
             questions = checklist.perguntas;
@@ -119,6 +126,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Select da máquina (select2). Começa só com a máquina atual e recebe a lista completa
+    // quando a API de manutenção responder, mantendo o que o usuário já tiver escolhido.
+    function preencherMaquinas(maquinas, selecionada) {
+        const jaInicializado = maquinaSelect.dataset.select2Pronto === 'true';
+        maquinaSelect.innerHTML = '<option value=""></option>';
+
+        const lista = [...maquinas];
+        if (maquinaAtual && !lista.some(m => m.id === maquinaAtual.id)) {
+            lista.unshift({ id: maquinaAtual.id, nome: maquinaAtual.nome, setor: '' });
+        }
+        lista.forEach(maquina => {
+            const option = document.createElement('option');
+            option.value = maquina.id;
+            option.textContent = maquina.setor ? `${maquina.nome} (${maquina.setor})` : maquina.nome;
+            maquinaSelect.appendChild(option);
+        });
+        maquinaSelect.value = selecionada;
+
+        if (window.jQuery && jQuery.fn.select2) {
+            if (!jaInicializado) {
+                jQuery(maquinaSelect).select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    allowClear: true,
+                    placeholder: 'Sem máquina',
+                    language: { noResults: () => 'Nenhuma máquina encontrada' },
+                });
+                maquinaSelect.dataset.select2Pronto = 'true';
+            }
+            jQuery(maquinaSelect).trigger('change.select2');
+        }
+    }
+
+    async function loadMaquinas() {
+        try {
+            const response = await fetch('/api/checklists/maquinas/');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar máquinas');
+            }
+            const { maquinas } = await response.json();
+            preencherMaquinas(maquinas, maquinaSelect.value);
+        } catch (error) {
+            console.error('Erro ao carregar máquinas:', error);
+            showError('Não foi possível carregar a lista de máquinas.');
+        }
+    }
+
     // Render questions list
     function renderQuestions() {
         if (questions.length === 0) {
@@ -205,6 +259,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Colar uma lista (ex.: copiada de um PDF) gera várias perguntas de uma vez.
+    // O <input> descartaria as quebras de linha, por isso o texto é lido direto da colagem.
+    function handleQuestionPaste(e) {
+        const pasted = (e.clipboardData || window.clipboardData).getData('text');
+        if (!isMultilineText(pasted)) return; // uma linha só: colagem normal
+
+        e.preventDefault();
+        const texts = parseQuestionList(pasted);
+        if (texts.length === 0) return;
+        if (texts.length === 1) {
+            questionTextInput.value = texts[0];
+            return;
+        }
+
+        // O id temporário precisa continuar numérico: o servidor o procura como id de pergunta
+        // e, não achando, cria uma nova.
+        const baseId = Date.now() * 1000;
+        texts.forEach((texto, index) => {
+            questions.push({ id: (baseId + index).toString(), texto: texto });
+        });
+        renderQuestions();
+        updateQuestionsCount();
+        questionTextInput.value = '';
+        showSuccess(`${texts.length} perguntas adicionadas`);
+    }
+
     // Edit question
     function editQuestion(id) {
         const question = questions.find(q => q.id == id);
@@ -307,6 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 nome: titleInput.value.trim(),
                 descricao: descriptionInput.value.trim(),
                 setor: setorSelect.value || null,
+                maquina_id: maquinaSelect.value || null,
                 ativo: true,
                 perguntas: questions.map(q => ({ 
                     id: q.id, 
@@ -370,6 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event listeners
     addQuestionBtn.addEventListener('click', addQuestion);
+    questionTextInput.addEventListener('paste', handleQuestionPaste);
     saveTemplateBtn.addEventListener('click', saveTemplate);
     saveQuestionBtn.addEventListener('click', saveEditedQuestion);
     confirmDeleteBtn.addEventListener('click', confirmDelete);

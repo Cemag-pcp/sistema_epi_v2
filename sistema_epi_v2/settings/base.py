@@ -66,6 +66,10 @@ USE_TZ = True
 
 AUTH_USER_MODEL = 'usuario.Usuario'
 
+# Fotos das inspeções de checklist vão em base64 dentro do JSON; o padrão do Django (2,5 MB)
+# bloqueava fotos de celular. O front comprime as imagens, isto é só margem de segurança.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
+
 # =============================================================================
 # CONFIGURAÇÕES AWS S3 (SEMPRE ATIVAS - DEV E PROD)
 # =============================================================================
