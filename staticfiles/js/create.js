@@ -1,4 +1,5 @@
 import { getCookie, ToastBottomEnd, toggleSpinner } from "../../../static/js/scripts.js";
+import { parseQuestionList, isMultilineText } from "./question-list.js";
 
 document.addEventListener('DOMContentLoaded', function() {
   // Variáveis globais
@@ -100,6 +101,39 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('question-text').focus();
   });
   
+  // Colar uma lista (ex.: copiada de um PDF) gera várias perguntas de uma vez.
+  // O <input> descartaria as quebras de linha, por isso o texto é lido direto da colagem.
+  document.getElementById('question-text').addEventListener('paste', function(e) {
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    if (!isMultilineText(pasted)) return; // uma linha só: colagem normal
+
+    e.preventDefault();
+    const texts = parseQuestionList(pasted);
+    if (texts.length === 0) return;
+    if (texts.length === 1) {
+      this.value = texts[0];
+      return;
+    }
+
+    const baseId = Date.now();
+    texts.forEach((text, index) => {
+      questions.push({
+        id: `${baseId}-${index}`,
+        text: text,
+        description: '',
+        required: true
+      });
+    });
+    renderQuestions();
+    updateQuestionsCount();
+    this.value = '';
+
+    ToastBottomEnd.fire({
+        icon: 'success',
+        title: `${texts.length} perguntas adicionadas`,
+    });
+  });
+
   // Salvar pergunta editada
   document.getElementById('save-edited-question-btn').addEventListener('click', function() {
     const text = document.getElementById('edit-question-text').value.trim();
@@ -129,7 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const title = document.getElementById('title').value.trim();
     const description = document.getElementById('description').value.trim();
     const setorId = document.getElementById('setor').value;
-    
+    const maquinaId = document.getElementById('maquina').value;
+
     const errors = [];
     
     if (!title) errors.push('O título do checklist é obrigatório');
@@ -151,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nome: title,
         descricao: description,
         setor_id: setorId || null,
+        maquina_id: maquinaId || null,
         perguntas: questions.map(q => ({
           texto: q.text,
           descricao: q.description || ""
@@ -193,6 +229,36 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
+  // Carregar máquinas do sistema de manutenção
+  async function loadMaquinas() {
+    const select = document.getElementById('maquina');
+    try {
+      const response = await fetch('/api/checklists/maquinas/');
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Erro ao carregar máquinas');
+
+      select.innerHTML = '<option value="">Selecione uma máquina (opcional)</option>';
+      result.maquinas.forEach(maquina => {
+        const option = document.createElement('option');
+        option.value = maquina.id;
+        option.textContent = maquina.setor ? `${maquina.nome} (${maquina.setor})` : maquina.nome;
+        select.appendChild(option);
+      });
+
+      if (window.jQuery && jQuery.fn.select2) {
+        jQuery(select).select2({ theme: 'bootstrap-5', width: '100%', allowClear: true, placeholder: 'Selecione uma máquina (opcional)' });
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+      select.innerHTML = '<option value="">Máquinas indisponíveis</option>';
+      ToastBottomEnd.fire({
+          icon: 'warning',
+          title: 'Não foi possível carregar as máquinas. Você pode salvar sem máquina.',
+      });
+    }
+  }
+
   // Inicializar
+  loadMaquinas();
   updateQuestionsCount();
 });

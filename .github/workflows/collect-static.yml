@@ -27,7 +27,9 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run collectstatic
-        run: python manage.py collectstatic --no-input
+        # --clear: sem ele o collectstatic pula arquivos "não modificados" (compara datas, e num
+        # checkout novo elas são quase iguais), deixando versões antigas em staticfiles/
+        run: python manage.py collectstatic --clear --no-input
         env:
           # Secrets da AWS
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
