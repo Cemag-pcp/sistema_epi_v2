@@ -1,0 +1,182 @@
+/* Tela de resposta do checklist (/checklists/inspection/<id>/): ajustes para uso no celular */
+
+/* Conforme / Não conforme: dois botões grandes, fáceis de tocar */
+.compliance-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.compliance-btn {
+    min-height: 48px;
+    font-weight: 600;
+}
+
+/* Cor da borda mostra de relance o que já foi respondido */
+.question-card {
+    scroll-margin-top: 72px; /* o topo fixo não cobre o card ao rolar até ele */
+}
+
+.question-card[data-status="ok"] {
+    border-color: var(--bs-success);
+}
+
+.question-card[data-status="nc"] {
+    border-color: var(--bs-danger);
+}
+
+/* Fotos: grade de miniaturas quadradas */
+.photo-preview-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 0.5rem;
+}
+
+.photo-preview-item {
+    position: relative;
+}
+
+.photo-thumb {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.remove-photo-btn {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Câmera dentro da página: pré-visualização ao vivo */
+.camera-video {
+    display: block;
+    width: 100%;
+    max-height: calc(100vh - 14rem); /* deixa espaço para o título e os botões do modal */
+    min-height: 12rem;
+    object-fit: contain;
+    background: #000;
+}
+
+#cameraModal .modal-body {
+    max-height: none; /* select2.css limita todo .modal-body a 60vh */
+    overflow: hidden;
+}
+
+.camera-flash {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease-out;
+}
+
+.camera-flash.on {
+    opacity: 0.8;
+    transition: none;
+}
+
+.draft-banner:not(.d-none) {
+    display: flex;
+}
+
+@media (max-width: 767.98px) {
+    .camera-video {
+        max-height: calc(100vh - 9.5rem);
+    }
+
+    body.inspection-page #inspection-root {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
+    body.inspection-page #checklist-title {
+        font-size: 1.35rem;
+    }
+
+    /* 16px evita o zoom automático do iOS ao focar um campo */
+    body.inspection-page .form-control,
+    body.inspection-page .form-select {
+        font-size: 16px;
+    }
+
+    body.inspection-page .add-photo-btn {
+        flex: 1 1 auto;
+        min-height: 44px;
+    }
+
+    /* Causa e ação só aparecem quando a questão é marcada como Não conforme */
+    .question-card:not([data-status="nc"]) .nc-fields {
+        display: none;
+    }
+
+    /* Barra de envio sempre visível na parte de baixo da tela */
+    .inspection-footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 1020;
+        margin-left: -0.25rem;
+        margin-right: -0.25rem;
+        border-radius: 0;
+        border-width: 1px 0 0;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.12);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .inspection-footer #progress-text {
+        font-size: 0.9rem;
+    }
+
+    .inspection-footer .btn-lg {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+
+    /* Avisos (toast) não ficam escondidos atrás da barra de envio */
+    body.inspection-page .swal2-container.swal2-bottom-end {
+        padding-bottom: 6rem;
+    }
+}
+
+/* Câmera em tela cheia no celular: pré-visualização no meio e botões sempre no rodapé */
+@media (max-width: 575.98px) {
+    #cameraModal .modal-dialog {
+        height: 100%;
+        min-height: 100%;
+        align-items: stretch;
+    }
+
+    #cameraModal .modal-content {
+        height: 100%;
+        border-radius: 0;
+    }
+
+    #cameraModal .modal-body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        max-height: none; /* select2.css limita todo .modal-body a 60vh */
+    }
+
+    #cameraModal .modal-footer > div {
+        width: 100%;
+    }
+
+    #cameraModal .modal-footer .btn {
+        min-height: 48px;
+    }
+
+    #cameraModal #camera-capture-btn {
+        flex: 1;
+    }
+}
