@@ -57,44 +57,11 @@
     justify-content: center;
 }
 
-/* Câmera dentro da página: pré-visualização ao vivo */
-.camera-video {
-    display: block;
-    width: 100%;
-    max-height: calc(100vh - 14rem); /* deixa espaço para o título e os botões do modal */
-    min-height: 12rem;
-    object-fit: contain;
-    background: #000;
-}
-
-#cameraModal .modal-body {
-    max-height: none; /* select2.css limita todo .modal-body a 60vh */
-    overflow: hidden;
-}
-
-.camera-flash {
-    position: absolute;
-    inset: 0;
-    background: #fff;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s ease-out;
-}
-
-.camera-flash.on {
-    opacity: 0.8;
-    transition: none;
-}
-
 .draft-banner:not(.d-none) {
     display: flex;
 }
 
 @media (max-width: 767.98px) {
-    .camera-video {
-        max-height: calc(100vh - 9.5rem);
-    }
-
     body.inspection-page #inspection-root {
         padding-left: 0.25rem;
         padding-right: 0.25rem;
@@ -145,38 +112,5 @@
     /* Avisos (toast) não ficam escondidos atrás da barra de envio */
     body.inspection-page .swal2-container.swal2-bottom-end {
         padding-bottom: 6rem;
-    }
-}
-
-/* Câmera em tela cheia no celular: pré-visualização no meio e botões sempre no rodapé */
-@media (max-width: 575.98px) {
-    #cameraModal .modal-dialog {
-        height: 100%;
-        min-height: 100%;
-        align-items: stretch;
-    }
-
-    #cameraModal .modal-content {
-        height: 100%;
-        border-radius: 0;
-    }
-
-    #cameraModal .modal-body {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        max-height: none; /* select2.css limita todo .modal-body a 60vh */
-    }
-
-    #cameraModal .modal-footer > div {
-        width: 100%;
-    }
-
-    #cameraModal .modal-footer .btn {
-        min-height: 48px;
-    }
-
-    #cameraModal #camera-capture-btn {
-        flex: 1;
     }
 }

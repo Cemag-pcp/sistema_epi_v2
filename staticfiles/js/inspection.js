@@ -58,17 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const osFields = document.getElementById('os-fields');
     const osDescription = document.getElementById('os-description');
 
-    // Câmera (modal com pré-visualização ao vivo)
-    const cameraModalEl = document.getElementById('cameraModal');
-    const cameraModal = new bootstrap.Modal(cameraModalEl);
-    const cameraVideo = document.getElementById('camera-video');
-    const cameraCaptureBtn = document.getElementById('camera-capture-btn');
-    const cameraSwitchBtn = document.getElementById('camera-switch-btn');
-    let cameraStream = null;
-    let cameraQuestionId = null;
-    let cameraFacing = 'environment';
-    let cameraAdded = 0;
-
     // Estado da aplicação
     let checklistData = null;
     let questions = [];
@@ -196,11 +185,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const addPhotoBtn = e.target.closest('.add-photo-btn');
         if (addPhotoBtn) {
             const questionId = addPhotoBtn.dataset.question;
-            if (addPhotoBtn.dataset.source === 'camera') {
-                abrirCamera(questionId);
-            } else {
-                document.getElementById(`photo-input-${questionId}`).click();
-            }
+            const inputId = addPhotoBtn.dataset.source === 'camera' ? `photo-camera-${questionId}` : `photo-input-${questionId}`;
+            document.getElementById(inputId).click();
             return;
         }
 
@@ -300,106 +286,6 @@ document.addEventListener('DOMContentLoaded', function() {
         e.target.value = '';
         files.forEach(file => adicionarArquivo(questionId, file));
     }
-
-    // ---- Câmera ------------------------------------------------------------------------------
-
-    async function iniciarCamera() {
-        pararCamera();
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: cameraFacing, width: { ideal: 1920 }, height: { ideal: 1080 } },
-            audio: false,
-        });
-        cameraVideo.srcObject = cameraStream;
-        cameraCaptureBtn.disabled = true;
-        cameraVideo.onloadedmetadata = () => { cameraCaptureBtn.disabled = false; };
-        await cameraVideo.play().catch(() => {});
-    }
-
-    // Desliga a câmera (apaga a luz de "em uso")
-    function pararCamera() {
-        if (cameraStream) {
-            cameraStream.getTracks().forEach(track => track.stop());
-            cameraStream = null;
-        }
-        cameraVideo.srcObject = null;
-    }
-
-    function atualizarContadorCamera() {
-        document.getElementById('camera-count').textContent =
-            cameraAdded === 0 ? 'Nenhuma foto tirada ainda' : `${cameraAdded} foto${cameraAdded > 1 ? 's' : ''} adicionada${cameraAdded > 1 ? 's' : ''}`;
-    }
-
-    async function abrirCamera(questionId) {
-        // Sem câmera acessível pela página (ex.: http fora do localhost): usa a câmera nativa do aparelho
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            document.getElementById(`photo-camera-${questionId}`).click();
-            return;
-        }
-
-        cameraQuestionId = questionId;
-        cameraAdded = 0;
-        atualizarContadorCamera();
-
-        try {
-            await iniciarCamera(); // pede a permissão antes de abrir o modal
-        } catch (error) {
-            console.warn('Câmera indisponível:', error);
-            showError(
-                error.name === 'NotAllowedError'
-                    ? 'Permissão da câmera negada. Libere o acesso ou use "Adicionar Fotos".'
-                    : 'Não foi possível abrir a câmera. Use "Adicionar Fotos".'
-            );
-            return;
-        }
-
-        cameraModal.show();
-        try {
-            const dispositivos = await navigator.mediaDevices.enumerateDevices();
-            cameraSwitchBtn.classList.toggle('d-none', dispositivos.filter(d => d.kind === 'videoinput').length < 2);
-        } catch (error) {
-            cameraSwitchBtn.classList.add('d-none');
-        }
-    }
-
-    cameraCaptureBtn.addEventListener('click', function() {
-        const largura = cameraVideo.videoWidth;
-        const altura = cameraVideo.videoHeight;
-        if (!largura || !altura) return;
-
-        const canvas = document.createElement('canvas');
-        canvas.width = largura;
-        canvas.height = altura;
-        canvas.getContext('2d').drawImage(cameraVideo, 0, 0, largura, altura);
-
-        // Efeito de "flash" para confirmar que a foto foi tirada
-        const flash = document.getElementById('camera-flash');
-        flash.classList.add('on');
-        setTimeout(() => flash.classList.remove('on'), 150);
-
-        canvas.toBlob(async function(blob) {
-            if (!blob) {
-                showError('Não foi possível capturar a foto.');
-                return;
-            }
-            const file = new File([blob], `foto-${Date.now()}.jpg`, { type: 'image/jpeg' });
-            await adicionarArquivo(cameraQuestionId, file);
-            cameraAdded++;
-            atualizarContadorCamera();
-        }, 'image/jpeg', 0.92);
-    });
-
-    cameraSwitchBtn.addEventListener('click', async function() {
-        cameraFacing = cameraFacing === 'environment' ? 'user' : 'environment';
-        try {
-            await iniciarCamera();
-        } catch (error) {
-            showError('Não foi possível trocar de câmera.');
-            cameraFacing = cameraFacing === 'environment' ? 'user' : 'environment';
-            await iniciarCamera().catch(() => {});
-        }
-    });
-
-    cameraModalEl.addEventListener('hidden.bs.modal', pararCamera);
 
     function handleRemovePhotoClick(questionId, photoId) {
         if (!questionId || !photoId) {
@@ -533,10 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'hidden') salvarRascunho();
     });
-    window.addEventListener('pagehide', function() {
-        pararCamera();
-        salvarRascunho();
-    });
+    window.addEventListener('pagehide', salvarRascunho);
 
     // ---- Envio -------------------------------------------------------------------------------
 
