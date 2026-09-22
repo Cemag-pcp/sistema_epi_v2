@@ -5,6 +5,7 @@ import os
 import tempfile
 import urllib.error
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import patch
 
 from PIL import Image
@@ -404,10 +405,22 @@ class PaginaDeInspecaoTests(TestCase):
         self.assertContains(response, f'data-user-id="{user.id}"')
         for elemento in (
             'id="draft-banner"', 'id="discard-draft-btn"', 'id="progress-bar"', 'id="footer-card"', 'css/inspection.css',
-            'id="cameraModal"', 'id="camera-video"', 'id="camera-capture-btn"',
             'id="os-modal"', 'id="os-description"', 'id="os-result"',
         ):
             self.assertContains(response, elemento)
+
+    def test_botao_tirar_foto_usa_a_camera_nativa_do_aparelho(self):
+        # As perguntas (e o input de foto) são montadas em JS, não no template renderizado
+        js = (Path(__file__).parent / 'static' / 'js' / 'inspection.js').read_text(encoding='utf-8')
+        # dispara a câmera nativa via <input type="file" capture>, sem modal próprio de câmera
+        self.assertIn('capture="environment"', js)
+        self.assertNotIn('getUserMedia', js)
+
+        user = Usuario.objects.create_superuser(matricula=9008, password='x', nome='Master')
+        self.client.force_login(user)
+        response = self.client.get(reverse('checklist:inspection-checklist', args=[1]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="cameraModal"')
 
 
 class RespostaFalsa:

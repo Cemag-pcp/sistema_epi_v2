@@ -187,33 +187,6 @@
     </div>
 </div>
 
-<div class="modal fade" id="cameraModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="cameraModalLabel">Tirar foto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
-            <div class="modal-body p-0 bg-dark position-relative">
-                <video id="camera-video" class="camera-video" autoplay playsinline muted></video>
-                <div id="camera-flash" class="camera-flash"></div>
-            </div>
-            <div class="modal-footer justify-content-between">
-                <small class="text-muted" id="camera-count">Nenhuma foto tirada ainda</small>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-secondary d-none" id="camera-switch-btn" title="Trocar de câmera">
-                        <i class="bi bi-arrow-repeat"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Concluir</button>
-                    <button type="button" class="btn btn-primary" id="camera-capture-btn" disabled>
-                        <i class="bi bi-camera me-1"></i>Capturar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
