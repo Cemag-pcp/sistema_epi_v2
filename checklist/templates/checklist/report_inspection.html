@@ -82,6 +82,14 @@
                 <div class="col-md-3 col-6">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="card-body">
+                            <p class="text-muted text-uppercase small fw-semibold mb-2">N/A</p>
+                            <div class="h2 fw-bold text-secondary mb-0">{{ relatorio.nao_aplicaveis }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
                             <p class="text-muted text-uppercase small fw-semibold mb-2">Conformidade</p>
                             <div class="h2 fw-bold text-dark mb-2">{{ relatorio.percentual }}%</div>
                             <div class="progress" style="height: 6px;">
@@ -102,10 +110,12 @@
                             <span class="badge bg-dark align-self-start">#{{ item.numero }}</span>
                             <h3 class="h6 fw-semibold mb-0">{{ item.texto }}</h3>
                         </div>
-                        {% if item.conforme %}
+                        {% if item.status == 'conforme' %}
                         <span class="badge bg-success flex-shrink-0">Conforme</span>
-                        {% else %}
+                        {% elif item.status == 'nao_conforme' %}
                         <span class="badge bg-danger flex-shrink-0">Não conforme</span>
+                        {% else %}
+                        <span class="badge bg-secondary flex-shrink-0">N/A</span>
                         {% endif %}
                     </div>
 

@@ -44,8 +44,11 @@ function formatPeriodLabel(startDate, endDate) {
 }
 
 function getCompliancePercentage(stats) {
-    if (!stats || stats.total === 0) return 0;
-    return Math.round((stats.compliant / stats.total) * 100);
+    if (!stats) return 0;
+    // % calculada só sobre os itens aplicáveis (exclui N/A do numerador e do denominador)
+    const applicable = stats.total - (stats.notApplicable || 0);
+    if (applicable <= 0) return 0;
+    return Math.round((stats.compliant / applicable) * 100);
 }
 
 function getComplianceStatus(stats) {
@@ -221,6 +224,11 @@ function renderChecklists(data) {
                                 <i class="bi bi-x-circle text-danger me-1"></i>
                                 <span>${checklist.stats.nonCompliant} não conformes</span>
                             </div>
+                            ${checklist.stats.notApplicable ? `
+                            <div class="d-flex align-items-center me-3">
+                                <i class="bi bi-dash-circle text-secondary me-1"></i>
+                                <span>${checklist.stats.notApplicable} N/A</span>
+                            </div>` : ''}
                             <div class="fw-medium me-3">${compliancePercentage}%</div>
                             <div class="progress me-3" style="width: 100px;">
                                 <div class="progress-bar ${complianceStatus.color}" role="progressbar" style="width: ${compliancePercentage}%" aria-valuenow="${compliancePercentage}" aria-valuemin="0" aria-valuemax="100"></div>

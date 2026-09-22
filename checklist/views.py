@@ -334,6 +334,25 @@ def duplicate_checklist_api(request):
     )
 
 
+CONFORMIDADE_VALORES = (True, False, "na")
+
+
+def _parse_conformidade(valor):
+    """Converte o valor vindo do front (true/false/"na") para o que o banco guarda.
+
+    "na" (item não se aplica) é guardado como None. Um valor fora desse conjunto
+    (ausente, string errada etc.) é inválido e sinalizado devolvendo um sentinela.
+    """
+    if valor not in CONFORMIDADE_VALORES:
+        return False, None
+    return True, (None if valor == "na" else valor)
+
+
+def _conformidade_para_wire(conformidade):
+    """Converte o valor do banco (True/False/None) para o formato usado com o front (true/false/"na")."""
+    return "na" if conformidade is None else conformidade
+
+
 @login_required
 @somente_master
 def inspection_data_api(request, id):
@@ -361,7 +380,7 @@ def inspection_data_api(request, id):
                 {
                     "pergunta_id": resposta.pergunta.id if resposta.pergunta else None,
                     "texto_pergunta": resposta.texto_pergunta_historico,
-                    "conformidade": resposta.conformidade,
+                    "conformidade": _conformidade_para_wire(resposta.conformidade),
                     "causas_reprovacao": resposta.causas_reprovacao or "",
                     "acoes_corretivas": resposta.acoes_corretivas or "",
                     "observacao": resposta.observacao or "",
@@ -447,7 +466,7 @@ def inspection_send_checklist_api(request):
             # Processar cada resposta
             for resposta_data in respostas_data:
                 pergunta_id = resposta_data.get("pergunta")
-                conformidade = resposta_data.get("conformidade")
+                conformidade_valida, conformidade = _parse_conformidade(resposta_data.get("conformidade"))
                 causa = resposta_data.get("causa")
                 acao = resposta_data.get("acao")
                 observacao = resposta_data.get("observacao", "")
@@ -457,7 +476,7 @@ def inspection_send_checklist_api(request):
                 fotos_base64 = resposta_data.get("fotos", [])  # Fotos em base64
 
                 # Validar dados da resposta
-                if pergunta_id is None or conformidade is None:
+                if pergunta_id is None or not conformidade_valida:
                     continue  # Pular respostas inválidas
 
                 # Buscar a pergunta
@@ -560,11 +579,14 @@ def update_inspection_api(request):
                 # Atualizar cada resposta
                 for resposta_data in respostas_data:
                     pergunta_id = resposta_data.get("pergunta_id")
-                    conformidade = resposta_data.get("conformidade")
+                    conformidade_valida, conformidade = _parse_conformidade(resposta_data.get("conformidade"))
                     causa = resposta_data.get("causa")
                     acao = resposta_data.get("acao")
                     observacao = resposta_data.get("observacao", "")
                     fotos_base64 = resposta_data.get("fotos", [])  # Novas fotos em base64
+
+                    if not conformidade_valida:
+                        continue  # Pular respostas inválidas
 
                     # Buscar a resposta existente
                     try:
@@ -865,6 +887,12 @@ def historico_api(request):
                     output_field=IntegerField(),
                 )
             ),
+            not_applicable_count=Count(
+                Case(
+                    When(itens_resposta__conformidade__isnull=True, then=1),
+                    output_field=IntegerField(),
+                )
+            ),
             total_items=Count("itens_resposta"),
         )
     )
@@ -913,8 +941,9 @@ def historico_api(request):
     for inspecao in page_obj:
         stats = {
             "total": inspecao.total_items,
-            "compliant": inspecao.total_items - inspecao.non_compliant_count,
+            "compliant": inspecao.total_items - inspecao.non_compliant_count - inspecao.not_applicable_count,
             "nonCompliant": inspecao.non_compliant_count,
+            "notApplicable": inspecao.not_applicable_count,
         }
 
         data.append(
@@ -1287,12 +1316,16 @@ def _dados_relatorio_inspecao(inspecao):
     itens = []
     respostas = inspecao.itens_resposta.prefetch_related("fotos").order_by("id")
     for numero, resposta in enumerate(respostas, start=1):
+        if resposta.conformidade is None:
+            status = "na"
+        else:
+            status = "conforme" if resposta.conformidade else "nao_conforme"
         itens.append(
             {
                 "numero": numero,
                 "texto": resposta.texto_pergunta_historico
                 or (resposta.pergunta.texto if resposta.pergunta else "Item não identificado"),
-                "conforme": resposta.conformidade,
+                "status": status,
                 "causas": resposta.causas_reprovacao or "",
                 "acoes": resposta.acoes_corretivas or "",
                 "observacao": resposta.observacao or "",
@@ -1301,7 +1334,10 @@ def _dados_relatorio_inspecao(inspecao):
         )
 
     total = len(itens)
-    conformes = sum(1 for item in itens if item["conforme"])
+    conformes = sum(1 for item in itens if item["status"] == "conforme")
+    nao_conformes = sum(1 for item in itens if item["status"] == "nao_conforme")
+    nao_aplicaveis = sum(1 for item in itens if item["status"] == "na")
+    aplicaveis = total - nao_aplicaveis
     return {
         "id": inspecao.id,
         "codigo": f"INS-{inspecao.id:06d}",
@@ -1313,8 +1349,10 @@ def _dados_relatorio_inspecao(inspecao):
         "data": timezone.localtime(inspecao.data_inspecao),
         "total": total,
         "conformes": conformes,
-        "nao_conformes": total - conformes,
-        "percentual": round(conformes / total * 100) if total else 0,
+        "nao_conformes": nao_conformes,
+        "nao_aplicaveis": nao_aplicaveis,
+        # % de conformidade calculada só sobre os itens aplicáveis (exclui N/A)
+        "percentual": round(conformes / aplicaveis * 100) if aplicaveis else 0,
         "itens": itens,
     }
 
@@ -1436,12 +1474,13 @@ def build_inspection_pdf(relatorio, generated_at=None):
     story.append(Paragraph("2. Resumo", styles["ReportSection"]))
     summary_table = Table(
         [
-            [Paragraph(t, styles["TableHeader"]) for t in ("Itens", "Conformes", "Não conformes", "Conformidade")],
+            [Paragraph(t, styles["TableHeader"]) for t in ("Itens", "Conformes", "Não conformes", "N/A", "Conformidade")],
             [Paragraph(str(v), styles["TableCell"]) for v in (
-                relatorio["total"], relatorio["conformes"], relatorio["nao_conformes"], f"{relatorio['percentual']}%",
+                relatorio["total"], relatorio["conformes"], relatorio["nao_conformes"],
+                relatorio["nao_aplicaveis"], f"{relatorio['percentual']}%",
             )],
         ],
-        colWidths=[46.5 * mm] * 4,
+        colWidths=[37.2 * mm] * 5,
     )
     summary_table.setStyle(estilo_tabela())
     story.append(summary_table)
@@ -1452,12 +1491,13 @@ def build_inspection_pdf(relatorio, generated_at=None):
         story.append(Paragraph("Nenhum item respondido nesta inspeção.", styles["ReportBody"]))
     else:
         rows = [[Paragraph(t, styles["TableHeader"]) for t in ("N", "Item", "Status", "Detalhes")]]
+        status_por_item = {
+            "conforme": "<font color='#198754'><b>Conforme</b></font>",
+            "nao_conforme": "<font color='#dc3545'><b>Não conforme</b></font>",
+            "na": "<font color='#6c757d'><b>N/A</b></font>",
+        }
         for item in relatorio["itens"]:
-            status = (
-                "<font color='#198754'><b>Conforme</b></font>"
-                if item["conforme"]
-                else "<font color='#dc3545'><b>Não conforme</b></font>"
-            )
+            status = status_por_item[item["status"]]
             detalhes = [
                 f"<b>{rotulo}:</b> {texto(valor)}"
                 for rotulo, valor in (

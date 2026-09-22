@@ -34,12 +34,14 @@ class Checklist(models.Model):
         itens = ItemResposta.objects.filter(inspecao=inspecao)
         total = itens.count()
         compliant = itens.filter(conformidade=True).count()
-        non_compliant = total - compliant
-        
+        non_compliant = itens.filter(conformidade=False).count()
+        not_applicable = itens.filter(conformidade__isnull=True).count()
+
         return {
             'total': total,
             'compliant': compliant,
-            'nonCompliant': non_compliant
+            'nonCompliant': non_compliant,
+            'notApplicable': not_applicable
         }
 
 
@@ -96,14 +98,19 @@ class ItemResposta(models.Model):
         blank=True,
         related_name="pergunta",
     )
-    conformidade = models.BooleanField(default=True)
+    # None = "N/A" (item não se aplica a esta inspeção)
+    conformidade = models.BooleanField(null=True, blank=True, default=True)
     causas_reprovacao = models.TextField(null=True, blank=True)
     acoes_corretivas = models.TextField(null=True, blank=True)
     texto_pergunta_historico = models.TextField()
     observacao = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.pergunta.texto if self.pergunta else 'Pergunta removida'} - {'Conforme' if self.conformidade else 'Não Conforme'}"
+        if self.conformidade is None:
+            status = 'N/A'
+        else:
+            status = 'Conforme' if self.conformidade else 'Não Conforme'
+        return f"{self.pergunta.texto if self.pergunta else 'Pergunta removida'} - {status}"
 
     def get_fotos(self):
         """Retorna todas as fotos associadas a esta resposta"""

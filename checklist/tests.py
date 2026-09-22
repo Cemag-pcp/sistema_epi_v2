@@ -551,3 +551,140 @@ class AbrirOrdemDeServicoTests(TestCase):
         self.assertEqual(_mensagem_erro_api('{"error": "Falhou"}'), 'Falhou')
         self.assertEqual(_mensagem_erro_api('{"maquina": ["Inválida"], "descricao": ["Obrigatório"]}'), 'maquina: Inválida; descricao: Obrigatório')
         self.assertIsNone(_mensagem_erro_api('<html>erro</html>'))
+
+
+class RespostaNaTests(TestCase):
+    """Item N/A (nao se aplica) ao responder, editar, listar e relatar um checklist."""
+
+    def setUp(self):
+        self.user = Usuario.objects.create_superuser(matricula=9009, password='x', nome='Master')
+        self.client.force_login(self.user)
+        self.checklist = Checklist.objects.create(nome='Torno N/A', ativo=True)
+        self.p1 = Pergunta.objects.create(checklist=self.checklist, texto='P1')
+        self.p2 = Pergunta.objects.create(checklist=self.checklist, texto='P2')
+        self.p3 = Pergunta.objects.create(checklist=self.checklist, texto='P3')
+
+    def _resposta(self, pergunta, conformidade):
+        return {
+            'pergunta': pergunta.id, 'conformidade': conformidade, 'observacao': '',
+            'causa': '', 'acao': '', 'texto_pergunta_historico': pergunta.texto, 'fotos': [],
+        }
+
+    def _enviar(self, respostas):
+        return self.client.post(
+            reverse('checklist:inspection-send-checklist-api'),
+            data=json.dumps({'checklist': self.checklist.id, 'respostas': respostas}),
+            content_type='application/json',
+        )
+
+    def test_envia_item_na_e_grava_conformidade_nula(self):
+        response = self._enviar([self._resposta(self.p1, True), self._resposta(self.p2, 'na')])
+        self.assertEqual(response.status_code, 200)
+        item_ok = ItemResposta.objects.get(pergunta=self.p1)
+        item_na = ItemResposta.objects.get(pergunta=self.p2)
+        self.assertIs(item_ok.conformidade, True)
+        self.assertIsNone(item_na.conformidade)
+
+    def test_conformidade_invalida_e_ignorada_sem_quebrar_o_envio(self):
+        response = self._enviar([
+            self._resposta(self.p1, True),
+            {'pergunta': self.p2.id, 'conformidade': 'talvez', 'texto_pergunta_historico': 'P2'},
+            {'pergunta': self.p3.id, 'texto_pergunta_historico': 'P3'},  # sem conformidade
+        ])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ItemResposta.objects.count(), 1)
+
+    def test_inspection_data_api_devolve_na_para_item_sem_conformidade(self):
+        self._enviar([self._resposta(self.p1, True), self._resposta(self.p2, 'na')])
+        inspecao = Inspecao.objects.get()
+        response = self.client.get(reverse('checklist:inspection-data-api', args=[inspecao.id]))
+        self.assertEqual(response.status_code, 200)
+        por_pergunta = {r['pergunta_id']: r['conformidade'] for r in response.json()['respostas']}
+        self.assertEqual(por_pergunta[self.p1.id], True)
+        self.assertEqual(por_pergunta[self.p2.id], 'na')
+
+    def test_update_inspection_api_marca_item_como_na(self):
+        self._enviar([self._resposta(self.p1, True), self._resposta(self.p2, False)])
+        inspecao = Inspecao.objects.get()
+        response = self.client.post(
+            reverse('checklist:update-inspection-api'),
+            data=json.dumps({
+                'inspection_id': inspecao.id,
+                'respostas': [
+                    {'pergunta_id': self.p1.id, 'conformidade': 'na', 'causa': '', 'acao': '', 'observacao': '', 'fotos': []},
+                    {'pergunta_id': self.p2.id, 'conformidade': False, 'causa': 'x', 'acao': 'y', 'observacao': '', 'fotos': []},
+                ],
+                'fotos_remover': [],
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(ItemResposta.objects.get(pergunta=self.p1).conformidade)
+        self.assertIs(ItemResposta.objects.get(pergunta=self.p2).conformidade, False)
+
+    def test_update_inspection_api_ignora_conformidade_invalida(self):
+        self._enviar([self._resposta(self.p1, True)])
+        inspecao = Inspecao.objects.get()
+        response = self.client.post(
+            reverse('checklist:update-inspection-api'),
+            data=json.dumps({
+                'inspection_id': inspecao.id,
+                'respostas': [{'pergunta_id': self.p1.id, 'conformidade': 'invalido'}],
+                'fotos_remover': [],
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        # nao deve ter sobrescrito a resposta existente com um valor invalido
+        self.assertIs(ItemResposta.objects.get(pergunta=self.p1).conformidade, True)
+
+    def test_historico_contabiliza_na_separado_de_conforme_e_nao_conforme(self):
+        self._enviar([self._resposta(self.p1, True), self._resposta(self.p2, False), self._resposta(self.p3, 'na')])
+        response = self.client.get(reverse('checklist:historico-api'))
+        self.assertEqual(response.status_code, 200)
+        stats = response.json()['checklists'][0]['stats']
+        self.assertEqual(stats, {'total': 3, 'compliant': 1, 'nonCompliant': 1, 'notApplicable': 1})
+
+    def test_historico_filtro_compliant_ignora_item_na(self):
+        # So N/A e conformes, nenhum nao conforme: deve cair no filtro compliant
+        self._enviar([self._resposta(self.p1, True), self._resposta(self.p2, 'na')])
+        response = self.client.get(reverse('checklist:historico-api'), {'compliance': 'compliant'})
+        self.assertEqual(response.json()['total_count'], 1)
+
+    def test_relatorio_de_inspecao_com_item_na(self):
+        self._enviar([self._resposta(self.p1, True), self._resposta(self.p2, False), self._resposta(self.p3, 'na')])
+        inspecao = Inspecao.objects.get()
+        response = self.client.get(reverse('checklist:inspection-report', args=[inspecao.id]))
+        self.assertEqual(response.status_code, 200)
+        relatorio = response.context['relatorio']
+        self.assertEqual(relatorio['conformes'], 1)
+        self.assertEqual(relatorio['nao_conformes'], 1)
+        self.assertEqual(relatorio['nao_aplicaveis'], 1)
+        # percentual calculado so sobre os 2 itens aplicaveis (exclui o N/A): 1/2 = 50%
+        self.assertEqual(relatorio['percentual'], 50)
+        status_por_item = {item['texto']: item['status'] for item in relatorio['itens']}
+        self.assertEqual(status_por_item, {'P1': 'conforme', 'P2': 'nao_conforme', 'P3': 'na'})
+
+    def test_relatorio_percentual_quando_tudo_e_na(self):
+        self._enviar([self._resposta(self.p1, 'na'), self._resposta(self.p2, 'na')])
+        inspecao = Inspecao.objects.get()
+        response = self.client.get(reverse('checklist:inspection-report', args=[inspecao.id]))
+        self.assertEqual(response.context['relatorio']['percentual'], 0)
+
+    def test_pdf_do_relatorio_com_item_na_e_gerado(self):
+        self._enviar([self._resposta(self.p1, True), self._resposta(self.p2, 'na')])
+        inspecao = Inspecao.objects.get()
+        response = self.client.get(reverse('checklist:inspection-report-pdf', args=[inspecao.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content.startswith(b'%PDF'))
+
+    def test_modelo_str_mostra_na(self):
+        self._enviar([self._resposta(self.p1, 'na')])
+        item = ItemResposta.objects.get(pergunta=self.p1)
+        self.assertIn('N/A', str(item))
+
+    def test_get_stats_do_checklist_com_na(self):
+        self._enviar([self._resposta(self.p1, True), self._resposta(self.p2, False), self._resposta(self.p3, 'na')])
+        inspecao = Inspecao.objects.get()
+        stats = self.checklist.get_stats(inspecao)
+        self.assertEqual(stats, {'total': 3, 'compliant': 1, 'nonCompliant': 1, 'notApplicable': 1})

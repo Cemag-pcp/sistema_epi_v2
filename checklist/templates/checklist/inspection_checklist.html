@@ -56,7 +56,8 @@
                             <p class="fw-medium text-dark mb-0" id="progress-text">0 de 0 questões respondidas</p>
                             <p class="small text-muted mb-0 d-none d-sm-block">
                                 <span id="compliant-count">0</span> conformes •
-                                <span id="non-compliant-count">0</span> não conformes
+                                <span id="non-compliant-count">0</span> não conformes •
+                                <span id="na-count">0</span> N/A
                             </p>
                             <p class="small text-muted mb-0 d-none" id="draft-status"></p>
                         </div>
@@ -82,27 +83,33 @@
                 <p id="checklist-complete-title" class="text-muted"></p>
                 <div id="os-result" class="alert d-none" role="status"></div>
                 
-                <div class="row text-center my-4">
-                    <div class="col-4">
+                <div class="row text-center my-4 g-2">
+                    <div class="col-3">
                         <div class="bg-primary bg-opacity-10 p-3 rounded">
                             <div class="h4 fw-bold text-primary" id="total-answered">0</div>
-                            <div class="small text-primary">Total Respondido</div>
+                            <div class="small text-primary">Total</div>
                         </div>
                     </div>
-                    <div class="col-4">
+                    <div class="col-3">
                         <div class="bg-success bg-opacity-10 p-3 rounded">
                             <div class="h4 fw-bold text-success" id="compliant-count-modal">0</div>
                             <div class="small text-success">Conformes</div>
                         </div>
                     </div>
-                    <div class="col-4">
+                    <div class="col-3">
                         <div class="bg-danger bg-opacity-10 p-3 rounded">
                             <div class="h4 fw-bold text-danger" id="non-compliant-count-modal">0</div>
-                            <div class="small text-danger">Não Conformes</div>
+                            <div class="small text-danger">Não Conf.</div>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-secondary bg-opacity-10 p-3 rounded">
+                            <div class="h4 fw-bold text-secondary" id="na-count-modal">0</div>
+                            <div class="small text-secondary">N/A</div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="d-grid gap-2">
                     <a href="/checklists/" class="btn btn-white">
                         <i class="bi bi-arrow-left me-2"></i>Voltar para Início
