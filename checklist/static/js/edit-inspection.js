@@ -32,33 +32,28 @@ async function loadInspectionData() {
     }
 }
 
-// Configurar os botões de conformidade
+// Cor de cada botão de conformidade quando ele é o valor escolhido
+const CONFORMITY_BTN_COR = { true: 'success', false: 'danger', na: 'secondary' };
+
+// Configurar os botões de conformidade (Conforme / Não Conforme / N/A)
 function setupConformityButtons() {
     document.querySelectorAll('.conformity-btn').forEach(button => {
         button.addEventListener('click', function() {
             const index = this.getAttribute('data-index');
-            const value = this.getAttribute('data-value') === 'true';
+            const value = this.getAttribute('data-value'); // 'true' | 'false' | 'na'
             const card = document.querySelector(`.question-card[data-index="${index}"]`);
-            
+
             // Atualizar o valor oculto
             document.getElementById(`conformidade-${index}`).value = value;
-            
-            // Atualizar a aparência dos botões
-            const conformeBtn = card.querySelector('.conformity-btn[data-value="true"]');
-            const naoConformeBtn = card.querySelector('.conformity-btn[data-value="false"]');
-            
-            if (value) {
-                conformeBtn.classList.remove('btn-outline-success');
-                conformeBtn.classList.add('btn-success');
-                naoConformeBtn.classList.remove('btn-danger');
-                naoConformeBtn.classList.add('btn-outline-danger');
-            } else {
-                conformeBtn.classList.remove('btn-success');
-                conformeBtn.classList.add('btn-outline-success');
-                naoConformeBtn.classList.remove('btn-outline-danger');
-                naoConformeBtn.classList.add('btn-danger');
-            }
-            
+
+            // Atualizar a aparência dos três botões
+            card.querySelectorAll('.conformity-btn').forEach(btn => {
+                const selecionado = btn.getAttribute('data-value') === value;
+                const cor = CONFORMITY_BTN_COR[btn.getAttribute('data-value')];
+                btn.classList.toggle(`btn-${cor}`, selecionado);
+                btn.classList.toggle(`btn-outline-${cor}`, !selecionado);
+            });
+
             // Atualizar o progresso
             updateProgress();
         });
@@ -85,25 +80,30 @@ function populateFormWithData(inspectionData) {
     
     let html = '';
     inspectionData.respostas.forEach((resposta, index) => {
-        const conformeClass = resposta.conformidade ? 'btn-success' : 'btn-outline-success';
-        const naoConformeClass = !resposta.conformidade ? 'btn-danger' : 'btn-outline-danger';
-        
+        // resposta.conformidade vem como true | false | "na"
+        const conformeClass = resposta.conformidade === true ? 'btn-success' : 'btn-outline-success';
+        const naoConformeClass = resposta.conformidade === false ? 'btn-danger' : 'btn-outline-danger';
+        const naClass = resposta.conformidade === 'na' ? 'btn-secondary' : 'btn-outline-secondary';
+
         // Armazenar fotos atuais
         currentPhotos[resposta.pergunta_id] = resposta.fotos || [];
-        
+
         html += `
         <div class="card mb-3 question-card" data-question-id="${resposta.pergunta_id}" data-index="${index}">
             <div class="card-body p-4">
                 <h5 class="fw-medium mb-3">${index + 1}. ${resposta.texto_pergunta}</h5>
-                
+
                 <div class="mb-3">
                     <label class="form-label">Conformidade:</label>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap gap-2">
                         <button type="button" class="btn ${conformeClass} flex-grow-1 conformity-btn" data-value="true" data-index="${index}">
                             <i class="bi bi-check-circle me-1"></i>Conforme
                         </button>
                         <button type="button" class="btn ${naoConformeClass} flex-grow-1 conformity-btn" data-value="false" data-index="${index}">
                             <i class="bi bi-x-circle me-1"></i>Não Conforme
+                        </button>
+                        <button type="button" class="btn ${naClass} flex-grow-1 conformity-btn" data-value="na" data-index="${index}">
+                            <i class="bi bi-dash-circle me-1"></i>N/A
                         </button>
                     </div>
                     <input type="hidden" id="conformidade-${index}" value="${resposta.conformidade}">
@@ -373,7 +373,8 @@ async function getUpdatedData() {
     for (const card of questionCards) {
         const index = card.getAttribute('data-index');
         const questionId = card.getAttribute('data-question-id');
-        const conformity = document.getElementById(`conformidade-${index}`).value === 'true';
+        const conformityRaw = document.getElementById(`conformidade-${index}`).value; // 'true' | 'false' | 'na'
+        const conformity = conformityRaw === 'true' ? true : conformityRaw === 'false' ? false : 'na';
         const causes = document.getElementById(`causes-${index}`).value;
         const actions = document.getElementById(`actions-${index}`).value;
         const observation = document.getElementById(`observacao-${index}`).value;
@@ -428,12 +429,14 @@ async function submitUpdates() {
         if (response.ok) {
             const modal = new bootstrap.Modal(document.getElementById('completion-modal'));
             
-            const compliantCount = updatedData.respostas.filter(r => r.conformidade).length;
-            const nonCompliantCount = updatedData.respostas.length - compliantCount;
-            
+            const compliantCount = updatedData.respostas.filter(r => r.conformidade === true).length;
+            const nonCompliantCount = updatedData.respostas.filter(r => r.conformidade === false).length;
+            const naCount = updatedData.respostas.filter(r => r.conformidade === 'na').length;
+
             document.getElementById('total-answered').textContent = updatedData.respostas.length;
             document.getElementById('compliant-count-modal').textContent = compliantCount;
             document.getElementById('non-compliant-count-modal').textContent = nonCompliantCount;
+            document.getElementById('na-count-modal').textContent = naCount;
             
             modal.show();
         } else {
@@ -464,17 +467,19 @@ function showInfo(message) {
 function updateProgress() {
     const questionCards = document.querySelectorAll('.question-card');
     const answeredCount = questionCards.length;
-    
-    const compliantCount = Array.from(questionCards).filter(card => {
+
+    const valores = Array.from(questionCards).map(card => {
         const index = card.getAttribute('data-index');
-        return document.getElementById(`conformidade-${index}`).value === 'true';
-    }).length;
-    
-    const nonCompliantCount = answeredCount - compliantCount;
-    
+        return document.getElementById(`conformidade-${index}`).value;
+    });
+    const compliantCount = valores.filter(v => v === 'true').length;
+    const nonCompliantCount = valores.filter(v => v === 'false').length;
+    const naCount = valores.filter(v => v === 'na').length;
+
     document.getElementById('progress-text').textContent = `${answeredCount} de ${questionCards.length} questões respondidas`;
     document.getElementById('compliant-count').textContent = compliantCount;
     document.getElementById('non-compliant-count').textContent = nonCompliantCount;
+    document.getElementById('na-count').textContent = naCount;
 }
 
 // Configurar o botão de atualização

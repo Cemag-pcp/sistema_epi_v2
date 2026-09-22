@@ -110,6 +110,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button type="button" class="btn btn-outline-danger compliance-btn" data-question="${id}" data-compliant="false">
                             <i class="bi bi-x-circle me-2"></i>Não Conforme
                         </button>
+                        <button type="button" class="btn btn-outline-secondary compliance-btn" data-question="${id}" data-compliant="na">
+                            <i class="bi bi-dash-circle me-2"></i>N/A
+                        </button>
                     </div>
 
                     <div class="nc-fields mb-3">
@@ -220,23 +223,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Aplica o estado de conformidade na tela (botões e cor da borda do card)
-    function aplicarConformidade(questionId, isCompliant) {
+    // Cor de cada botão de conformidade quando ele é o valor escolhido
+    const COMPLIANCE_BTN_COR = { true: 'success', false: 'danger', na: 'secondary' };
+    // Status do card (cor da borda) para cada valor de conformidade
+    const COMPLIANCE_CARD_STATUS = { true: 'ok', false: 'nc', na: 'na' };
+
+    // Aplica o estado de conformidade na tela (botões e cor da borda do card).
+    // valor: true (conforme) | false (não conforme) | 'na' (não se aplica)
+    function aplicarConformidade(questionId, valor) {
+        const valorAttr = valor === true ? 'true' : valor === false ? 'false' : 'na';
         document.querySelectorAll(`.compliance-btn[data-question="${questionId}"]`).forEach(btn => {
-            if (btn.dataset.compliant === 'true') {
-                btn.classList.toggle('btn-success', isCompliant);
-                btn.classList.toggle('btn-outline-success', !isCompliant);
-            } else {
-                btn.classList.toggle('btn-danger', !isCompliant);
-                btn.classList.toggle('btn-outline-danger', isCompliant);
-            }
+            const selecionado = btn.dataset.compliant === valorAttr;
+            const cor = COMPLIANCE_BTN_COR[btn.dataset.compliant];
+            btn.classList.toggle(`btn-${cor}`, selecionado);
+            btn.classList.toggle(`btn-outline-${cor}`, !selecionado);
         });
-        document.getElementById(`question-${questionId}`).dataset.status = isCompliant ? 'ok' : 'nc';
-        responses[questionId].conformidade = isCompliant;
+        document.getElementById(`question-${questionId}`).dataset.status = COMPLIANCE_CARD_STATUS[valorAttr];
+        responses[questionId].conformidade = valor;
     }
 
     function handleComplianceClick(btn) {
-        aplicarConformidade(btn.dataset.question, btn.dataset.compliant === 'true');
+        const valor = btn.dataset.compliant === 'true' ? true : btn.dataset.compliant === 'false' ? false : 'na';
+        aplicarConformidade(btn.dataset.question, valor);
         updateProgress();
         agendarSalvar();
     }
@@ -308,6 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const answered = Object.values(responses).filter(r => r.conformidade !== null).length;
         const compliant = Object.values(responses).filter(r => r.conformidade === true).length;
         const nonCompliant = Object.values(responses).filter(r => r.conformidade === false).length;
+        const notApplicable = Object.values(responses).filter(r => r.conformidade === 'na').length;
 
         // "questões" some no celular para o texto caber numa linha só
         document.getElementById('progress-text').innerHTML =
@@ -315,10 +324,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('progress-bar').style.width = questions.length ? `${(answered / questions.length) * 100}%` : '0%';
         document.getElementById('compliant-count').textContent = compliant;
         document.getElementById('non-compliant-count').textContent = nonCompliant;
+        document.getElementById('na-count').textContent = notApplicable;
 
         document.getElementById('total-answered').textContent = answered;
         document.getElementById('compliant-count-modal').textContent = compliant;
         document.getElementById('non-compliant-count-modal').textContent = nonCompliant;
+        document.getElementById('na-count-modal').textContent = notApplicable;
     }
 
     // ---- Rascunho ----------------------------------------------------------------------------
@@ -381,7 +392,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById(`causes-${id}`).value = responses[id].causa;
                 document.getElementById(`actions-${id}`).value = responses[id].acao;
 
-                if (typeof r.conformidade === 'boolean') aplicarConformidade(id, r.conformidade);
+                if (r.conformidade === true || r.conformidade === false || r.conformidade === 'na') {
+                    aplicarConformidade(id, r.conformidade);
+                }
                 (r.fotos || []).forEach(foto => adicionarFoto(id, foto));
                 restauradas++;
             });
