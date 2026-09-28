@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const titleInput = document.getElementById('title');
     const descriptionInput = document.getElementById('description');
     const setorSelect = document.getElementById('setor');
+    const pastaSelect = document.getElementById('pasta');
     const maquinaSelect = document.getElementById('maquina');
     const questionTextInput = document.getElementById('question-text');
     const addQuestionBtn = document.getElementById('addQuestionBtn');
@@ -55,9 +56,10 @@ document.addEventListener('DOMContentLoaded', function() {
         checklistId = pathParts[pathParts.length - 2];
         
         try {
-            // Load setores
+            // Load setores e pastas
             await loadSetores();
-            
+            await loadPastas();
+
             // Load checklist data if editing
             if (checklistId) {
                 await loadChecklistData();
@@ -95,7 +97,32 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Erro ao carregar setores:', error);
         }
     }
-    
+
+    // Load pastas from API
+    async function loadPastas() {
+        try {
+            const response = await fetch('/api/checklists/pastas/');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar pastas');
+            }
+            const { pastas } = await response.json();
+
+            pastaSelect.innerHTML = '<option value="">Sem pasta</option>';
+            pastas.forEach(pasta => {
+                const option = document.createElement('option');
+                option.value = pasta.id;
+                option.textContent = pasta.nome;
+                pastaSelect.appendChild(option);
+            });
+
+            if (window.jQuery && jQuery.fn.select2) {
+                jQuery(pastaSelect).select2({ theme: 'bootstrap-5', width: '100%', allowClear: true, placeholder: 'Sem pasta' });
+            }
+        } catch (error) {
+            console.error('Erro ao carregar pastas:', error);
+        }
+    }
+
     // Load checklist data
     async function loadChecklistData() {
         try {
@@ -111,6 +138,12 @@ document.addEventListener('DOMContentLoaded', function() {
             titleInput.value = checklist.nome;
             descriptionInput.value = checklist.descricao;
             setorSelect.value = checklist.setor ? checklist.setor.id : '';
+            const pastaValor = checklist.pasta ? String(checklist.pasta.id) : '';
+            if (window.jQuery && jQuery.fn.select2) {
+                jQuery(pastaSelect).val(pastaValor).trigger('change');
+            } else {
+                pastaSelect.value = pastaValor;
+            }
             maquinaAtual = checklist.maquina || null;
             preencherMaquinas([], maquinaAtual ? String(maquinaAtual.id) : '');
             
@@ -387,6 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 nome: titleInput.value.trim(),
                 descricao: descriptionInput.value.trim(),
                 setor: setorSelect.value || null,
+                pasta: pastaSelect.value || null,
                 maquina_id: maquinaSelect.value || null,
                 ativo: true,
                 perguntas: questions.map(q => ({ 

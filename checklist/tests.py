@@ -15,7 +15,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from usuario.models import Usuario
-from .models import Checklist, FotoResposta, Inspecao, ItemResposta, Pergunta
+from .models import Checklist, FotoResposta, Inspecao, ItemResposta, Pasta, Pergunta
 
 MAQUINAS = [
     {'id': 10, 'codigo': 'Torno 1', 'descricao': 'Torno mecânico', 'setor': 'Usinagem'},
@@ -688,3 +688,333 @@ class RespostaNaTests(TestCase):
         inspecao = Inspecao.objects.get()
         stats = self.checklist.get_stats(inspecao)
         self.assertEqual(stats, {'total': 3, 'compliant': 1, 'nonCompliant': 1, 'notApplicable': 1})
+
+
+class PastaCrudTests(TestCase):
+    def setUp(self):
+        self.user = Usuario.objects.create_superuser(matricula=9010, password='x', nome='Master')
+        self.client.force_login(self.user)
+
+    def _criar(self, nome='Usinagem'):
+        return self.client.post(
+            reverse('checklist:add-pasta-api'),
+            data=json.dumps({'nome': nome}), content_type='application/json',
+        )
+
+    def test_criar_pasta_com_sucesso(self):
+        response = self._criar('Usinagem')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['pasta']['nome'], 'Usinagem')
+        self.assertTrue(Pasta.objects.filter(nome='Usinagem').exists())
+
+    def test_criar_pasta_sem_nome_retorna_400(self):
+        response = self._criar('   ')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Pasta.objects.count(), 0)
+
+    def test_criar_pasta_nome_duplicado_retorna_400(self):
+        Pasta.objects.create(nome='Usinagem')
+        response = self._criar('Usinagem')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Pasta.objects.count(), 1)
+
+    def test_listar_pastas_com_contagem_de_checklists_ativos(self):
+        p1 = Pasta.objects.create(nome='Usinagem')
+        p2 = Pasta.objects.create(nome='Solda')
+        Checklist.objects.create(nome='C1', ativo=True, pasta=p1)
+        Checklist.objects.create(nome='C2', ativo=True, pasta=p1)
+        Checklist.objects.create(nome='C3', ativo=False, pasta=p1)  # inativo não conta
+        Checklist.objects.create(nome='C4', ativo=True, pasta=None)  # sem pasta não conta em nenhuma
+
+        response = self.client.get(reverse('checklist:pastas-api'))
+        self.assertEqual(response.status_code, 200)
+        pastas = {p['nome']: p['total_checklists'] for p in response.json()['pastas']}
+        self.assertEqual(pastas, {'Usinagem': 2, 'Solda': 0})
+
+    def test_listar_pastas_filtra_por_nome(self):
+        Pasta.objects.create(nome='Usinagem')
+        Pasta.objects.create(nome='Solda')
+        response = self.client.get(reverse('checklist:pastas-api'), {'nome': 'usin'})
+        self.assertEqual([p['nome'] for p in response.json()['pastas']], ['Usinagem'])
+
+    def test_renomear_pasta(self):
+        pasta = Pasta.objects.create(nome='Antigo')
+        response = self.client.put(
+            reverse('checklist:edit-pasta-api', args=[pasta.id]),
+            data=json.dumps({'nome': 'Novo nome'}), content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        pasta.refresh_from_db()
+        self.assertEqual(pasta.nome, 'Novo nome')
+
+    def test_renomear_pasta_para_nome_ja_usado_retorna_400(self):
+        Pasta.objects.create(nome='Usinagem')
+        pasta = Pasta.objects.create(nome='Solda')
+        response = self.client.put(
+            reverse('checklist:edit-pasta-api', args=[pasta.id]),
+            data=json.dumps({'nome': 'Usinagem'}), content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        pasta.refresh_from_db()
+        self.assertEqual(pasta.nome, 'Solda')
+
+    def test_renomear_pasta_para_o_proprio_nome_e_permitido(self):
+        pasta = Pasta.objects.create(nome='Usinagem')
+        response = self.client.put(
+            reverse('checklist:edit-pasta-api', args=[pasta.id]),
+            data=json.dumps({'nome': 'Usinagem'}), content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_renomear_pasta_inexistente_retorna_404(self):
+        response = self.client.put(
+            reverse('checklist:edit-pasta-api', args=[999]),
+            data=json.dumps({'nome': 'x'}), content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_excluir_pasta_move_checklists_para_sem_pasta(self):
+        pasta = Pasta.objects.create(nome='Usinagem')
+        checklist = Checklist.objects.create(nome='C1', ativo=True, pasta=pasta)
+
+        response = self.client.post(reverse('checklist:delete-pasta-api', args=[pasta.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Pasta.objects.filter(id=pasta.id).exists())
+        checklist.refresh_from_db()
+        self.assertIsNone(checklist.pasta)
+        self.assertTrue(Checklist.objects.filter(id=checklist.id).exists())  # não apagou o checklist
+
+    def test_excluir_pasta_inexistente_retorna_404(self):
+        response = self.client.post(reverse('checklist:delete-pasta-api', args=[999]))
+        self.assertEqual(response.status_code, 404)
+
+    def _excluir_pasta(self, pasta_id, apagar_checklists):
+        return self.client.post(
+            reverse('checklist:delete-pasta-api', args=[pasta_id]),
+            data=json.dumps({'apagar_checklists': apagar_checklists}),
+            content_type='application/json',
+        )
+
+    def test_excluir_pasta_sem_marcar_checkbox_mantem_checklists_ativos(self):
+        pasta = Pasta.objects.create(nome='Usinagem')
+        checklist = Checklist.objects.create(nome='C1', ativo=True, pasta=pasta)
+
+        response = self._excluir_pasta(pasta.id, apagar_checklists=False)
+        self.assertEqual(response.status_code, 200)
+        checklist.refresh_from_db()
+        self.assertTrue(checklist.ativo)
+        self.assertIsNone(checklist.pasta)
+
+    def test_excluir_pasta_com_checkbox_apaga_os_checklists(self):
+        pasta = Pasta.objects.create(nome='Usinagem')
+        c1 = Checklist.objects.create(nome='C1', ativo=True, pasta=pasta)
+        c2 = Checklist.objects.create(nome='C2', ativo=True, pasta=pasta)
+        outro = Checklist.objects.create(nome='C3', ativo=True)  # fora da pasta: não é afetado
+
+        response = self._excluir_pasta(pasta.id, apagar_checklists=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['checklists_apagados'], 2)
+        self.assertFalse(Pasta.objects.filter(id=pasta.id).exists())
+
+        c1.refresh_from_db()
+        c2.refresh_from_db()
+        outro.refresh_from_db()
+        self.assertFalse(c1.ativo)
+        self.assertFalse(c2.ativo)
+        self.assertTrue(outro.ativo)
+        # apagar = ativo=False (o mesmo "excluir" usado no resto do app), a linha continua existindo
+        self.assertTrue(Checklist.objects.filter(id=c1.id).exists())
+
+    def test_excluir_pasta_com_checkbox_e_ja_apagados_nao_conta_de_novo(self):
+        pasta = Pasta.objects.create(nome='Usinagem')
+        Checklist.objects.create(nome='C1', ativo=False, pasta=pasta)  # já inativo
+
+        response = self._excluir_pasta(pasta.id, apagar_checklists=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['checklists_apagados'], 0)
+
+    def test_excluir_pasta_corpo_vazio_equivale_a_nao_apagar(self):
+        pasta = Pasta.objects.create(nome='Usinagem')
+        checklist = Checklist.objects.create(nome='C1', ativo=True, pasta=pasta)
+
+        response = self.client.post(reverse('checklist:delete-pasta-api', args=[pasta.id]))
+        self.assertEqual(response.status_code, 200)
+        checklist.refresh_from_db()
+        self.assertTrue(checklist.ativo)
+
+
+class MoverChecklistPastaTests(TestCase):
+    def setUp(self):
+        self.user = Usuario.objects.create_superuser(matricula=9011, password='x', nome='Master')
+        self.client.force_login(self.user)
+        self.pasta = Pasta.objects.create(nome='Usinagem')
+        self.checklist = Checklist.objects.create(nome='C1', ativo=True)
+
+    def _mover(self, checklist_id, pasta_id):
+        return self.client.post(
+            reverse('checklist:mover-checklist-api'),
+            data=json.dumps({'checklist_id': checklist_id, 'pasta_id': pasta_id}),
+            content_type='application/json',
+        )
+
+    def test_move_checklist_para_pasta(self):
+        response = self._mover(self.checklist.id, self.pasta.id)
+        self.assertEqual(response.status_code, 200)
+        self.checklist.refresh_from_db()
+        self.assertEqual(self.checklist.pasta_id, self.pasta.id)
+
+    def test_move_checklist_para_sem_pasta(self):
+        self.checklist.pasta = self.pasta
+        self.checklist.save()
+        response = self._mover(self.checklist.id, None)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()['pasta'])
+        self.checklist.refresh_from_db()
+        self.assertIsNone(self.checklist.pasta)
+
+    def test_move_checklist_inexistente_retorna_404(self):
+        response = self._mover(999, self.pasta.id)
+        self.assertEqual(response.status_code, 404)
+
+    def test_move_para_pasta_inexistente_retorna_404(self):
+        response = self._mover(self.checklist.id, 999)
+        self.assertEqual(response.status_code, 404)
+        self.checklist.refresh_from_db()
+        self.assertIsNone(self.checklist.pasta)
+
+
+class ChecklistCardsPastaTests(TestCase):
+    def setUp(self):
+        self.user = Usuario.objects.create_superuser(matricula=9012, password='x', nome='Master')
+        self.client.force_login(self.user)
+        self.pasta = Pasta.objects.create(nome='Usinagem')
+        self.dentro = Checklist.objects.create(nome='Dentro da pasta', ativo=True, pasta=self.pasta)
+        self.fora = Checklist.objects.create(nome='Sem pasta', ativo=True)
+
+    def _cards(self, **params):
+        return self.client.get(reverse('checklist:checklist-cards-data-api'), params)
+
+    def test_raiz_mostra_apenas_checklists_sem_pasta(self):
+        response = self._cards()
+        self.assertEqual(response.status_code, 200)
+        nomes = {c['nome'] for c in response.json()['checklists']}
+        self.assertEqual(nomes, {'Sem pasta'})
+        self.assertIsNone(response.json()['pasta_atual'])
+
+    def test_dentro_da_pasta_mostra_apenas_checklists_daquela_pasta(self):
+        response = self._cards(pasta_id=self.pasta.id)
+        self.assertEqual(response.status_code, 200)
+        nomes = {c['nome'] for c in response.json()['checklists']}
+        self.assertEqual(nomes, {'Dentro da pasta'})
+        self.assertEqual(response.json()['pasta_atual'], {'id': self.pasta.id, 'nome': 'Usinagem'})
+
+    def test_pasta_id_invalido_retorna_400(self):
+        response = self._cards(pasta_id='abc')
+        self.assertEqual(response.status_code, 400)
+
+    def test_pasta_id_inexistente_retorna_404(self):
+        response = self._cards(pasta_id=999)
+        self.assertEqual(response.status_code, 404)
+
+    def test_filtro_de_nome_combina_com_pasta(self):
+        Checklist.objects.create(nome='Outro dentro', ativo=True, pasta=self.pasta)
+        response = self._cards(pasta_id=self.pasta.id, nome='Dentro da')
+        nomes = {c['nome'] for c in response.json()['checklists']}
+        self.assertEqual(nomes, {'Dentro da pasta'})
+
+
+class ChecklistPastaAoCriarEditarTests(TestCase):
+    def setUp(self):
+        self.user = Usuario.objects.create_superuser(matricula=9013, password='x', nome='Master')
+        self.client.force_login(self.user)
+        self.pasta = Pasta.objects.create(nome='Usinagem')
+
+    def test_criar_checklist_com_pasta(self):
+        response = self.client.post(
+            reverse('checklist:add-checklist-api'),
+            data=json.dumps({
+                'nome': 'Checklist teste', 'pasta_id': self.pasta.id,
+                'perguntas': [{'texto': 'P1'}],
+            }),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        checklist = Checklist.objects.get(nome='Checklist teste')
+        self.assertEqual(checklist.pasta_id, self.pasta.id)
+        self.assertEqual(response.json()['checklist']['pasta'], 'Usinagem')
+
+    def test_criar_checklist_pasta_inexistente_retorna_400(self):
+        response = self.client.post(
+            reverse('checklist:add-checklist-api'),
+            data=json.dumps({'nome': 'Checklist teste', 'pasta_id': 999, 'perguntas': [{'texto': 'P1'}]}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Checklist.objects.filter(nome='Checklist teste').exists())
+
+    def test_criar_checklist_sem_pasta(self):
+        response = self.client.post(
+            reverse('checklist:add-checklist-api'),
+            data=json.dumps({'nome': 'Checklist teste', 'perguntas': [{'texto': 'P1'}]}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(Checklist.objects.get(nome='Checklist teste').pasta)
+
+    def test_editar_checklist_muda_pasta(self):
+        checklist = Checklist.objects.create(nome='C1', ativo=True)
+        response = self.client.put(
+            reverse('checklist:edit-checklist-api', args=[checklist.id]),
+            data=json.dumps({'nome': 'C1', 'pasta': self.pasta.id, 'perguntas': []}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        checklist.refresh_from_db()
+        self.assertEqual(checklist.pasta_id, self.pasta.id)
+        self.assertEqual(response.json()['pasta'], {'id': self.pasta.id, 'nome': 'Usinagem'})
+
+    def test_editar_checklist_remove_pasta_quando_vazio(self):
+        checklist = Checklist.objects.create(nome='C1', ativo=True, pasta=self.pasta)
+        response = self.client.put(
+            reverse('checklist:edit-checklist-api', args=[checklist.id]),
+            data=json.dumps({'nome': 'C1', 'pasta': None, 'perguntas': []}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        checklist.refresh_from_db()
+        self.assertIsNone(checklist.pasta)
+
+    def test_editar_checklist_pasta_inexistente_retorna_400(self):
+        checklist = Checklist.objects.create(nome='C1', ativo=True)
+        response = self.client.put(
+            reverse('checklist:edit-checklist-api', args=[checklist.id]),
+            data=json.dumps({'nome': 'C1', 'pasta': 999, 'perguntas': []}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        checklist.refresh_from_db()
+        self.assertIsNone(checklist.pasta)
+
+    def test_duplicar_checklist_mantem_pasta_do_original(self):
+        original = Checklist.objects.create(nome='Original', ativo=True, pasta=self.pasta)
+        response = self.client.post(
+            reverse('checklist:duplicate-checklist-api'),
+            data=json.dumps({'original_id': original.id, 'novo_nome': 'Copia', 'setor_id': ''}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        copia = Checklist.objects.get(nome='Copia')
+        self.assertEqual(copia.pasta_id, self.pasta.id)
+
+    def test_inspection_checklist_api_expoe_pasta_do_checklist(self):
+        checklist = Checklist.objects.create(nome='C1', ativo=True, pasta=self.pasta)
+        response = self.client.get(reverse('checklist:inspection-checklist-api', args=[checklist.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['data']['pasta'], {'id': self.pasta.id, 'nome': 'Usinagem'})
+
+    def test_pasta_excluida_nao_derruba_o_checklist(self):
+        checklist = Checklist.objects.create(nome='C1', ativo=True, pasta=self.pasta)
+        self.pasta.delete()
+        response = self.client.get(reverse('checklist:inspection-checklist-api', args=[checklist.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()['data']['pasta'])

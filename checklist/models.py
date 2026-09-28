@@ -8,9 +8,25 @@ def foto_upload_path(instance, filename):
     """Gera o caminho de upload para as fotos: inspecao_{id}/pergunta_{id}/{filename}"""
     return f'inspecao_{instance.item_resposta.inspecao.id}/pergunta_{instance.item_resposta.pergunta.id}/{filename}'
 
+class Pasta(models.Model):
+    """Pasta para organizar checklists na listagem (um único nível, sem subpastas)."""
+    nome = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
 class Checklist(models.Model):
     setor = models.ForeignKey(
         Setor, on_delete=models.SET_NULL, null=True, blank=True, related_name="setor"
+    )
+    # Excluir a pasta não apaga os checklists: eles voltam a aparecer "sem pasta".
+    pasta = models.ForeignKey(
+        Pasta, on_delete=models.SET_NULL, null=True, blank=True, related_name="checklists"
     )
     nome = models.CharField(max_length=100, unique=True)
     descricao = models.TextField(blank=True, null=True)
