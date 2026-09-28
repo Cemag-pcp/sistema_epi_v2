@@ -8,7 +8,7 @@ from django.db import transaction
 from django.utils.dateparse import parse_date
 from django.utils import timezone
 from django.core.cache import cache
-from .models import Checklist, Pergunta, Inspecao, ItemResposta, FotoResposta
+from .models import Checklist, Pergunta, Inspecao, ItemResposta, FotoResposta, Pasta
 from usuario.models import Setor
 import json
 import base64
@@ -234,17 +234,178 @@ def maquinas_em_uso_api(request):
 
 @login_required
 @somente_master
+def pastas_api(request):
+    """Lista as pastas (com a contagem de checklists ativos dentro de cada uma)."""
+    nome_filter = request.GET.get("nome", "")
+
+    pastas = Pasta.objects.annotate(
+        total_checklists=Count("checklists", filter=Q(checklists__ativo=True))
+    )
+    if nome_filter:
+        pastas = pastas.filter(nome__icontains=nome_filter)
+
+    return JsonResponse(
+        {
+            "pastas": [
+                {"id": p.id, "nome": p.nome, "total_checklists": p.total_checklists}
+                for p in pastas
+            ]
+        }
+    )
+
+
+@login_required
+@somente_master
+def add_pasta_api(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Método não permitido"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Dados JSON inválidos"}, status=400)
+
+    nome = str(data.get("nome") or "").strip()
+    if not nome:
+        return JsonResponse({"error": "Nome da pasta é obrigatório"}, status=400)
+    if Pasta.objects.filter(nome=nome).exists():
+        return JsonResponse({"error": "Já existe uma pasta com este nome"}, status=400)
+
+    pasta = Pasta.objects.create(nome=nome)
+    return JsonResponse({"success": True, "pasta": {"id": pasta.id, "nome": pasta.nome}})
+
+
+@login_required
+@somente_master
+def edit_pasta_api(request, id):
+    if request.method not in ("PUT", "POST"):
+        return JsonResponse({"error": "Método não permitido"}, status=405)
+
+    try:
+        pasta = Pasta.objects.get(id=id)
+    except Pasta.DoesNotExist:
+        return JsonResponse({"error": "Pasta não encontrada"}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Dados JSON inválidos"}, status=400)
+
+    nome = str(data.get("nome") or "").strip()
+    if not nome:
+        return JsonResponse({"error": "Nome da pasta é obrigatório"}, status=400)
+    if Pasta.objects.filter(nome=nome).exclude(id=pasta.id).exists():
+        return JsonResponse({"error": "Já existe uma pasta com este nome"}, status=400)
+
+    pasta.nome = nome
+    pasta.save()
+    return JsonResponse({"success": True, "pasta": {"id": pasta.id, "nome": pasta.nome}})
+
+
+@login_required
+@somente_master
+def delete_pasta_api(request, id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Método não permitido"}, status=405)
+
+    try:
+        pasta = Pasta.objects.get(id=id)
+    except Pasta.DoesNotExist:
+        return JsonResponse({"error": "Pasta não encontrada"}, status=404)
+
+    # O corpo é opcional (chamadas antigas/sem opção de apagar os checklists não mandam nada);
+    # qualquer coisa que não seja um JSON válido é tratada como "nenhuma opção informada".
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        data = {}
+
+    apagar_checklists = bool(data.get("apagar_checklists"))
+
+    checklists_apagados = 0
+    if apagar_checklists:
+        # Mesmo "apagar" usado no resto do app: ativo=False, sem remover a linha do banco
+        # (o botão de exclusão de checklist faz o mesmo via Checklist.delete()).
+        checklists_apagados = Checklist.objects.filter(pasta=pasta, ativo=True).update(ativo=False)
+
+    # on_delete=SET_NULL: se não marcou a opção acima, os checklists só ficam sem pasta
+    pasta.delete()
+
+    if apagar_checklists:
+        mensagem = (
+            f"Pasta excluída junto com {checklists_apagados} checklist(s)."
+            if checklists_apagados
+            else "Pasta excluída. Não havia checklists ativos dentro dela."
+        )
+    else:
+        mensagem = "Pasta excluída. Os checklists voltaram para 'Sem pasta'."
+
+    return JsonResponse({"success": True, "message": mensagem, "checklists_apagados": checklists_apagados})
+
+
+@login_required
+@somente_master
+def mover_checklist_pasta_api(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Método não permitido"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Dados JSON inválidos"}, status=400)
+
+    checklist_id = data.get("checklist_id")
+    pasta_id = data.get("pasta_id")
+
+    try:
+        checklist = Checklist.objects.get(id=checklist_id)
+    except Checklist.DoesNotExist:
+        return JsonResponse({"error": "Checklist não encontrado"}, status=404)
+
+    if pasta_id:
+        try:
+            pasta = Pasta.objects.get(id=pasta_id)
+        except Pasta.DoesNotExist:
+            return JsonResponse({"error": "Pasta não encontrada"}, status=404)
+    else:
+        pasta = None
+
+    checklist.pasta = pasta
+    checklist.save(update_fields=["pasta"])
+
+    return JsonResponse(
+        {
+            "success": True,
+            "pasta": {"id": pasta.id, "nome": pasta.nome} if pasta else None,
+        }
+    )
+
+
+@login_required
+@somente_master
 def checklist_cards_data_api(request):
     # Obter parâmetros de filtro
     setor_filter = request.GET.get("setor", "")
     nome_filter = request.GET.get("nome", "")
     maquina_filter = request.GET.get("maquina_id", "")
+    pasta_filter = request.GET.get("pasta_id", "")
     page_number = request.GET.get("page", 1)
+
+    # Pasta atual: string vazia = raiz (checklists sem pasta); um id = dentro daquela pasta
+    pasta_atual = None
+    if pasta_filter:
+        if not pasta_filter.isdigit():
+            return JsonResponse({"error": "Pasta inválida"}, status=400)
+        try:
+            pasta_atual = Pasta.objects.get(id=int(pasta_filter))
+        except Pasta.DoesNotExist:
+            return JsonResponse({"error": "Pasta não encontrada"}, status=404)
 
     # Buscar checklists ativos com filtros
     checklists = Checklist.objects.filter(ativo=True).annotate(
         total_perguntas=Count("perguntas")
     )
+    checklists = checklists.filter(pasta=pasta_atual)
 
     # Aplicar filtros
     if setor_filter:
@@ -294,6 +455,9 @@ def checklist_cards_data_api(request):
             "total_count": paginator.count,
             "next_page_number": page_obj.next_page_number() if page_obj.has_next() else None,
             "previous_page_number": page_obj.previous_page_number() if page_obj.has_previous() else None,
+            "pasta_atual": (
+                {"id": pasta_atual.id, "nome": pasta_atual.nome} if pasta_atual else None
+            ),
         }
     )
 
@@ -312,9 +476,9 @@ def duplicate_checklist_api(request):
             original = Checklist.objects.get(id=original_id)
             setor = Setor.objects.filter(id=setor_id).first()
 
-            # Criar novo checklist
+            # Criar novo checklist (mantém a mesma pasta do original, máquina e OS ficam fora)
             novo_checklist = Checklist.objects.create(
-                setor=setor, nome=novo_nome, descricao=original.descricao, ativo=True
+                setor=setor, pasta=original.pasta, nome=novo_nome, descricao=original.descricao, ativo=True
             )
 
             # Duplicar perguntas
@@ -695,6 +859,11 @@ def inspection_checklist_api(request, id):
                 if checklist.maquina_id
                 else None
             ),
+            "pasta": (
+                {"id": checklist.pasta_id, "nome": checklist.pasta.nome}
+                if checklist.pasta_id
+                else None
+            ),
             "perguntas": list(perguntas),
         }
 
@@ -727,6 +896,16 @@ def edit_checklist_api(request, id):
                 return JsonResponse({"error": "Setor não encontrado"}, status=400)
         else:
             checklist.setor = None
+
+        # Atualizar pasta se fornecida
+        pasta_id = data.get("pasta")
+        if pasta_id:
+            try:
+                checklist.pasta = Pasta.objects.get(id=pasta_id)
+            except Pasta.DoesNotExist:
+                return JsonResponse({"error": "Pasta não encontrada"}, status=400)
+        else:
+            checklist.pasta = None
 
         # Máquina: sem a chave no corpo, mantém a atual; vazio remove; id novo é validado na API
         if "maquina_id" in data:
@@ -800,6 +979,11 @@ def edit_checklist_api(request, id):
             "maquina": (
                 {"id": checklist.maquina_id, "nome": checklist.maquina_nome}
                 if checklist.maquina_id
+                else None
+            ),
+            "pasta": (
+                {"id": checklist.pasta.id, "nome": checklist.pasta.nome}
+                if checklist.pasta
                 else None
             ),
             "ativo": checklist.ativo,
@@ -1595,6 +1779,7 @@ def create_checklist_api(request):
             nome = data.get("nome")
             descricao = data.get("descricao", "")  # Descrição agora é opcional
             setor_id = data.get("setor_id")
+            pasta_id = data.get("pasta_id")
             maquina_id = data.get("maquina_id")
             perguntas = data.get("perguntas", [])
 
@@ -1618,6 +1803,14 @@ def create_checklist_api(request):
                 except Setor.DoesNotExist:
                     return JsonResponse({"error": "Setor não encontrado"}, status=400)
 
+            # Buscar pasta se fornecida
+            pasta = None
+            if pasta_id:
+                try:
+                    pasta = Pasta.objects.get(id=pasta_id)
+                except Pasta.DoesNotExist:
+                    return JsonResponse({"error": "Pasta não encontrada"}, status=400)
+
             # Validar a máquina na API de manutenção (o nome vem de lá, não do cliente)
             maquina = None
             if maquina_id:
@@ -1640,6 +1833,7 @@ def create_checklist_api(request):
                 nome=nome,
                 descricao=descricao,  # Pode ser string vazia
                 setor=setor,
+                pasta=pasta,
                 maquina_id=maquina["id"] if maquina else None,
                 maquina_nome=_nome_maquina(maquina) if maquina else None,
                 ativo=True,
@@ -1661,6 +1855,7 @@ def create_checklist_api(request):
                         "nome": checklist.nome,
                         "descricao": checklist.descricao,
                         "setor": checklist.setor.nome if checklist.setor else None,
+                        "pasta": checklist.pasta.nome if checklist.pasta else None,
                         "maquina": checklist.maquina_nome,
                         "perguntas_count": checklist.perguntas.count(),
                     },

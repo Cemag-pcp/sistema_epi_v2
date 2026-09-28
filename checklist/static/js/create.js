@@ -163,6 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const title = document.getElementById('title').value.trim();
     const description = document.getElementById('description').value.trim();
     const setorId = document.getElementById('setor').value;
+    const pastaId = document.getElementById('pasta').value;
     const maquinaId = document.getElementById('maquina').value;
 
     const errors = [];
@@ -186,6 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nome: title,
         descricao: description,
         setor_id: setorId || null,
+        pasta_id: pastaId || null,
         maquina_id: maquinaId || null,
         perguntas: questions.map(q => ({
           texto: q.text,
@@ -229,6 +231,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
+  // Carregar pastas e pré-selecionar a pasta atual (?pasta=<id> na URL, quando se cria
+  // um checklist a partir de dentro de uma pasta)
+  async function loadPastas() {
+    const select = document.getElementById('pasta');
+    const pastaAtualId = new URLSearchParams(window.location.search).get('pasta');
+    try {
+      const response = await fetch('/api/checklists/pastas/');
+      if (!response.ok) throw new Error('Erro ao carregar pastas');
+      const { pastas } = await response.json();
+
+      select.innerHTML = '<option value="">Sem pasta</option>';
+      pastas.forEach(pasta => {
+        const option = document.createElement('option');
+        option.value = pasta.id;
+        option.textContent = pasta.nome;
+        select.appendChild(option);
+      });
+      if (pastaAtualId) select.value = pastaAtualId;
+
+      if (window.jQuery && jQuery.fn.select2) {
+        jQuery(select).select2({ theme: 'bootstrap-5', width: '100%', allowClear: true, placeholder: 'Sem pasta' });
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+      select.innerHTML = '<option value="">Pastas indisponíveis</option>';
+      ToastBottomEnd.fire({
+          icon: 'warning',
+          title: 'Não foi possível carregar as pastas. Você pode salvar sem pasta.',
+      });
+    }
+  }
+
   // Carregar máquinas do sistema de manutenção
   async function loadMaquinas() {
     const select = document.getElementById('maquina');
@@ -259,6 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Inicializar
+  loadPastas();
   loadMaquinas();
   updateQuestionsCount();
 });

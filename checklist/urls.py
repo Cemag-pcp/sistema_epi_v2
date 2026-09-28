@@ -19,6 +19,11 @@ urlpatterns = [
 # api
 urlpatterns += [
     path('api/checklists/cards/', views.checklist_cards_data_api, name='checklist-cards-data-api'),
+    path('api/checklists/pastas/', views.pastas_api, name='pastas-api'),
+    path('api/checklists/pastas/add/', views.add_pasta_api, name='add-pasta-api'),
+    path('api/checklists/pastas/edit/<int:id>/', views.edit_pasta_api, name='edit-pasta-api'),
+    path('api/checklists/pastas/delete/<int:id>/', views.delete_pasta_api, name='delete-pasta-api'),
+    path('api/checklists/mover/', views.mover_checklist_pasta_api, name='mover-checklist-api'),
     path('api/checklists/duplicate/', views.duplicate_checklist_api, name='duplicate-checklist-api'),
     path('api/checklists/inspection/', views.inspection_send_checklist_api, name='inspection-send-checklist-api'),
     path('api/checklists/inspection/<int:id>/', views.inspection_checklist_api, name='inspection-checklist-api'),
