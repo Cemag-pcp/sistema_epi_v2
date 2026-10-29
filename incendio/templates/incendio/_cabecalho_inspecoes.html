@@ -1,0 +1,53 @@
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h3 class="mb-1 fw-bold">{{ titulo }}</h3>
+    <p class="text-muted mb-0">{{ subtitulo }}</p>
+  </div>
+  <button class="btn btn-dark" id="abrir-iniciar">
+    <i class="bi bi-clipboard-plus me-1"></i> Iniciar inspeção
+  </button>
+</div>
+
+{% if pendentes %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <span>
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    <strong>{{ pendentes|length }}</strong> {{ nome_equipamento }}{{ pendentes|length|pluralize }} ainda sem inspeção neste mês.
+  </span>
+  <button class="btn btn-sm btn-outline-dark" type="button" data-bs-toggle="collapse" data-bs-target="#lista-pendentes">
+    Ver pendentes
+  </button>
+</div>
+<div class="collapse mb-3" id="lista-pendentes">
+  <div class="d-flex flex-wrap gap-2">
+    {% for equipamento in pendentes %}
+      <a class="btn btn-sm btn-white"
+         href="{% if tipo == 'extintor' %}{% url 'incendio:inspecao-extintor' equipamento.qr_token %}{% else %}{% url 'incendio:inspecao-hidrante' equipamento.qr_token %}{% endif %}"
+         title="{{ equipamento.localizacao }}">
+        <i class="bi bi-play-fill"></i> {{ equipamento.codigo }} – {{ equipamento.localizacao|truncatechars:30 }}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="row justify-content-between align-items-end mb-3 g-2">
+  <div class="col-md-4">
+    <label class="text-modal">Buscar</label>
+    <input type="text" class="form-control text-modal" id="filtro-texto" placeholder="Código, local ou inspetor">
+  </div>
+  <div class="col-md-2">
+    <label class="text-modal">Status</label>
+    <select class="form-control text-modal" id="filtro-status">
+      <option value="">Todos</option>
+      <option value="Aprovado">Aprovado</option>
+      <option value="Reprovado">Reprovado</option>
+      <option value="Não avaliado">Não avaliado</option>
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="text-modal">Mês</label>
+    <input type="month" class="form-control text-modal" id="filtro-mes">
+  </div>
+  <div class="col-md"></div>
+</div>

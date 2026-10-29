@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'padrao',
     'solicitacao',
     'ficha',
+    'incendio',
     'storages',  # ✅ App do Django Storages
 ]
 
