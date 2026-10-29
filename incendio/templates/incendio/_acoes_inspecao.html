@@ -1,0 +1,18 @@
+<div class="dropdown">
+  <button class="btn btn-link btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <i class="bi bi-three-dots" style="color: black"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><a class="dropdown-item acao-inspecao" data-acao="ver" data-id="{{ inspecao.id }}" href="#">
+      <i class="bi bi-eye me-2"></i>Visualizar</a></li>
+    <li><a class="dropdown-item" href="{% url url_editar_nome inspecao.id %}">
+      <i class="bi bi-pencil-square me-2"></i>Editar</a></li>
+    <li><a class="dropdown-item acao-inspecao" data-acao="historico" data-id="{{ equipamento_id }}"
+           data-titulo="{{ inspecao.codigo_historico }} – {{ inspecao.localizacao_historico }}" href="#">
+      <i class="bi bi-clock-history me-2"></i>Histórico do equipamento</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item acao-inspecao" data-acao="excluir" data-id="{{ inspecao.id }}"
+           data-descricao="{{ inspecao.codigo_historico }} de {{ inspecao.data_inspecao|date:'d/m/Y' }}" href="#" style="color: #dc2626;">
+      <i class="bi bi-trash me-2"></i>Excluir</a></li>
+  </ul>
+</div>

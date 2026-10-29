@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block links %}
+  <link rel="stylesheet" href="{% static 'incendio/css/incendio.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2">
+  <div>
+    <h3 class="mb-1 fw-bold">Cadastros – Combate a Incêndio</h3>
+    <p class="text-muted mb-4">Extintores e hidrantes. Cada item tem um QR Code único que abre a inspeção.</p>
+  </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#aba-extintores" type="button" role="tab">
+      <i class="fas fa-fire-extinguisher me-1"></i> Extintores
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#aba-hidrantes" type="button" role="tab">
+      <i class="bi bi-droplet-half me-1"></i> Hidrantes
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content">
+  <!-- ===================== EXTINTORES ===================== -->
+  <div class="tab-pane fade show active" id="aba-extintores" role="tabpanel">
+    <div class="row justify-content-between align-items-end mb-3 g-2">
+      <div class="col-md-4">
+        <label class="text-modal">Extintor</label>
+        <input type="text" class="form-control text-modal" id="filtro-extintor" placeholder="Filtrar por código, local ou nº do cilindro">
+      </div>
+      <div class="col-md-2">
+        <label class="text-modal">Status</label>
+        <select class="form-control text-modal" id="filtro-ativo-extintor">
+          <option value="">Todos</option>
+          <option value="Ativo" selected>Ativo</option>
+          <option value="Desativado">Desativado</option>
+        </select>
+      </div>
+      <div class="col-md-auto ms-auto d-flex gap-2 flex-wrap">
+        <a class="btn btn-white" href="{% url 'incendio:etiquetas' %}?tipo=extintor" target="_blank">
+          <i class="bi bi-qr-code me-1"></i> Imprimir etiquetas
+        </a>
+        <button class="btn btn-dark" id="novo-extintor">
+          <i class="bi bi-plus-lg me-1"></i> Adicionar extintor
+        </button>
+      </div>
+    </div>
+
+    <table id="tabela-extintores" class="table table-hover w-100">
+      <thead class="table-light">
+        <tr>
+          <th>Código</th>
+          <th>Localização</th>
+          <th>Nº cilindro</th>
+          <th>Tipo</th>
+          <th>Cap.</th>
+          <th>Próx. recarga</th>
+          <th>Teste hidrost.</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- ===================== HIDRANTES ===================== -->
+  <div class="tab-pane fade" id="aba-hidrantes" role="tabpanel">
+    <div class="row justify-content-between align-items-end mb-3 g-2">
+      <div class="col-md-4">
+        <label class="text-modal">Hidrante</label>
+        <input type="text" class="form-control text-modal" id="filtro-hidrante" placeholder="Filtrar por código ou local">
+      </div>
+      <div class="col-md-2">
+        <label class="text-modal">Status</label>
+        <select class="form-control text-modal" id="filtro-ativo-hidrante">
+          <option value="">Todos</option>
+          <option value="Ativo" selected>Ativo</option>
+          <option value="Desativado">Desativado</option>
+        </select>
+      </div>
+      <div class="col-md-auto ms-auto d-flex gap-2 flex-wrap">
+        <a class="btn btn-white" href="{% url 'incendio:etiquetas' %}?tipo=hidrante" target="_blank">
+          <i class="bi bi-qr-code me-1"></i> Imprimir etiquetas
+        </a>
+        <button class="btn btn-dark" id="novo-hidrante">
+          <i class="bi bi-plus-lg me-1"></i> Adicionar hidrante
+        </button>
+      </div>
+    </div>
+
+    <table id="tabela-hidrantes" class="table table-hover w-100">
+      <thead class="table-light">
+        <tr>
+          <th>Código</th>
+          <th>Localização</th>
+          <th>Equipamentos</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== MODAL EXTINTOR (criar / editar) ===================== -->
+<div class="modal fade" id="modal-extintor" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+          <h5 class="modal-title" id="modal-extintor-titulo">Adicionar extintor</h5>
+          <span class="desc-modal-title">O código identifica o posto onde o QR Code fica colado. Clique em salvar quando terminar.</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <form id="form-extintor">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="text-modal">Código (Nº) *</label>
+              <input type="text" id="extintor-codigo" class="form-control text-modal" placeholder="Ex.: EXT-01" maxlength="20" required>
+            </div>
+            <div class="col-md-8 mb-3">
+              <label class="text-modal">Localização *</label>
+              <input type="text" id="extintor-localizacao" class="form-control text-modal" placeholder="Ex.: Portaria" maxlength="255" required>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="text-modal">Nº do cilindro</label>
+              <input type="text" id="extintor-cilindro" class="form-control text-modal" placeholder="Nº de série" maxlength="50">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="text-modal">Tipo *</label>
+              <select id="extintor-agente" class="form-control text-modal" required>
+                <option value="">Selecione</option>
+                {% for valor, nome in agentes %}
+                  <option value="{{ valor }}">{{ nome }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="text-modal">Capacidade (kg) *</label>
+              <input type="number" id="extintor-capacidade" class="form-control text-modal" min="0.1" step="0.1" placeholder="Ex.: 6" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="text-modal">Próxima recarga (mês/ano)</label>
+              <input type="month" id="extintor-recarga" class="form-control text-modal">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="text-modal">Teste hidrostático (ano)</label>
+              <input type="number" id="extintor-teste" class="form-control text-modal" min="1990" max="2100" placeholder="Ex.: 2028">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-dark d-flex align-items-center gap-2" id="salvar-extintor">
+            <span class="spinner-border spinner-border-sm" style="display:none"></span>
+            <span role="status">Salvar</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL HIDRANTE (criar / editar) ===================== -->
+<div class="modal fade" id="modal-hidrante" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+          <h5 class="modal-title" id="modal-hidrante-titulo">Adicionar hidrante</h5>
+          <span class="desc-modal-title">Liste os equipamentos do abrigo. Na inspeção, cada um será conferido.</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <form id="form-hidrante">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="text-modal">Código *</label>
+              <input type="text" id="hidrante-codigo" class="form-control text-modal" placeholder="Ex.: H1" maxlength="20" required>
+            </div>
+            <div class="col-md-8 mb-3">
+              <label class="text-modal">Localização *</label>
+              <input type="text" id="hidrante-localizacao" class="form-control text-modal" placeholder="Ex.: Pátio da entrada" maxlength="255" required>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="text-modal mb-0">Equipamentos do abrigo</label>
+            <button type="button" class="btn btn-sm btn-white" id="adicionar-componente">
+              <i class="bi bi-plus-lg me-1"></i> Adicionar item
+            </button>
+          </div>
+          <p class="small text-muted mb-2">Deixe a quantidade vazia para itens só de verificação (ex.: Lubrificação, Brita).</p>
+          <div id="lista-componentes" class="d-flex flex-column gap-2"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-dark d-flex align-items-center gap-2" id="salvar-hidrante">
+            <span class="spinner-border spinner-border-sm" style="display:none"></span>
+            <span role="status">Salvar</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL ATIVAR / DESATIVAR ===================== -->
+<div class="modal fade" id="modal-status" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-status-titulo">Desativar</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <span class="desc-modal-title" id="modal-status-texto"></span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger d-flex align-items-center gap-2" id="confirmar-status">
+          <span class="spinner-border spinner-border-sm" style="display:none"></span>
+          <span role="status">Confirmar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL QR CODE ===================== -->
+<div class="modal fade" id="modal-qrcode" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="qrcode-titulo">QR Code</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="qrcode-imagem" src="" alt="QR Code" class="img-fluid border rounded p-2 bg-white" width="220" height="220">
+        <p class="small text-muted mt-2 mb-0" id="qrcode-local"></p>
+      </div>
+      <div class="modal-footer flex-column align-items-stretch gap-2">
+        <a class="btn btn-dark" id="qrcode-imprimir" href="#" target="_blank"><i class="bi bi-printer me-1"></i> Imprimir etiqueta</a>
+        <a class="btn btn-white" id="qrcode-inspecionar" href="#"><i class="bi bi-clipboard-check me-1"></i> Abrir inspeção</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'incendio/_modal_historico.html' %}
+
+{{ extintores|json_script:"dados-extintores" }}
+{{ hidrantes|json_script:"dados-hidrantes" }}
+
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{% static 'incendio/js/cadastros.js' %}"></script>
+{% endblock %}

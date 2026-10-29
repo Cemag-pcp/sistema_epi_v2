@@ -34,10 +34,24 @@
     {% endblock %}
 
     <style>
-        /* Permite que o menu do sidebar role quando o conteúdo excede a altura */
+        /* Permite que o menu do sidebar role quando o conteúdo excede a altura,
+           mantendo o rodapé (Logado / Sair) fixo embaixo sem cobrir os itens */
+        .sb-nav-fixed #layoutSidenav #layoutSidenav_nav,
+        .sb-nav-fixed #layoutSidenav #layoutSidenav_nav .sb-sidenav {
+            height: 100vh;
+            height: 100dvh; /* no celular, 100vh inclui a barra do navegador e empurra o rodapé para cima dos itens */
+        }
         .sb-sidenav .sb-sidenav-menu {
+            flex: 1 1 auto;
             min-height: 0;
             overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        .sb-sidenav .sb-sidenav-menu .nav > * {
+            flex-shrink: 0;
+        }
+        .sb-sidenav .sb-sidenav-footer {
+            flex-shrink: 0;
         }
     </style>
 
@@ -93,6 +107,21 @@
                                     <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
                                     Histórico
                                 </a>
+
+                                <div class="sb-sidenav-menu-heading">Combate a Incêndio</div>
+                                <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseIncendio" aria-expanded="false" aria-controls="collapseIncendio">
+                                    <div class="sb-nav-link-icon"><i class="fas fa-fire-extinguisher"></i></div>
+                                    Gestão de Equip. Combate a Incêndio
+                                    <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                                </a>
+
+                                <div class="collapse" id="collapseIncendio" aria-labelledby="headingInicio" data-bs-parent="#sidenavAccordion">
+                                    <nav class="sb-sidenav-menu-nested nav">
+                                        <a class="nav-link" href="{% url 'incendio:extintores' %}">RQ ST-001-001 – Extintores</a>
+                                        <a class="nav-link" href="{% url 'incendio:hidrantes' %}">Hidrantes</a>
+                                        <a class="nav-link" href="{% url 'incendio:cadastros' %}">Cadastros</a>
+                                    </nav>
+                                </div>
                             {% endif %}
 
                             {% if request.user.funcionario.tipo_acesso == 'master' or request.user.funcionario.tipo_acesso == 'solicitante' or request.user.is_superuser %}

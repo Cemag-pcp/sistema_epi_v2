@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block links %}
+    <link rel="stylesheet" href="{% static 'css/inspection.css' %}">
+    <link rel="stylesheet" href="{% static 'incendio/css/incendio.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" id="inspection-root">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            {% if tipo == 'extintor' %}
+                <a href="{% url 'incendio:extintores' %}" class="btn btn-white mb-3"><i class="bi bi-arrow-left me-2"></i>Voltar para RQ ST-001-001</a>
+            {% else %}
+                <a href="{% url 'incendio:hidrantes' %}" class="btn btn-white mb-3"><i class="bi bi-arrow-left me-2"></i>Voltar para Hidrantes</a>
+            {% endif %}
+
+            <div class="card mb-3 equipamento-card">
+                <div class="card-body d-flex gap-3 align-items-center">
+                    <div class="equipamento-icone">
+                        {% if tipo == 'extintor' %}<i class="fas fa-fire-extinguisher"></i>{% else %}<i class="bi bi-droplet-half"></i>{% endif %}
+                    </div>
+                    <div class="flex-grow-1" style="min-width: 0;">
+                        <div class="small text-muted text-uppercase">
+                            {% if tipo == 'extintor' %}RQ ST-001-001 – Extintor{% else %}Hidrante{% endif %}
+                            {% if edicao %}• <span class="text-warning fw-bold">Editando inspeção</span>{% endif %}
+                        </div>
+                        <h1 class="h3 fw-bold mb-0">{{ equipamento.codigo }}</h1>
+                        <div class="text-muted">{{ equipamento.localizacao }}</div>
+                        <div class="small mt-1" id="equipamento-detalhes"></div>
+                    </div>
+                </div>
+            </div>
+
+            {% if not equipamento.ativo and not edicao %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Este equipamento está <strong>desativado</strong> no cadastro e não pode ser inspecionado.
+                </div>
+            {% endif %}
+
+            <div class="alert alert-info d-none" id="info-edicao" role="status"></div>
+
+            <div class="alert alert-danger d-none" id="error-alert" role="alert">
+                <i class="bi bi-exclamation-circle me-2"></i>
+                <span id="error-message"></span>
+            </div>
+
+            <div id="questions-container"></div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <label class="form-label fw-semibold" for="observacao">Observação <span class="text-muted small" id="observacao-ajuda">(obrigatória quando houver NOK)</span></label>
+                    <textarea id="observacao" class="form-control" rows="3" maxlength="2000" placeholder="Descreva o problema encontrado, a ação tomada..."></textarea>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <label class="form-label fw-semibold">Fotos do equipamento</label>
+                    <input type="file" class="d-none" id="foto-galeria" accept="image/*" multiple>
+                    <input type="file" class="d-none" id="foto-camera" accept="image/*" capture="environment">
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <button type="button" class="btn btn-outline-primary add-photo-btn" data-source="camera"><i class="bi bi-camera me-1"></i>Tirar foto</button>
+                        <button type="button" class="btn btn-outline-secondary add-photo-btn" data-source="galeria"><i class="bi bi-images me-1"></i>Galeria</button>
+                    </div>
+                    <div class="photo-preview-container" id="fotos-preview"></div>
+                </div>
+            </div>
+
+            {% if equipamento.ativo or edicao %}
+            <div class="card mt-4 inspection-footer" id="footer-card">
+                <div class="card-body py-2 px-3 p-md-4">
+                    <div class="progress mb-2">
+                        <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div style="min-width: 0;">
+                            <p class="fw-medium text-dark mb-0" id="progress-text">0 de 0 itens respondidos</p>
+                            <p class="small text-muted mb-0 d-none d-sm-block">
+                                <span id="ok-count">0</span> OK • <span id="nok-count">0</span> NOK • <span id="na-count">0</span> N/A
+                            </p>
+                        </div>
+                        <button class="btn btn-primary btn-lg flex-shrink-0" id="submit-btn">
+                            <span class="button-text"><i class="bi bi-save me-2"></i>{% if edicao %}Salvar{% else %}Enviar{% endif %}<span class="d-none d-sm-inline"> inspeção</span></span>
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="completion-modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-success">Inspeção {% if edicao %}atualizada{% else %}registrada{% endif %}!</h5>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-muted mb-2">{{ equipamento.codigo }} – {{ equipamento.localizacao }}</p>
+                <div class="mb-3" id="completion-status"></div>
+                <p class="small text-danger d-none" id="completion-falta"></p>
+                <div class="d-grid gap-2">
+                    {% if tipo == 'extintor' %}
+                        <a href="{% url 'incendio:extintores' %}" class="btn btn-dark"><i class="bi bi-list-check me-2"></i>Ver histórico de inspeções</a>
+                    {% else %}
+                        <a href="{% url 'incendio:hidrantes' %}" class="btn btn-dark"><i class="bi bi-list-check me-2"></i>Ver histórico de inspeções</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="imageViewerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Foto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="" id="modal-image-content" class="img-fluid" alt="Foto ampliada">
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ dados_iniciais|json_script:"dados-inspecao" }}
+{% endblock %}
+
+{% block scripts %}
+    <script>document.body.classList.add('inspection-page');</script>
+    <script type="module" src="{% static 'incendio/js/inspecao-form.js' %}"></script>
+{% endblock %}

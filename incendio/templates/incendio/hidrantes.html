@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% load static incendio_tags %}
+
+{% block links %}
+  <link rel="stylesheet" href="{% static 'incendio/css/incendio.css' %}">
+{% endblock %}
+
+{% block content %}
+
+{% include 'incendio/_cabecalho_inspecoes.html' with titulo='Inspeção de Hidrantes' subtitulo='Histórico das inspeções mensais dos hidrantes.' tipo='hidrante' nome_equipamento='hidrante' %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="kpi-label">Hidrantes ativos</div><div class="kpi-valor">{{ indicadores.total }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="kpi-label">Inspecionados no mês</div><div class="kpi-valor text-success">{{ indicadores.inspecionados }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="kpi-label">Pendentes no mês</div><div class="kpi-valor text-warning">{{ indicadores.pendentes }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="kpi-label">Reprovações no mês</div><div class="kpi-valor text-danger">{{ indicadores.reprovados_mes }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="kpi-label">Com falta de equip. no mês</div><div class="kpi-valor text-danger">{{ indicadores.falta_mes }}</div>
+    </div></div>
+  </div>
+</div>
+
+<table id="tabela-inspecoes" class="table table-hover w-100" data-tipo="hidrante">
+  <thead class="table-light">
+    <tr>
+      <th>Data</th>
+      <th>Código</th>
+      <th>Localização</th>
+      <th>Inspetor</th>
+      <th class="text-center">Funciona?</th>
+      <th>Falta equip.?</th>
+      <th>Status</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for inspecao in inspecoes %}
+    <tr data-id="{{ inspecao.id }}" data-mes="{{ inspecao.data_inspecao|date:'Y-m' }}">
+      <td data-order="{{ inspecao.data_inspecao|date:'c' }}">{{ inspecao.data_inspecao|date:'d/m/Y H:i' }}</td>
+      <td><strong>{{ inspecao.codigo_historico }}</strong></td>
+      <td>{{ inspecao.localizacao_historico }}</td>
+      <td>{{ inspecao.inspetor.nome|default:'-' }}</td>
+      <td class="text-center">{{ inspecao.funcionamento|badge_resultado }}</td>
+      <td>
+        {% if inspecao.falta_equipamento %}
+          <span class="badge bg-danger">Sim</span>
+          <div class="small text-muted">{{ inspecao.falta_descricao }}</div>
+        {% else %}
+          <span class="badge bg-success">Não</span>
+        {% endif %}
+      </td>
+      <td>{% badge_status inspecao %}</td>
+      <td>{% include 'incendio/_acoes_inspecao.html' with url_editar_nome='incendio:editar-inspecao-hidrante' equipamento_id=inspecao.hidrante_id %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% include 'incendio/_modais_inspecao.html' with tipo='hidrante' nome_equipamento='hidrante' %}
+
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{% static 'incendio/js/inspecoes.js' %}"></script>
+{% endblock %}

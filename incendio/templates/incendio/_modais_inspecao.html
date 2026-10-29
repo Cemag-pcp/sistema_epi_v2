@@ -1,0 +1,99 @@
+<!-- Iniciar inspeção: escolher o equipamento pelo código -->
+<div class="modal fade" id="modal-iniciar" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+          <h5 class="modal-title">Iniciar inspeção</h5>
+          <span class="desc-modal-title">Escolha o {{ nome_equipamento }} pelo código ou leia o QR Code colado nele.</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <label class="text-modal" for="select-equipamento">{{ nome_equipamento|capfirst }}</label>
+        <select id="select-equipamento" class="form-control select2-iniciar">
+          <option value="">Selecione pelo código ou local</option>
+          {% for equipamento in equipamentos %}
+            <option value="{% if tipo == 'extintor' %}{% url 'incendio:inspecao-extintor' equipamento.qr_token %}{% else %}{% url 'incendio:inspecao-hidrante' equipamento.qr_token %}{% endif %}">
+              {{ equipamento.codigo }} – {{ equipamento.localizacao }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <div class="d-flex align-items-center gap-3 mt-4 p-3 rounded bg-light">
+          <i class="bi bi-qr-code-scan fs-1 text-primary"></i>
+          <div class="small">
+            <strong>Pelo QR Code:</strong> aponte a câmera do celular para a etiqueta do {{ nome_equipamento }}.
+            A inspeção daquele item abre direto, sem precisar escolher aqui.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-dark" id="confirmar-iniciar" disabled>
+          <i class="bi bi-play-fill me-1"></i> Iniciar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detalhe da inspeção -->
+<div class="modal fade" id="modal-detalhe" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+          <h5 class="modal-title" id="detalhe-titulo">Inspeção</h5>
+          <span class="desc-modal-title" id="detalhe-subtitulo"></span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" id="detalhe-corpo"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-white" data-bs-dismiss="modal">Fechar</button>
+        <a class="btn btn-dark" id="detalhe-editar" href="#"><i class="bi bi-pencil-square me-1"></i> Editar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Excluir inspeção -->
+<div class="modal fade" id="modal-excluir" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Excluir inspeção</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <span class="desc-modal-title">Tem certeza que deseja excluir a inspeção <strong id="excluir-descricao"></strong>?
+          Esta ação não pode ser desfeita (a exclusão fica registrada no histórico do {{ nome_equipamento }}).</span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger d-flex align-items-center gap-2" id="confirmar-excluir">
+          <span class="spinner-border spinner-border-sm" style="display:none"></span>
+          <span role="status">Excluir</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Foto ampliada -->
+<div class="modal fade" id="modal-foto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Foto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="" id="foto-ampliada" class="img-fluid" alt="Foto da inspeção">
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'incendio/_modal_historico.html' %}
