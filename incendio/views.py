@@ -908,9 +908,7 @@ def etiquetas_pdf(request):
             x + (largura - tamanho_qr) / 2, y + 14 * mm,
         )
         pdf.setFont('Helvetica-Bold', 16)
-        pdf.drawCentredString(x + largura / 2, y + 8 * mm, equipamento.codigo)
-        pdf.setFont('Helvetica', 7)
-        pdf.drawCentredString(x + largura / 2, y + 4.5 * mm, equipamento.localizacao[:55])
+        pdf.drawCentredString(x + largura / 2, y + 7 * mm, equipamento.codigo)
 
     if not equipamentos:
         pdf.setFont('Helvetica', 12)
