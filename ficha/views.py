@@ -11,9 +11,28 @@ from openpyxl.drawing.image import Image as ExcelImage
 
 from io import BytesIO
 from datetime import timedelta
+from concurrent.futures import ThreadPoolExecutor
 import os
 import base64
 import copy
+
+
+def _baixar_assinatura(campo):
+    """Lê a imagem da assinatura (S3). Devolve None se o arquivo não existir ou falhar."""
+    try:
+        with campo.open('rb') as arquivo:
+            return arquivo.read()
+    except Exception:
+        return None
+
+
+def _imagem_assinatura(conteudo, anchor):
+    # Cada uso precisa da sua própria instância (e do seu próprio buffer) no openpyxl
+    imagem = ExcelImage(BytesIO(conteudo))
+    imagem.anchor = anchor
+    imagem.height = 130
+    imagem.width = 150
+    return imagem
 
 # Create your views here.
 def template_ficha(request):
@@ -32,7 +51,7 @@ def gerar_ficha_epi(request, id):
             funcionario=funcionario,
             status='Entregue'
         ).prefetch_related(
-            'dados_solicitacao',
+            'dados_solicitacao__equipamento',
             'dados_solicitacao__dados_solicitacao_devolucao',
             'assinatura'
         ).order_by('data_solicitacao')
@@ -59,7 +78,17 @@ def gerar_ficha_epi(request, id):
 
         # Ordenar itens por data
         itens_planilha.sort(key=lambda x: x['data'])
-        
+
+        # As assinaturas ficam no S3: baixa cada uma uma única vez e em paralelo.
+        # Uma a uma (e repetida para cada item da solicitação) a ficha passava do timeout do servidor.
+        campos_assinatura = {}
+        for solicitacao in solicitacoes:
+            campo = getattr(getattr(solicitacao, 'assinatura', None), 'imagem_assinatura', None)
+            if campo:
+                campos_assinatura[solicitacao.id] = campo
+        with ThreadPoolExecutor(max_workers=16) as pool:
+            assinaturas = dict(zip(campos_assinatura, pool.map(_baixar_assinatura, campos_assinatura.values())))
+
         # 3. Preparar planilha
         wb = load_workbook('FICHA DE EPI.xlsx')
         ws = wb.active
@@ -72,7 +101,6 @@ def gerar_ficha_epi(request, id):
         ws['B8'] = funcionario.setor.nome if funcionario.setor else ""
 
         # 4. Processar itens
-        temp_files = []
         assinatura_adicionada_b22 = False
         
         for i, item in enumerate(itens_planilha):
@@ -104,29 +132,14 @@ def gerar_ficha_epi(request, id):
                 ws.cell(row=linha_destino, column=4).value = dado.equipamento.ca
                 ws.cell(row=linha_destino, column=6).value = dado.get_motivo_display()
                 
-                assinatura_field = getattr(getattr(solicitacao, 'assinatura', None), 'imagem_assinatura', None)
-                if assinatura_field and assinatura_field.storage.exists(assinatura_field.name):
-                    # Criar arquivo temporário
-                    temp_filename = f"assinatura_temp_{solicitacao.id}_{i}.png"
-                    with open(temp_filename, 'wb') as temp_file:
-                        assinatura_field.seek(0)
-                        temp_file.write(assinatura_field.read())
-                    temp_files.append(temp_filename)
-                    
+                assinatura = assinaturas.get(solicitacao.id)
+                if assinatura:
                     # Adicionar imagem em G{linha_destino}
-                    img_linha = ExcelImage(temp_filename)
-                    img_linha.anchor = f'G{linha_destino}'
-                    img_linha.height = 130
-                    img_linha.width = 150
-                    ws.add_image(img_linha)
+                    ws.add_image(_imagem_assinatura(assinatura, f'G{linha_destino}'))
 
-                    # Adicionar em B22 apenas na primeira vez (com NOVA instância)
+                    # Adicionar em B22 apenas na primeira vez
                     if not assinatura_adicionada_b22:
-                        img_b22 = ExcelImage(temp_filename)  # Nova instância
-                        img_b22.anchor = 'B22'
-                        img_b22.height = 130
-                        img_b22.width = 150
-                        ws.add_image(img_b22)
+                        ws.add_image(_imagem_assinatura(assinatura, 'B22'))
                         assinatura_adicionada_b22 = True
                 
             elif item['tipo'] == 'devolucao':
@@ -147,15 +160,7 @@ def gerar_ficha_epi(request, id):
         
         wb.save(response)
         wb.close()
-        
-        # Limpar arquivos temporários
-        for temp_file in temp_files:
-            try:
-                if os.path.exists(temp_file):
-                    os.remove(temp_file)
-            except:
-                pass
-        
+
         return response
 
     except Exception as e:
