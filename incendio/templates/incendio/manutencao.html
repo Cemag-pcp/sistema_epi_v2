@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block links %}
+  <link rel="stylesheet" href="{% static 'incendio/css/incendio.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h3 class="mb-1 fw-bold">Manutenção de Extintores</h3>
+    <p class="text-muted mb-0">Envio para manutenção externa, reserva no local e recebimento.</p>
+  </div>
+  <button class="btn btn-dark" id="abrir-envio">
+    <i class="bi bi-truck me-1"></i> Enviar para manutenção
+  </button>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="kpi-label">Em manutenção</div><div class="kpi-valor text-primary">{{ indicadores.em_manutencao }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="kpi-label">Locais sem reserva</div><div class="kpi-valor text-danger">{{ indicadores.sem_reserva }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="kpi-label">Reservas disponíveis</div><div class="kpi-valor text-success">{{ indicadores.reservas_disponiveis }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card kpi-card h-100"><div class="card-body">
+      <div class="kpi-label">Recebidos no mês</div><div class="kpi-valor">{{ indicadores.recebidos_mes }}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="row justify-content-between align-items-end mb-3 g-2">
+  <div class="col-md-4">
+    <label class="text-modal">Buscar</label>
+    <input type="text" class="form-control text-modal" id="filtro-texto" placeholder="Extintor, local, reserva ou empresa">
+  </div>
+  <div class="col-md-2">
+    <label class="text-modal">Status</label>
+    <select class="form-control text-modal" id="filtro-status">
+      <option value="">Todos</option>
+      <option value="Em manutenção" selected>Em manutenção</option>
+      <option value="Recebido">Recebido</option>
+      <option value="Cancelado">Cancelado</option>
+    </select>
+  </div>
+  <div class="col-md"></div>
+</div>
+
+<table id="tabela-manutencoes" class="table table-hover w-100">
+  <thead class="table-light">
+    <tr>
+      <th>Envio</th>
+      <th>Extintor</th>
+      <th>Local</th>
+      <th>Reserva no local</th>
+      <th>Motivo</th>
+      <th>Empresa</th>
+      <th>Recebimento</th>
+      <th>Status</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- ===================== ENVIO (passos 1 e 2) ===================== -->
+<div class="modal fade" id="modal-envio" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+          <h5 class="modal-title">Enviar para manutenção</h5>
+          <span class="desc-modal-title">O extintor sai do local e a reserva escolhida fica no lugar dele.</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="fluxo-passos mb-4">
+          <div class="fluxo-passo ativo" data-passo="1"><span>1</span> Envio</div>
+          <div class="fluxo-linha"></div>
+          <div class="fluxo-passo" data-passo="2"><span>2</span> Reserva no local</div>
+          <div class="fluxo-linha"></div>
+          <div class="fluxo-passo" data-passo="3"><span>3</span> Recebimento</div>
+        </div>
+
+        <div id="envio-passo-1">
+          <div class="row">
+            <div class="col-12 mb-3">
+              <label class="text-modal" for="envio-extintor">Extintor *</label>
+              <select id="envio-extintor" class="form-control">
+                <option value="">Selecione pelo código ou local</option>
+              </select>
+              <div class="small text-muted mt-1" id="envio-extintor-info"></div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="text-modal" for="envio-motivo">Motivo *</label>
+              <select id="envio-motivo" class="form-control text-modal">
+                <option value="">Selecione</option>
+                {% for valor, nome in motivos %}<option value="{{ valor }}">{{ nome }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="text-modal" for="envio-data">Data de envio *</label>
+              <input type="date" id="envio-data" class="form-control text-modal" max="{{ hoje }}" value="{{ hoje }}">
+            </div>
+            <div class="col-12 mb-3">
+              <label class="text-modal" for="envio-empresa">Empresa</label>
+              <div class="d-flex gap-2">
+                <div class="flex-grow-1" style="min-width: 0;">
+                  <select id="envio-empresa" class="form-control">
+                    <option value="">Selecione a empresa</option>
+                    {% for empresa in empresas %}<option value="{{ empresa.id }}">{{ empresa.nome }}</option>{% endfor %}
+                  </select>
+                </div>
+                <button type="button" class="btn btn-white flex-shrink-0" id="nova-empresa-abrir" title="Adicionar outra empresa">
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+              </div>
+              <div class="input-group mt-2 d-none" id="nova-empresa-grupo">
+                <input type="text" id="nova-empresa-nome" class="form-control text-modal" maxlength="150" placeholder="Nome da nova empresa">
+                <button type="button" class="btn btn-dark d-flex align-items-center gap-2" id="nova-empresa-salvar">
+                  <span class="spinner-border spinner-border-sm" style="display:none"></span>
+                  <span>Adicionar</span>
+                </button>
+                <button type="button" class="btn btn-white" id="nova-empresa-cancelar" title="Cancelar"><i class="bi bi-x-lg"></i></button>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="text-modal" for="envio-observacao">Observação</label>
+              <textarea id="envio-observacao" class="form-control text-modal" rows="2" maxlength="1000"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div id="envio-passo-2" class="d-none">
+          <p class="mb-2">Qual reserva fica em <strong id="envio-local"></strong> enquanto <strong id="envio-codigo"></strong> estiver fora?</p>
+          <div id="lista-reservas" class="d-flex flex-column gap-2"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-white me-auto d-none" id="envio-voltar"><i class="bi bi-arrow-left me-1"></i> Voltar</button>
+        <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-dark" id="envio-proximo">Próximo <i class="bi bi-arrow-right ms-1"></i></button>
+        <button type="button" class="btn btn-dark d-none align-items-center gap-2" id="envio-confirmar">
+          <span class="spinner-border spinner-border-sm" style="display:none"></span>
+          <span role="status">Confirmar envio</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== RECEBIMENTO (passo 3) ===================== -->
+<div class="modal fade" id="modal-recebimento" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+          <h5 class="modal-title" id="recebimento-titulo">Registrar recebimento</h5>
+          <span class="desc-modal-title" id="recebimento-subtitulo"></span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="text-modal" for="recebimento-data">Data de recebimento *</label>
+            <input type="date" id="recebimento-data" class="form-control text-modal" max="{{ hoje }}">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="text-modal" for="recebimento-recarga">Próxima recarga</label>
+            <input type="month" id="recebimento-recarga" class="form-control text-modal">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="text-modal" for="recebimento-teste">Teste hidrostático (ano)</label>
+            <input type="number" id="recebimento-teste" class="form-control text-modal" min="1990" max="2100">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="text-modal" for="recebimento-cilindro">Nº do cilindro</label>
+            <input type="text" id="recebimento-cilindro" class="form-control text-modal" maxlength="50">
+          </div>
+          <div class="col-md-8 mb-3">
+            <label class="text-modal" for="recebimento-observacao">Observação</label>
+            <input type="text" id="recebimento-observacao" class="form-control text-modal" maxlength="1000">
+          </div>
+        </div>
+        <p class="small text-muted mb-3">Atualize as datas e o cilindro conforme o que voltou da empresa. As mudanças ficam no histórico do extintor.</p>
+
+        <label class="fw-semibold mb-2">Repor no local anterior?</label>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <input type="radio" class="btn-check" name="repor" id="repor-sim" value="sim">
+            <label class="btn btn-outline-success w-100 h-100 text-start p-3 opcao-repor" for="repor-sim">
+              <strong><i class="bi bi-arrow-counterclockwise me-1"></i> Sim, repor</strong>
+              <span class="d-block small mt-1" id="repor-sim-texto"></span>
+            </label>
+          </div>
+          <div class="col-md-6">
+            <input type="radio" class="btn-check" name="repor" id="repor-nao" value="nao">
+            <label class="btn btn-outline-secondary w-100 h-100 text-start p-3 opcao-repor" for="repor-nao">
+              <strong><i class="bi bi-arrow-left-right me-1"></i> Não</strong>
+              <span class="d-block small mt-1" id="repor-nao-texto"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-dark d-flex align-items-center gap-2" id="recebimento-confirmar">
+          <span class="spinner-border spinner-border-sm" style="display:none"></span>
+          <span role="status">Confirmar recebimento</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== DETALHE ===================== -->
+<div class="modal fade" id="modal-detalhe" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+          <h5 class="modal-title" id="detalhe-titulo">Manutenção</h5>
+          <span class="desc-modal-title" id="detalhe-subtitulo"></span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" id="detalhe-corpo"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-white" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CANCELAR ===================== -->
+<div class="modal fade" id="modal-cancelar" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Cancelar envio</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="desc-modal-title">Use quando o envio foi registrado por engano. <strong id="cancelar-descricao"></strong>
+          O registro continua no histórico como cancelado.</p>
+        <label class="text-modal" for="cancelar-motivo">Motivo *</label>
+        <textarea id="cancelar-motivo" class="form-control text-modal" rows="2" maxlength="1000"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-white" data-bs-dismiss="modal">Voltar</button>
+        <button class="btn btn-danger d-flex align-items-center gap-2" id="cancelar-confirmar">
+          <span class="spinner-border spinner-border-sm" style="display:none"></span>
+          <span role="status">Cancelar envio</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'incendio/_modal_historico.html' %}
+
+{{ manutencoes|json_script:"dados-manutencoes" }}
+{{ disponiveis|json_script:"dados-disponiveis" }}
+
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{% static 'incendio/js/manutencao.js' %}"></script>
+{% endblock %}

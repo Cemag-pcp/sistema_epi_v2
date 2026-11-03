@@ -14,7 +14,7 @@ from django.urls import reverse
 from usuario.models import Funcionario, Setor, Usuario
 from .models import (
     ComponenteHidrante, Extintor, FotoInspecao, Hidrante, HistoricoEquipamento,
-    InspecaoExtintor, InspecaoHidrante, calcular_status,
+    EmpresaManutencao, InspecaoExtintor, InspecaoHidrante, ManutencaoExtintor, calcular_status,
 )
 
 HOJE = date(2026, 10, 29)
@@ -339,6 +339,158 @@ class PaginasTests(BaseIncendioTests):
         self.client.force_login(operador)
         self.assertEqual(self.client.get(reverse('incendio:extintores')).status_code, 403)
         self.assertEqual(self._json('post', reverse('incendio:extintor-create-api'), {}).status_code, 403)
+
+
+class ManutencaoTests(BaseIncendioTests):
+    def setUp(self):
+        super().setUp()
+        self.extintor = self._extintor(codigo='EXT-01', localizacao='Portaria', agente='CO2')
+        self.reserva = self._extintor(codigo='EXT-43', localizacao='RESERVA', agente='CO2', reserva=True)
+        self.empresa = EmpresaManutencao.objects.create(nome='Extintores LTDA')
+
+    def _enviar(self, **extra):
+        payload = {'extintor': self.extintor.id, 'reserva': self.reserva.id, 'motivo': 'recarga',
+                   'empresa': self.empresa.id, 'data_envio': '2026-10-20', **extra}
+        return self._json('post', reverse('incendio:manutencao-enviar-api'), payload)
+
+    def _receber(self, id, repor, **extra):
+        payload = {'repor': repor, 'data_recebimento': '2026-10-28', **extra}
+        return self._json('post', reverse('incendio:manutencao-receber-api', args=[id]), payload)
+
+    def _recarregar(self):
+        self.extintor.refresh_from_db()
+        self.reserva.refresh_from_db()
+
+    def test_envio_coloca_reserva_no_local_e_registra_historico(self):
+        response = self._enviar()
+        self.assertEqual(response.status_code, 200)
+        self._recarregar()
+        self.assertEqual(self.extintor.localizacao, 'MANUTENÇÃO EXTERNA')
+        self.assertEqual(self.reserva.localizacao, 'Portaria')
+        m = ManutencaoExtintor.objects.get()
+        self.assertEqual((m.status, m.localizacao_original, m.localizacao_reserva_anterior),
+                         ('em_manutencao', 'Portaria', 'RESERVA'))
+        self.assertTrue(self.extintor.historico.filter(acao='enviado_manutencao').exists())
+        self.assertTrue(self.reserva.historico.filter(acao='reserva_alocada').exists())
+
+    def test_nao_envia_extintor_ja_em_manutencao_nem_reserva_ocupada(self):
+        self._enviar()
+        self.assertEqual(self._enviar().status_code, 400)
+        outro = self._extintor(codigo='EXT-02', localizacao='Refeitório')
+        self.assertEqual(self._enviar(extintor=outro.id).status_code, 400)  # reserva já está cobrindo a Portaria
+
+    def test_reserva_precisa_estar_marcada_como_reserva(self):
+        outro = self._extintor(codigo='EXT-02', localizacao='Refeitório')
+        self.assertEqual(self._enviar(reserva=outro.id).status_code, 404)
+
+    def test_envio_guarda_empresa(self):
+        dados = self._enviar(motivo='preventiva').json()['manutencao']
+        self.assertEqual(dados['empresa'], 'Extintores LTDA')
+        self.assertEqual(dados['motivo_display'], 'Manutenção preventiva')
+        self.assertEqual(self._enviar(extintor=self._extintor(codigo='EXT-02').id, reserva=None,
+                                      empresa=9999).status_code, 404)
+
+    def test_cadastro_rapido_de_empresa_reaproveita_nome_igual(self):
+        url = reverse('incendio:empresa-create-api')
+        criada = self._json('post', url, {'nome': '  Nova   Empresa '}).json()['empresa']
+        self.assertEqual(criada['nome'], 'Nova Empresa')
+        repetida = self._json('post', url, {'nome': 'nova empresa'}).json()['empresa']
+        self.assertEqual(repetida['id'], criada['id'])
+        self.assertEqual(self._json('post', url, {'nome': ' '}).status_code, 400)
+        self.assertEqual(EmpresaManutencao.objects.count(), 2)
+
+    def test_envio_sem_reserva(self):
+        self.assertEqual(self._enviar(reserva=None).status_code, 200)
+        self.assertIsNone(ManutencaoExtintor.objects.get().reserva)
+
+    def test_recebimento_repondo_volta_tudo_ao_lugar_e_atualiza_datas(self):
+        id = self._enviar().json()['manutencao']['id']
+        response = self._receber(id, True, proxima_recarga='2027-10', teste_hidrostatico_ano='2031')
+        self.assertEqual(response.status_code, 200)
+        self._recarregar()
+        self.assertEqual(self.extintor.localizacao, 'Portaria')
+        self.assertEqual(self.extintor.proxima_recarga, date(2027, 10, 1))
+        self.assertEqual(self.extintor.teste_hidrostatico_ano, 2031)
+        self.assertFalse(self.extintor.reserva)
+        self.assertEqual(self.reserva.localizacao, 'RESERVA')
+        self.assertTrue(self.reserva.reserva)
+        registro = self.extintor.historico.get(acao='recebido_manutencao')
+        self.assertIn('Próxima recarga: 05/2027 → 10/2027', registro.descricao)
+
+    def test_recebimento_sem_repor_troca_os_papeis(self):
+        id = self._enviar().json()['manutencao']['id']
+        self._receber(id, False)
+        self._recarregar()
+        self.assertTrue(self.extintor.reserva)
+        self.assertEqual(self.extintor.localizacao, 'RESERVA')
+        self.assertFalse(self.reserva.reserva)
+        self.assertEqual(self.reserva.localizacao, 'Portaria')
+        self.assertFalse(ManutencaoExtintor.objects.get().reposto)
+
+    def test_recebimento_exige_resposta_e_data_valida(self):
+        id = self._enviar().json()['manutencao']['id']
+        self.assertEqual(self._receber(id, None).status_code, 400)
+        self.assertEqual(self._receber(id, True, data_recebimento='2026-10-01').status_code, 400)
+        self.assertEqual(ManutencaoExtintor.objects.get().status, 'em_manutencao')
+
+    def test_nao_recebe_duas_vezes(self):
+        id = self._enviar().json()['manutencao']['id']
+        self._receber(id, True)
+        self.assertEqual(self._receber(id, True).status_code, 400)
+
+    def test_cancelar_desfaz_trocas_e_mantem_registro(self):
+        id = self._enviar().json()['manutencao']['id']
+        url = reverse('incendio:manutencao-cancelar-api', args=[id])
+        self.assertEqual(self._json('post', url, {}).status_code, 400)  # motivo obrigatório
+        self.assertEqual(self._json('post', url, {'motivo': 'Lançado errado'}).status_code, 200)
+        self._recarregar()
+        self.assertEqual(self.extintor.localizacao, 'Portaria')
+        self.assertEqual(self.reserva.localizacao, 'RESERVA')
+        self.assertEqual(ManutencaoExtintor.objects.get().status, 'cancelado')
+        # Depois de cancelado, os dois voltam a ficar disponíveis
+        self.assertEqual(self._enviar().status_code, 200)
+
+    def test_extintor_em_manutencao_nao_e_inspecionado_nem_fica_pendente(self):
+        self._enviar()
+        payload = {'extintor': self.extintor.id, 'situacao': 'ok', 'estado': 'ok', 'manometro': 'na', 'lacre': 'ok'}
+        response = self._json('post', reverse('incendio:inspecao-extintor-create-api'), payload)
+        self.assertEqual(response.status_code, 400)
+        pendentes = self.client.get(reverse('incendio:extintores')).context['pendentes']
+        self.assertEqual([e.codigo for e in pendentes], ['EXT-43'])
+
+    def test_historico_por_extintor(self):
+        primeira = self._enviar(data_envio='2026-09-01').json()['manutencao']['id']
+        self._receber(primeira, True, data_recebimento='2026-09-11')
+        cancelada = self._enviar(data_envio='2026-10-01').json()['manutencao']['id']
+        self._json('post', reverse('incendio:manutencao-cancelar-api', args=[cancelada]), {'motivo': 'Engano'})
+        self._enviar(data_envio='2026-10-20', motivo='preventiva')
+
+        dados = self.client.get(reverse('incendio:manutencao-historico-extintor-api', args=[self.extintor.id])).json()
+        self.assertEqual([m['status'] for m in dados['envios']], ['em_manutencao', 'cancelado', 'recebido'])
+        # Cancelado não conta; 10 dias da primeira + 9 dias da atual (até 29/10)
+        self.assertEqual(dados['resumo']['envios'], 2)
+        self.assertEqual(dados['resumo']['dias_fora'], 10 + 9)
+        self.assertTrue(dados['resumo']['em_manutencao'])
+
+        reserva = self.client.get(reverse('incendio:manutencao-historico-extintor-api', args=[self.reserva.id])).json()
+        self.assertEqual(reserva['resumo']['coberturas'], 2)
+        self.assertEqual(reserva['envios'], [])
+
+        pagina = self.client.get(reverse('incendio:historico-manutencao'))
+        linhas = {e['codigo']: e for e in pagina.context['extintores']}
+        self.assertEqual(linhas['EXT-01']['total_envios'], 2)
+        self.assertEqual(linhas['EXT-01']['ultimo_motivo'], 'Manutenção preventiva')
+        self.assertEqual(linhas['EXT-43']['total_envios'], 0)
+        self.assertEqual(linhas['EXT-43']['total_coberturas'], 2)
+
+    def test_paginas_abrem(self):
+        self._enviar()
+        self.assertEqual(self.client.get(reverse('incendio:manutencao')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('incendio:historico-manutencao') + f'?extintor={self.extintor.id}').status_code, 200)
+        cadastros = self.client.get(reverse('incendio:cadastros')).context['extintores']
+        self.assertEqual({e['codigo']: e['em_manutencao'] for e in cadastros}, {'EXT-01': True, 'EXT-43': False})
+        inspecao = self.client.get(reverse('incendio:inspecao-extintor', args=[self.extintor.qr_token]))
+        self.assertContains(inspecao, 'manutenção externa')
 
 
 class ImportacaoTests(TestCase):

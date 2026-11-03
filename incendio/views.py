@@ -24,7 +24,7 @@ from reportlab.pdfgen import canvas
 from usuario.decorators import somente_master
 from .models import (
     RESULTADO_CHOICES, ComponenteHidrante, Extintor, FotoInspecao, Hidrante, HistoricoEquipamento,
-    InspecaoExtintor, InspecaoHidrante, ItemInspecaoHidrante, primeiro_dia_mes,
+    InspecaoExtintor, InspecaoHidrante, ItemInspecaoHidrante, ManutencaoExtintor, primeiro_dia_mes,
 )
 
 RESULTADOS_VALIDOS = {valor for valor, _ in RESULTADO_CHOICES}
@@ -128,6 +128,14 @@ ROTULOS_EXTINTOR = {
 }
 
 
+def _esta_em_manutencao(extintor):
+    # As listagens marcam `_em_manutencao` de uma vez, para não consultar o banco a cada extintor
+    em_manutencao = getattr(extintor, '_em_manutencao', None)
+    if em_manutencao is None:
+        em_manutencao = extintor.manutencoes.filter(status='em_manutencao').exists()
+    return em_manutencao
+
+
 def _extintor_json(extintor):
     return {
         'id': extintor.id,
@@ -144,6 +152,7 @@ def _extintor_json(extintor):
         'teste_hidrostatico_vencido': extintor.teste_hidrostatico_vencido,
         'situacao_sugerida': extintor.situacao_sugerida(),
         'reserva': extintor.reserva,
+        'em_manutencao': _esta_em_manutencao(extintor),
         'ativo': extintor.ativo,
         'url_inspecao': reverse('incendio:inspecao-extintor', args=[extintor.qr_token]),
     }
@@ -273,6 +282,14 @@ def _salvar_componentes(hidrante, componentes):
 # Páginas
 # =============================================================================
 
+def _marcar_manutencao(extintores):
+    em_manutencao = ManutencaoExtintor.ids_em_manutencao()
+    extintores = list(extintores)
+    for extintor in extintores:
+        extintor._em_manutencao = extintor.id in em_manutencao
+    return extintores
+
+
 def _inicio_mes():
     return timezone.localdate().replace(day=1)
 
@@ -282,7 +299,7 @@ def _inicio_mes():
 def cadastros(request):
     # As tabelas são montadas no navegador a partir destes dados (criar/editar atualiza a linha sem recarregar)
     return render(request, 'incendio/cadastros.html', {
-        'extintores': [_extintor_json(e) for e in Extintor.objects.all()],
+        'extintores': [_extintor_json(e) for e in _marcar_manutencao(Extintor.objects.all())],
         'hidrantes': [_hidrante_json(h) for h in Hidrante.objects.prefetch_related('componentes')],
         'agentes': Extintor.AGENTE_CHOICES,
     })
@@ -292,7 +309,9 @@ def cadastros(request):
 @somente_master
 def extintores(request):
     inspecoes = InspecaoExtintor.objects.select_related('inspetor', 'extintor')
-    ativos = list(Extintor.objects.filter(ativo=True))
+    # Extintor fora para manutenção externa não está no local: não entra na inspeção do mês
+    em_manutencao = ManutencaoExtintor.ids_em_manutencao()
+    ativos = [e for e in Extintor.objects.filter(ativo=True) if e.id not in em_manutencao]
     inspecionados_mes = set(
         InspecaoExtintor.objects.filter(data_inspecao__date__gte=_inicio_mes())
         .values_list('extintor_id', flat=True)
@@ -351,6 +370,7 @@ def inspecao_extintor(request, token):
     return render(request, 'incendio/inspecao.html', {
         'tipo': 'extintor',
         'equipamento': extintor,
+        'em_manutencao': _esta_em_manutencao(extintor),
         'dados_iniciais': {
             'tipo': 'extintor',
             'equipamento': _extintor_json(extintor),
@@ -619,6 +639,8 @@ def inspecao_extintor_create_api(request):
         extintor = Extintor.objects.filter(id=data.get('extintor'), ativo=True).first()
         if not extintor:
             return _erro('Extintor não encontrado ou desativado', status=404)
+        if extintor.id in ManutencaoExtintor.ids_em_manutencao():
+            return _erro(f'{extintor.codigo} está em manutenção externa e não pode ser inspecionado')
 
         inspecao = InspecaoExtintor(extintor=extintor, inspetor=request.user)
         inspecao.copiar_dados_extintor()

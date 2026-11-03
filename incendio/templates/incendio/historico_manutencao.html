@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block links %}
+  <link rel="stylesheet" href="{% static 'incendio/css/incendio.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h3 class="mb-1 fw-bold">Histórico de Manutenções</h3>
+    <p class="text-muted mb-0">Escolha um extintor para ver todas as idas para manutenção externa e as vezes em que ele cobriu outro local como reserva.</p>
+  </div>
+  <a class="btn btn-white" href="{% url 'incendio:manutencao' %}"><i class="bi bi-truck me-1"></i> Ir para Manutenção</a>
+</div>
+
+<div class="row justify-content-between align-items-end mb-3 g-2">
+  <div class="col-md-4">
+    <label class="text-modal">Extintor</label>
+    <input type="text" class="form-control text-modal" id="filtro-texto" placeholder="Código, local ou nº do cilindro">
+  </div>
+  <div class="col-md-2">
+    <label class="text-modal">Tipo</label>
+    <select class="form-control text-modal" id="filtro-tipo">
+      <option value="">Todos</option>
+      {% for valor, nome in agentes %}<option value="{{ valor }}">{{ nome }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <div class="form-check form-switch mb-2">
+      <input class="form-check-input" type="checkbox" role="switch" id="filtro-com-manutencao" checked>
+      <label class="form-check-label text-modal" for="filtro-com-manutencao">Só com manutenção ou cobertura</label>
+    </div>
+  </div>
+  <div class="col-md"></div>
+</div>
+
+<table id="tabela-historico" class="table table-hover w-100">
+  <thead class="table-light">
+    <tr>
+      <th>Extintor</th>
+      <th>Local atual</th>
+      <th>Tipo</th>
+      <th class="text-center">Envios</th>
+      <th class="text-center">Coberturas</th>
+      <th>Última manutenção</th>
+      <th>Situação</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- Histórico do extintor -->
+<div class="modal fade" id="modal-historico-manutencao" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header align-items-start">
+        <div class="d-flex flex-column">
+          <h5 class="modal-title" id="hm-titulo">Histórico de manutenções</h5>
+          <span class="desc-modal-title" id="hm-subtitulo"></span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body" id="hm-corpo"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-white me-auto" id="hm-historico-geral"><i class="bi bi-clock-history me-1"></i> Histórico completo do extintor</button>
+        <button type="button" class="btn btn-white" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'incendio/_modal_historico.html' %}
+
+{{ extintores|json_script:"dados-extintores" }}
+{{ abrir|json_script:"abrir-extintor" }}
+
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="{% static 'incendio/js/historico-manutencao.js' %}"></script>
+{% endblock %}
