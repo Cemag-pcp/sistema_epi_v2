@@ -284,6 +284,11 @@ class HistoricoEquipamento(models.Model):
         ('inspecionado', 'Inspecionado'),
         ('inspecao_editada', 'Inspeção editada'),
         ('inspecao_excluida', 'Inspeção excluída'),
+        ('enviado_manutencao', 'Enviado para manutenção'),
+        ('recebido_manutencao', 'Recebido da manutenção'),
+        ('manutencao_cancelada', 'Envio para manutenção cancelado'),
+        ('reserva_alocada', 'Reserva alocada'),
+        ('reserva_liberada', 'Reserva liberada'),
     ]
 
     extintor = models.ForeignKey(
@@ -306,6 +311,99 @@ class HistoricoEquipamento(models.Model):
     def __str__(self):
         alvo = self.extintor or self.hidrante
         return f'{alvo} - {self.get_acao_display()}'
+
+
+LOCAL_RESERVA = 'RESERVA'
+LOCAL_MANUTENCAO = 'MANUTENÇÃO EXTERNA'
+
+
+class EmpresaManutencao(models.Model):
+    """Empresa que faz a manutenção externa (cadastrada direto pelo modal de envio)."""
+    nome = models.CharField(max_length=150, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class ManutencaoExtintor(models.Model):
+    """Envio de um extintor para manutenção externa, com a reserva que fica no lugar dele.
+
+    Fluxo: envio (extintor sai, reserva assume o local) → recebimento (repõe no local ou o
+    recebido vira reserva). O registro nunca é apagado: cancelar só desfaz as trocas de local.
+    """
+
+    STATUS_CHOICES = [
+        ('em_manutencao', 'Em manutenção'),
+        ('recebido', 'Recebido'),
+        ('cancelado', 'Cancelado'),
+    ]
+    MOTIVO_CHOICES = [
+        ('recarga', 'Recarga'),
+        ('teste_hidrostatico', 'Teste hidrostático'),
+        ('preventiva', 'Manutenção preventiva'),
+        ('corretiva', 'Manutenção corretiva'),
+        ('outro', 'Outro'),
+    ]
+
+    extintor = models.ForeignKey(Extintor, on_delete=models.PROTECT, related_name='manutencoes')
+    reserva = models.ForeignKey(
+        Extintor, on_delete=models.PROTECT, null=True, blank=True, related_name='coberturas',
+    )
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='em_manutencao')
+    motivo = models.CharField(max_length=20, choices=MOTIVO_CHOICES)
+    empresa = models.ForeignKey(
+        EmpresaManutencao, on_delete=models.PROTECT, null=True, blank=True, related_name='manutencoes',
+    )
+
+    # Locais antes do envio, para repor tudo no recebimento ou no cancelamento
+    localizacao_original = models.CharField(max_length=255)
+    localizacao_reserva_anterior = models.CharField(max_length=255, blank=True, null=True)
+
+    data_envio = models.DateField()
+    observacao_envio = models.TextField(blank=True, null=True)
+    enviado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+
+    data_recebimento = models.DateField(null=True, blank=True)
+    observacao_recebimento = models.TextField(blank=True, null=True)
+    recebido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+    reposto = models.BooleanField(null=True, blank=True)
+
+    data_cancelamento = models.DateTimeField(null=True, blank=True)
+    motivo_cancelamento = models.TextField(blank=True, null=True)
+    cancelado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-data_envio', '-id']
+
+    def __str__(self):
+        return f'{self.extintor.codigo} - {self.get_status_display()}'
+
+    @staticmethod
+    def ids_ocupados():
+        """Extintores presos a uma manutenção aberta: os que estão fora e as reservas cobrindo o local."""
+        abertas = ManutencaoExtintor.objects.filter(status='em_manutencao')
+        ids = set(abertas.values_list('extintor_id', flat=True))
+        ids |= set(abertas.exclude(reserva=None).values_list('reserva_id', flat=True))
+        return ids
+
+    @staticmethod
+    def ids_em_manutencao():
+        return set(
+            ManutencaoExtintor.objects.filter(status='em_manutencao').values_list('extintor_id', flat=True)
+        )
 
 
 def primeiro_dia_mes(valor):

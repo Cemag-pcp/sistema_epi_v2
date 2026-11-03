@@ -41,6 +41,12 @@
                     <i class="bi bi-exclamation-triangle me-1"></i>
                     Este equipamento está <strong>desativado</strong> no cadastro e não pode ser inspecionado.
                 </div>
+            {% elif em_manutencao %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-tools me-1"></i>
+                    Este extintor está em <strong>manutenção externa</strong> e não pode ser inspecionado.
+                    Inspecione a reserva que está no local dele.
+                </div>
             {% endif %}
 
             <div class="alert alert-info d-none" id="info-edicao" role="status"></div>
@@ -72,7 +78,7 @@
                 </div>
             </div>
 
-            {% if equipamento.ativo or edicao %}
+            {% if edicao or equipamento.ativo and not em_manutencao %}
             <div class="card mt-4 inspection-footer" id="footer-card">
                 <div class="card-body py-2 px-3 p-md-4">
                     <div class="progress mb-2">

@@ -44,8 +44,10 @@ const tabelaExtintores = $('#tabela-extintores').DataTable({
             data: 'codigo',
             render: (d, type, row) => textoOuBadge(
                 type,
-                row.reserva ? `${d} reserva` : d,
-                `<strong>${esc(d)}</strong>${row.reserva ? ' <span class="badge rounded-pill status-peding ms-1">Reserva</span>' : ''}`,
+                [d, row.reserva ? 'reserva' : '', row.em_manutencao ? 'em manutenção' : ''].join(' '),
+                `<strong>${esc(d)}</strong>`
+                    + (row.reserva ? ' <span class="badge rounded-pill status-peding ms-1">Reserva</span>' : '')
+                    + (row.em_manutencao ? ' <span class="badge rounded-pill bg-info text-dark ms-1">Em manutenção</span>' : ''),
             ),
         },
         { data: 'localizacao', render: (d, type) => textoOuBadge(type, d, esc(d)) },

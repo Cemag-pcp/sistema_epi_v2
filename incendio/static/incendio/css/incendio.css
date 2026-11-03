@@ -42,6 +42,103 @@
     cursor: pointer;
 }
 
+/* Manutenção: passos do fluxo (envio → reserva → recebimento) */
+.fluxo-passos {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fluxo-passo {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: #a1a1aa;
+    white-space: nowrap;
+}
+
+.fluxo-passo span {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid currentColor;
+    font-weight: 700;
+}
+
+.fluxo-passo.ativo {
+    color: #212529;
+    font-weight: 600;
+}
+
+.fluxo-passo.ativo span {
+    background-color: #212529;
+    border-color: #212529;
+    color: #fff;
+}
+
+.fluxo-passo.feito {
+    color: #16a34a;
+}
+
+.fluxo-linha {
+    flex: 1;
+    height: 2px;
+    background-color: #e4e4e7;
+}
+
+.opcao-reserva,
+#tabela-historico tbody tr {
+    cursor: pointer;
+}
+
+.opcao-repor {
+    font-weight: 400;
+}
+
+/* Linha do tempo do registro de manutenção */
+.linha-tempo {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.linha-tempo li {
+    position: relative;
+    padding: 0 0 1.25rem 1.75rem;
+    border-left: 2px solid #e4e4e7;
+    margin-left: 0.5rem;
+}
+
+.linha-tempo li:last-child {
+    border-left-color: transparent;
+    padding-bottom: 0;
+}
+
+.linha-tempo li::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #212529;
+}
+
+@media (max-width: 575.98px) {
+    .fluxo-passo {
+        font-size: 0;
+    }
+
+    .fluxo-passo span {
+        font-size: 0.85rem;
+    }
+}
+
 @media (max-width: 767.98px) {
     .kpi-valor {
         font-size: 1.4rem;

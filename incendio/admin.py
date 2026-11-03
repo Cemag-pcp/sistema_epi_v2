@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
-    ComponenteHidrante, Extintor, FotoInspecao, Hidrante, HistoricoEquipamento,
-    InspecaoExtintor, InspecaoHidrante, ItemInspecaoHidrante,
+    ComponenteHidrante, EmpresaManutencao, Extintor, FotoInspecao, Hidrante, HistoricoEquipamento,
+    InspecaoExtintor, InspecaoHidrante, ItemInspecaoHidrante, ManutencaoExtintor,
 )
 
 
@@ -42,5 +42,12 @@ class InspecaoHidranteAdmin(admin.ModelAdmin):
     inlines = [ItemInspecaoHidranteInline]
 
 
+@admin.register(ManutencaoExtintor)
+class ManutencaoExtintorAdmin(admin.ModelAdmin):
+    list_display = ('extintor', 'reserva', 'motivo', 'empresa', 'data_envio', 'data_recebimento', 'status')
+    list_filter = ('status', 'motivo', 'empresa')
+
+
+admin.site.register(EmpresaManutencao)
 admin.site.register(FotoInspecao)
 admin.site.register(HistoricoEquipamento)
