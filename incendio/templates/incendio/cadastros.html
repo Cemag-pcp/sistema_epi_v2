@@ -44,6 +44,14 @@
           <option value="Desativado">Desativado</option>
         </select>
       </div>
+      <div class="col-md-2">
+        <label class="text-modal">Uso</label>
+        <select class="form-control text-modal" id="filtro-reserva-extintor">
+          <option value="">Todos</option>
+          <option value="posto">Posto fixo</option>
+          <option value="reserva">Reserva</option>
+        </select>
+      </div>
       <div class="col-md-auto ms-auto d-flex gap-2 flex-wrap">
         <a class="btn btn-white" href="{% url 'incendio:etiquetas' %}?tipo=extintor" target="_blank">
           <i class="bi bi-qr-code me-1"></i> Imprimir etiquetas
@@ -158,6 +166,13 @@
             <div class="col-md-6 mb-3">
               <label class="text-modal">Teste hidrostático (ano)</label>
               <input type="number" id="extintor-teste" class="form-control text-modal" min="1990" max="2100" placeholder="Ex.: 2028">
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="extintor-reserva">
+                <label class="form-check-label text-modal" for="extintor-reserva">Extintor reserva</label>
+              </div>
+              <span class="desc-modal-title d-block pt-1">Fica no lugar de outro extintor enquanto ele está fora para recarga ou inspeção externa.</span>
             </div>
           </div>
         </div>

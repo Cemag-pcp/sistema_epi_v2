@@ -18,8 +18,8 @@ class ItemInspecaoHidranteInline(admin.TabularInline):
 @admin.register(Extintor)
 class ExtintorAdmin(admin.ModelAdmin):
     list_display = ('codigo', 'localizacao', 'numero_cilindro', 'agente', 'capacidade_kg',
-                    'proxima_recarga', 'teste_hidrostatico_ano', 'ativo')
-    list_filter = ('agente', 'ativo')
+                    'proxima_recarga', 'teste_hidrostatico_ano', 'reserva', 'ativo')
+    list_filter = ('agente', 'reserva', 'ativo')
     search_fields = ('codigo', 'localizacao', 'numero_cilindro')
 
 

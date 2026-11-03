@@ -26,7 +26,10 @@
                             {% if tipo == 'extintor' %}RQ ST-001-001 – Extintor{% else %}Hidrante{% endif %}
                             {% if edicao %}• <span class="text-warning fw-bold">Editando inspeção</span>{% endif %}
                         </div>
-                        <h1 class="h3 fw-bold mb-0">{{ equipamento.codigo }}</h1>
+                        <h1 class="h3 fw-bold mb-0">
+                            {{ equipamento.codigo }}
+                            {% if equipamento.reserva %}<span class="badge rounded-pill status-peding align-middle fs-6">Reserva</span>{% endif %}
+                        </h1>
                         <div class="text-muted">{{ equipamento.localizacao }}</div>
                         <div class="small mt-1" id="equipamento-detalhes"></div>
                     </div>

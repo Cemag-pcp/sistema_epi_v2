@@ -96,6 +96,21 @@ class CadastroExtintorTests(BaseIncendioTests):
         self.assertEqual(extintor.proxima_recarga, date(2027, 5, 1))
         self.assertEqual(extintor.historico.get().acao, 'criado')
 
+    def test_cria_extintor_reserva(self):
+        response = self._json('post', reverse('incendio:extintor-create-api'), {**self.payload, 'reserva': True})
+        self.assertTrue(response.json()['extintor']['reserva'])
+        self.assertTrue(Extintor.objects.get().reserva)
+
+    def test_extintor_sem_flag_nao_e_reserva(self):
+        self._json('post', reverse('incendio:extintor-create-api'), self.payload)
+        self.assertFalse(Extintor.objects.get().reserva)
+
+    def test_marcar_reserva_fica_no_historico(self):
+        extintor = self._extintor()
+        payload = {**self.payload, 'reserva': True}
+        self._json('put', reverse('incendio:extintor-api', args=[extintor.id]), payload)
+        self.assertIn('Reserva: Não → Sim', extintor.historico.get(acao='editado').descricao)
+
     def test_codigo_duplicado_retorna_400(self):
         self._extintor()
         response = self._json('post', reverse('incendio:extintor-create-api'), self.payload)
@@ -330,9 +345,26 @@ class ImportacaoTests(TestCase):
     def test_importa_planilha_sem_duplicar(self):
         call_command('importar_incendio', stdout=io.StringIO())
         call_command('importar_incendio', stdout=io.StringIO())
-        self.assertEqual(Extintor.objects.count(), 42)
+        self.assertEqual(Extintor.objects.filter(reserva=False).count(), 42)
+        self.assertEqual(Extintor.objects.filter(reserva=True).count(), 9)
         self.assertEqual(Hidrante.objects.count(), 8)
         self.assertIsNone(Extintor.objects.get(codigo='EXT-06').numero_cilindro)
         self.assertEqual(Extintor.objects.get(codigo='EXT-05').agente, 'PQS BC')
         self.assertEqual(Hidrante.objects.get(codigo='H1').descricao_componentes(), '02 Mangueira 15m, 03 Esguicho, 01 Chave')
-        self.assertEqual(HistoricoEquipamento.objects.filter(acao='criado').count(), 50)
+        self.assertEqual(HistoricoEquipamento.objects.filter(acao='criado').count(), 59)
+
+    def test_reservas_so_cria_as_que_faltam_sem_alterar_outros(self):
+        call_command('importar_incendio', stdout=io.StringIO())
+        posto = Extintor.objects.get(codigo='EXT-01')
+        posto.localizacao = 'Editado pela tela'
+        posto.save()
+        Extintor.objects.filter(codigo='EXT-53').delete()
+
+        call_command('importar_incendio', '--reservas', stdout=io.StringIO())
+
+        self.assertEqual(Extintor.objects.get(codigo='EXT-01').localizacao, 'Editado pela tela')
+        reserva = Extintor.objects.get(codigo='EXT-53')
+        self.assertTrue(reserva.reserva)
+        self.assertEqual(reserva.localizacao, 'RESERVA')
+        self.assertEqual(reserva.proxima_recarga, date(2027, 9, 1))
+        self.assertFalse(Extintor.objects.filter(codigo__in=['EXT-48', 'EXT-51']).exists())
