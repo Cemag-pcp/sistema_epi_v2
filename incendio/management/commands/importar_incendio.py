@@ -2,6 +2,9 @@
 
 Uso:  python manage.py importar_incendio
 Pode ser rodado de novo: atualiza pelo código, sem duplicar.
+
+      python manage.py importar_incendio --reservas
+Só cria os extintores reserva que ainda não existem; não altera nenhum outro cadastro.
 """
 import re
 from datetime import date
@@ -58,6 +61,20 @@ EXTINTORES = [
     (42, 'FRENTE REFEITÓRIO', '31228', 'ABC', '6', '12/2026', 2027),
 ]
 
+# Extintores reserva (lista "EXTINTORES RESERVAS"): Nº, nº do cilindro, tipo, capacidade, recarga, teste.
+# Ficam fora o 48 (cilindro 6142, já é o EXT-40) e o 51 (cilindro 31541, já é o EXT-16).
+RESERVAS = [
+    (43, '27595', 'CO2', '6', '05/2027', 2027),
+    (44, '552139', 'CO2', '6', '04/2027', 2030),
+    (45, '5327', 'ABC', '6', '04/2027', 2030),
+    (46, '1744', 'BC', '8', '05/2027', 2031),
+    (47, '1908', 'CO2', '6', '05/2027', 2027),
+    (49, '1688', 'ABC', '6', '07/2027', 2027),
+    (50, '20035', 'ABC', '6', '09/2027', 2029),
+    (52, '2212', 'ABC', '4', '09/2027', 2028),
+    (53, '12784', 'ABC', '4', '09/2027', 2030),
+]
+
 # Código, localização, [(componente, quantidade)]. Quantidade None = item só de verificação.
 # H7 tem "00 chave" na planilha: entra sem chave prevista.
 HIDRANTES = [
@@ -81,9 +98,44 @@ def _limpar(texto):
 class Command(BaseCommand):
     help = 'Importa os extintores e hidrantes da planilha do SESMT (atualiza pelo código, sem duplicar).'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--reservas', action='store_true',
+            help='Só cria os extintores reserva que ainda não existem, sem alterar os demais cadastros.',
+        )
+
+    def _importar_reservas(self):
+        criados = 0
+        for numero, cilindro, agente, capacidade, recarga, teste in RESERVAS:
+            mes, ano = recarga.split('/')
+            extintor, criado = Extintor.objects.get_or_create(
+                codigo=f'EXT-{numero:02d}',
+                defaults={
+                    'localizacao': 'RESERVA',
+                    'numero_cilindro': cilindro,
+                    'agente': AGENTES[agente],
+                    'capacidade_kg': Decimal(capacidade),
+                    'proxima_recarga': date(int(ano), int(mes), 1),
+                    'teste_hidrostatico_ano': teste,
+                    'reserva': True,
+                },
+            )
+            if criado:
+                criados += 1
+                HistoricoEquipamento.objects.create(
+                    extintor=extintor, acao='criado', descricao='Extintor reserva cadastrado pela importação da planilha'
+                )
+        return criados
+
     @transaction.atomic
     def handle(self, *args, **options):
+        if options['reservas']:
+            criados = self._importar_reservas()
+            self.stdout.write(self.style.SUCCESS(f'{criados} extintor(es) reserva criado(s).'))
+            return
+
         criados = atualizados = 0
+        criados += self._importar_reservas()
 
         for numero, local, cilindro, agente, capacidade, recarga, teste in EXTINTORES:
             mes, ano = recarga.split('/')

@@ -58,6 +58,8 @@ class Extintor(models.Model):
     # Guardamos sempre o dia 1 do mês: a validade vale até o fim desse mês
     proxima_recarga = models.DateField(null=True, blank=True)
     teste_hidrostatico_ano = models.PositiveIntegerField(null=True, blank=True)
+    # Extintor reserva: fica no lugar de outro enquanto ele está fora (recarga / inspeção externa)
+    reserva = models.BooleanField(default=False)
     qr_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     ativo = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

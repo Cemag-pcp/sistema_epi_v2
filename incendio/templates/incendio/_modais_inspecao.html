@@ -15,7 +15,7 @@
           <option value="">Selecione pelo código ou local</option>
           {% for equipamento in equipamentos %}
             <option value="{% if tipo == 'extintor' %}{% url 'incendio:inspecao-extintor' equipamento.qr_token %}{% else %}{% url 'incendio:inspecao-hidrante' equipamento.qr_token %}{% endif %}">
-              {{ equipamento.codigo }} – {{ equipamento.localizacao }}
+              {{ equipamento.codigo }} – {{ equipamento.localizacao }}{% if equipamento.reserva %} (reserva){% endif %}
             </option>
           {% endfor %}
         </select>

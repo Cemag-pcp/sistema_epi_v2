@@ -124,6 +124,7 @@ ROTULOS_EXTINTOR = {
     'capacidade_kg': 'Capacidade (kg)',
     'proxima_recarga': 'Próxima recarga',
     'teste_hidrostatico_ano': 'Teste hidrostático',
+    'reserva': 'Reserva',
 }
 
 
@@ -142,6 +143,7 @@ def _extintor_json(extintor):
         'recarga_vencida': extintor.recarga_vencida,
         'teste_hidrostatico_vencido': extintor.teste_hidrostatico_vencido,
         'situacao_sugerida': extintor.situacao_sugerida(),
+        'reserva': extintor.reserva,
         'ativo': extintor.ativo,
         'url_inspecao': reverse('incendio:inspecao-extintor', args=[extintor.qr_token]),
     }
@@ -157,6 +159,7 @@ def _extintor_snapshot(extintor):
         'capacidade_kg': f'{extintor.capacidade_kg.normalize()}' if extintor.capacidade_kg is not None else '',
         'proxima_recarga': _mes_ano(extintor.proxima_recarga),
         'teste_hidrostatico_ano': str(extintor.teste_hidrostatico_ano or ''),
+        'reserva': 'Sim' if extintor.reserva else 'Não',
     }
 
 
@@ -191,6 +194,7 @@ def _preencher_extintor(extintor, data):
     extintor.capacidade_kg = capacidade
     extintor.proxima_recarga = proxima_recarga
     extintor.teste_hidrostatico_ano = teste
+    extintor.reserva = bool(data.get('reserva'))
     extintor.full_clean()
 
 
