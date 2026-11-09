@@ -40,7 +40,16 @@ const tabelaExtintores = $('#tabela-extintores').DataTable({
     dom: 'rtip',
     pageLength: 25,
     columns: [
-        { data: 'codigo', render: (d, type) => textoOuBadge(type, d, `<strong>${esc(d)}</strong>`) },
+        {
+            data: 'codigo',
+            render: (d, type, row) => textoOuBadge(
+                type,
+                [d, row.reserva ? 'reserva' : '', row.em_manutencao ? 'em manutenção' : ''].join(' '),
+                `<strong>${esc(d)}</strong>`
+                    + (row.reserva ? ' <span class="badge rounded-pill status-peding ms-1">Reserva</span>' : '')
+                    + (row.em_manutencao ? ' <span class="badge rounded-pill bg-info text-dark ms-1">Em manutenção</span>' : ''),
+            ),
+        },
         { data: 'localizacao', render: (d, type) => textoOuBadge(type, d, esc(d)) },
         { data: 'numero_cilindro', render: (d, type) => textoOuBadge(type, d, d ? esc(d) : '<span class="text-muted">-</span>') },
         { data: 'agente', render: (d, type) => textoOuBadge(type, d, esc(d)) },
@@ -106,6 +115,14 @@ function configurarFiltros(tipo, filtroTexto, filtroStatus) {
 }
 
 configurarFiltros('extintor', 'filtro-extintor', 'filtro-ativo-extintor');
+
+const filtroReserva = document.getElementById('filtro-reserva-extintor');
+$.fn.dataTable.ext.search.push((settings, data, dataIndex) => {
+    if (settings.nTable.id !== 'tabela-extintores' || !filtroReserva.value) return true;
+    const reserva = tabelaExtintores.row(dataIndex).data().reserva;
+    return filtroReserva.value === 'reserva' ? reserva : !reserva;
+});
+filtroReserva.addEventListener('change', () => tabelaExtintores.draw());
 configurarFiltros('hidrante', 'filtro-hidrante', 'filtro-ativo-hidrante');
 
 // Tabela criada dentro de aba escondida fica com as colunas desalinhadas até ser redesenhada
@@ -154,6 +171,7 @@ function abrirModalExtintor(item = null) {
         document.getElementById('extintor-capacidade').value = item.capacidade_kg;
         document.getElementById('extintor-recarga').value = item.proxima_recarga;
         document.getElementById('extintor-teste').value = item.teste_hidrostatico_ano;
+        document.getElementById('extintor-reserva').checked = item.reserva;
     }
     modalExtintor.show();
 }
@@ -172,6 +190,7 @@ formExtintor.addEventListener('submit', async event => {
             capacidade_kg: document.getElementById('extintor-capacidade').value,
             proxima_recarga: document.getElementById('extintor-recarga').value,
             teste_hidrostatico_ano: document.getElementById('extintor-teste').value,
+            reserva: document.getElementById('extintor-reserva').checked,
         };
         const data = extintorEditando
             ? await api(`/incendio/api/extintores/${extintorEditando}/`, 'PUT', payload)
