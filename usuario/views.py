@@ -509,6 +509,11 @@ def get_funcionarios_pelo_setor(request, id):
 
     if request.method == 'GET':
 
+        funcionario = getattr(request.user, 'funcionario', None)
+        if (not request.user.is_superuser and funcionario and funcionario.tipo_acesso == 'solicitante'
+                and id not in funcionario.setores_de_atuacao_ids()):
+            return JsonResponse({'funcionarios': [], 'message': 'Você não tem acesso a este setor'}, status=403)
+
         funcionarios = list(Funcionario.objects.filter(setor__id=id, ativo=True).values('id','nome','matricula'))
 
         return JsonResponse({'funcionarios':funcionarios}, status=200)
@@ -545,15 +550,9 @@ def editar_funcionario(request, id):
                 # funcionario.nome = data.get('nome', funcionario.nome)
                 # funcionario.matricula = data.get('matricula', funcionario.matricula)
 
-                # verifica o setor antigo para verificar se o responsável do setor antigo é o funcionário
+                # A supervisão de setores não é alterada aqui: o supervisor pode cuidar de vários setores,
+                # inclusive de um diferente da sua lotação. Ela é gerenciada na tela de Setores.
                 with transaction.atomic():
-                    setor_antigo = funcionario.setor  
-
-                    # Se o funcionario for responsável de um setor, trocará o responsável do setor antigo para None
-                    if funcionario.setor.responsavel and funcionario.setor.responsavel.id == funcionario.id:
-                        setor_antigo.responsavel = None
-                        setor_antigo.save()
-                    
                     funcionario.nome = data.get('nome', funcionario.nome)
                     funcionario.matricula = data.get('matricula', funcionario.matricula)
                     funcionario.setor_id = int(data.get('setorId', funcionario.setor_id))
@@ -640,7 +639,12 @@ def api_setores(request):
         setor_id = request.GET.get('setor_id')
         
         query = Setor.objects.select_related('responsavel')
-        
+
+        # Solicitante (supervisor) só enxerga a lotação e os setores que supervisiona
+        funcionario = getattr(request.user, 'funcionario', None)
+        if not request.user.is_superuser and funcionario and funcionario.tipo_acesso == 'solicitante':
+            query = query.filter(id__in=funcionario.setores_de_atuacao_ids())
+
         if setor_id:
             query = query.filter(id=setor_id)
         
@@ -853,48 +857,41 @@ def editar_setor(request,id):
             try:
 
                 data = json.loads(request.body) if request.body else {}
-                print(data)
-                forcar = data['forcar'] == True
-                # print(forcar)
-                setor_antigo = None
-                if forcar:
-                    print('entrou no forcar')
-                    with transaction.atomic():
-                        novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
-                        setor_antigo = Setor.objects.filter(id=novo_responsavel.setor.id).first()
-                        setor_antigo.responsavel=None
-                        setor_antigo.save()
 
+                # Sem responsável: o setor fica sem supervisor (os outros setores dele não mudam)
+                if not data.get('responsavel'):
+                    setor.responsavel = None
+                    setor.save()
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Setor ficou sem responsável',
+                        'responsavel': None,
+                    }, status=201)
+
+                novo_responsavel = Funcionario.objects.filter(id=data.get('responsavel')).first()
+                if not novo_responsavel:
+                    return JsonResponse(
+                        {'success': False, 'message': 'Responsável não encontrado'},
+                        status=404
+                    )
+
+                # Um supervisor pode cuidar de vários setores: assumir este não tira ele dos outros.
+                with transaction.atomic():
+                    # A lotação do funcionário só acompanha o setor quando é o primeiro que ele supervisiona
+                    if not novo_responsavel.setores_supervisionados.exclude(id=setor.id).exists():
                         novo_responsavel.setor = setor
                         novo_responsavel.save()
 
-                        setor.responsavel = novo_responsavel
-                        setor.save()
-                else:
-                    for s in data.get('setores',[]):
-                        print(data['responsavel'] == s['responsavel_id'])
-                        if data['responsavel'] == s['responsavel_id'] and setor.id != s['id']:
-                            return JsonResponse(
-                            {'success': False, 'message': f'Solicitante escolhido já é responsável de outro setor!'},
-                            status=500
-                        )
+                    setor.responsavel = novo_responsavel
+                    setor.save()
 
-                    with transaction.atomic():
-                        novo_responsavel = Funcionario.objects.filter(id=data['responsavel']).first()
-                        setor.responsavel = novo_responsavel
-
-                        novo_responsavel.setor = setor
-                        novo_responsavel.save()
-
-                        setor.save()
-                
                 return JsonResponse({
-                    'success': True, 
+                    'success': True,
                     'message': f'Responsavel alterado com sucesso!',
-                    'responsavel': {'id':setor.responsavel.id, 
-                                    'nome': setor.responsavel.nome, 
-                                    'matricula': setor.responsavel.matricula, 
-                                    'setorVazio': setor_antigo.id if setor_antigo else ''
+                    'responsavel': {'id':setor.responsavel.id,
+                                    'nome': setor.responsavel.nome,
+                                    'matricula': setor.responsavel.matricula,
+                                    'setores': list(novo_responsavel.setores_supervisionados.values_list('nome', flat=True)),
                                     }
                 }, status=201)
                 

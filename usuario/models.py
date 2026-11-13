@@ -26,7 +26,8 @@ class UsuarioManager(BaseUserManager):
 
 class Setor(models.Model):
     nome = models.CharField(max_length=150)
-    responsavel = models.OneToOneField('Funcionario', on_delete=models.SET_NULL, null=True, blank=True, related_name='responsavel')
+    # ForeignKey (e não OneToOne): o mesmo supervisor pode ser responsável por mais de um setor
+    responsavel = models.ForeignKey('Funcionario', on_delete=models.SET_NULL, null=True, blank=True, related_name='setores_supervisionados')
 
     def __str__(self):
         return f'{self.nome}'
@@ -55,6 +56,21 @@ class Funcionario(models.Model):
 
     def __str__(self):
         return f'{self.matricula} - {self.nome}'
+
+    def setores_de_atuacao_ids(self):
+        """Setor de lotação mais os setores que ele supervisiona (um supervisor pode cuidar de vários)."""
+        ids = set(self.setores_supervisionados.values_list('id', flat=True))
+        if self.setor_id:
+            ids.add(self.setor_id)
+        return ids
+
+
+def setores_do_usuario(user):
+    """Ids dos setores que o usuário pode ver/gerenciar. None = todos (superusuário)."""
+    if user.is_superuser:
+        return None
+    funcionario = getattr(user, 'funcionario', None)
+    return funcionario.setores_de_atuacao_ids() if funcionario else set()
 
 
 class DDS(models.Model):

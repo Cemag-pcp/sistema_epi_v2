@@ -9,8 +9,20 @@ from django.http import JsonResponse
 from usuario.decorators import somente_master, master_solicit
 from .models import Padrao, PadraoFuncionario, PadraoEquipamento
 from equipamento.models import Equipamento
-from usuario.models import Funcionario
+from usuario.models import Funcionario, setores_do_usuario
 import json
+
+
+def _pode_gerenciar_setor(user, setor_id):
+    """Superusuário e master gerenciam qualquer setor; o solicitante só a lotação e os setores que supervisiona."""
+    funcionario = getattr(user, 'funcionario', None)
+    if user.is_superuser or (funcionario and funcionario.tipo_acesso == 'master'):
+        return True
+    setores = setores_do_usuario(user)
+    try:
+        return int(setor_id) in setores
+    except (TypeError, ValueError):
+        return False
 
 
 @login_required
@@ -45,7 +57,8 @@ def padroes(request):
                 )
             )
         else:
-            padroes_queryset = Padrao.objects.filter(setor=request.user.funcionario.setor).select_related("setor").prefetch_related(
+            # Lotação + setores que ele supervisiona
+            padroes_queryset = Padrao.objects.filter(setor__in=setores_do_usuario(request.user)).select_related("setor").prefetch_related(
                 'funcionarios',
                 Prefetch(
                     'padraofuncionario_set',
@@ -148,7 +161,10 @@ def padroes(request):
             
             if not data.get('funcionarios') or len(data['funcionarios']) == 0:
                 return JsonResponse({'success': False, 'message': 'Pelo menos um funcionário é necessário'}, status=400)
-            
+
+            if not _pode_gerenciar_setor(request.user, data.get('setor_id')):
+                return JsonResponse({'success': False, 'message': 'Você não tem acesso a este setor'}, status=403)
+
             with transaction.atomic():
 
                 if Padrao.objects.filter(nome=data.get('nome'), setor__id=data.get('setor_id')).exists():
@@ -216,10 +232,13 @@ def alter_padrao(request, id):
         
         if not padrao:
             return JsonResponse(
-                {'success': False, 'message': 'Equipamento não encontrado'}, 
+                {'success': False, 'message': 'Equipamento não encontrado'},
                 status=404
             )
-        
+
+        if not _pode_gerenciar_setor(request.user, padrao.setor_id):
+            return JsonResponse({'success': False, 'message': 'Você não tem acesso a este setor'}, status=403)
+
         if request.method == 'GET':
             try:
                 # Otimização: Usar select_related para setor e prefetch_related para relacionamentos
@@ -231,10 +250,9 @@ def alter_padrao(request, id):
                 # Otimização: Query única para equipamentos ativos com apenas os campos necessários
                 equipamentos = Equipamento.objects.filter(ativo=True).only('id', 'nome', 'codigo', 'tem_vida_util').order_by('id')
                 
-                # Otimização: Query condicional simplificada
-                setor_filter = padrao.setor if request.user.is_superuser else request.user.funcionario.setor
+                # Funcionários do setor do padrão (o acesso ao setor já foi conferido acima)
                 funcionarios = Funcionario.objects.filter(
-                    setor=setor_filter,
+                    setor=padrao.setor,
                     ativo=True
                 ).only('id', 'matricula', 'nome')
                 

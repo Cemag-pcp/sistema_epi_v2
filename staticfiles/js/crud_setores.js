@@ -75,6 +75,9 @@ function initializeSetorDataTable(data) {
                 data: 'responsavel__nome',
                 render: function(data, type, row) {
                     if (type === 'display') {
+                        if (!row.responsavel_id) {
+                            return '<span class="text-muted">Sem responsável</span>';
+                        }
                         return `
                             <div class="d-flex align-items-center">
                                 <div class="profile-img me-2">
@@ -84,7 +87,7 @@ function initializeSetorDataTable(data) {
                             </div>
                         `;
                     }
-                    return data;
+                    return row.responsavel_id ? data : 'Sem responsável';
                 }
             },
             { 
@@ -142,7 +145,7 @@ async function fetchSetores() {
 }
 
 // Function to update setor responsavel in API
-async function updateSetorResponsavel(id, responsavel, forcar=false) {
+async function updateSetorResponsavel(id, responsavel) {
     try {
         // Show loading spinner
         saveButtonText.classList.add('d-none');
@@ -156,53 +159,34 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken'),
             },
-            body: JSON.stringify({ responsavel: parseInt(responsavel), setores: setorDataLocal, forcar:forcar }),
+            body: JSON.stringify({ responsavel: responsavel ? parseInt(responsavel) : null }),
         });
         const updatedSetor = await response.json();
 
         if (!response.ok){
-            const errorMessage = updatedSetor.message || 'Erro ao atualizar responsável.';
-            if (errorMessage.includes('já é responsável de outro setor')) {
-            const result = await Swal.fire({
-                icon: 'warning',
-                title: 'Confirmação necessária',
-                text: errorMessage + ' O setor deste responsável ficará sem responsável! Deseja continuar mesmo assim?',
-                showCancelButton: true,
-                confirmButtonText: 'Sim, continuar',
-                cancelButtonText: 'Cancelar'
-            });
-            if (result.isConfirmed) {
-                // Reenvia a requisição com um sinalizador (ex: forçar)
-                return await updateSetorResponsavel(id, responsavel, true);
-            } else {
-                return; // Usuário cancelou
-            }
+            throw new Error(updatedSetor.message || 'Erro ao atualizar responsável.');
         }
-        }
-        
+
+        // O mesmo supervisor pode cuidar de vários setores: os outros setores dele não mudam
+
+        const responsavelAtualizado = updatedSetor.responsavel; // null = setor ficou sem responsável
         const index = setorDataLocal.findIndex(setor => setor.id == id);
         if (index !== -1) {
-            setorDataLocal[index].responsavel__nome = updatedSetor.responsavel.nome;
-            setorDataLocal[index].responsavel_id = updatedSetor.responsavel.id;
-            setorDataLocal[index].responsavel__matricula = updatedSetor.responsavel.matricula;
+            setorDataLocal[index].responsavel__nome = responsavelAtualizado ? responsavelAtualizado.nome : '--';
+            setorDataLocal[index].responsavel_id = responsavelAtualizado ? responsavelAtualizado.id : '';
+            setorDataLocal[index].responsavel__matricula = responsavelAtualizado ? responsavelAtualizado.matricula : '';
+            setorDataTable.row(index).data(setorDataLocal[index]).draw(false);
         }
 
-        setorDataTable.row(index).data(setorDataLocal[index]).draw(false);
-        
-        let indexSetorVazio;
-
-        if (updatedSetor.responsavel.setorVazio){
-            indexSetorVazio = setorDataLocal.findIndex(setor => setor.id == updatedSetor.responsavel.setorVazio);
-            if (indexSetorVazio !== -1){
-                setorDataLocal[indexSetorVazio].responsavel__nome = '--';
-                setorDataLocal[indexSetorVazio].responsavel_id = '';
-                setorDataLocal[indexSetorVazio].responsavel__matricula = '';
-            }
-            setorDataTable.row(indexSetorVazio).data(setorDataLocal[indexSetorVazio]).draw(false);
-        }
-        
         editSetorModal.hide();
-        showAlert('Responsável do setor atualizado com sucesso!');
+        const setores = responsavelAtualizado ? (responsavelAtualizado.setores || []) : [];
+        if (!responsavelAtualizado) {
+            showAlert('O setor ficou sem responsável.');
+        } else if (setores.length > 1) {
+            showAlert(`Responsável atualizado! ${responsavelAtualizado.nome} agora supervisiona: ${setores.join(', ')}.`);
+        } else {
+            showAlert('Responsável do setor atualizado com sucesso!');
+        }
         
         return id;
     } catch (error) {
@@ -217,15 +201,18 @@ async function updateSetorResponsavel(id, responsavel, forcar=false) {
 }
 
 // Handle Edit button click
-function handleEditClick(e) {
+async function handleEditClick(e) {
     e.preventDefault();
 
     const button = e.currentTarget;
     const id = button.dataset.id;
     const setor = button.dataset.setor;
     const responsavelId = button.dataset.responsavelId;
-    
-    responsavelSetorInput.innerHTML = "<option value=''>Selecione o responsável</option>";
+
+    // Recarrega a lista a cada abertura: supervisores cadastrados depois já aparecem
+    await fetchUsuarios();
+
+    responsavelSetorInput.innerHTML = "<option value=''>Nenhum (sem responsável)</option>";
 
     // Fill the form with current data
     usuariosData.forEach(usuario => {
@@ -245,8 +232,8 @@ function handleEditClick(e) {
     });
     setorIdInput.value = id;
     nomeSetorInput.value = setor;
+    $(responsavelSetorInput).trigger('change'); // atualiza o select2 com a opção marcada
 
-    
     // Show the modal
     editSetorModal.show();
 }
@@ -255,13 +242,8 @@ function handleEditClick(e) {
 saveSetorBtn.addEventListener('click', async function() {
     if (editSetorForm.checkValidity()) {
         const id = setorIdInput.value;
-        const responsavel = responsavelSetorInput.value;
-        
-        if (!responsavel) {
-            showAlert('Por favor, informe o responsável.', 'warning');
-            return;
-        }
-        
+        const responsavel = responsavelSetorInput.value; // vazio = "Nenhum"
+
         try {
             await updateSetorResponsavel(id, responsavel);
         } catch (error) {
