@@ -44,9 +44,8 @@ const tabelaExtintores = $('#tabela-extintores').DataTable({
             data: 'codigo',
             render: (d, type, row) => textoOuBadge(
                 type,
-                [d, row.reserva ? 'reserva' : '', row.em_manutencao ? 'em manutenção' : ''].join(' '),
+                [d, row.em_manutencao ? 'em manutenção' : ''].join(' '),
                 `<strong>${esc(d)}</strong>`
-                    + (row.reserva ? ' <span class="badge rounded-pill status-peding ms-1">Reserva</span>' : '')
                     + (row.em_manutencao ? ' <span class="badge rounded-pill bg-info text-dark ms-1">Em manutenção</span>' : ''),
             ),
         },
@@ -74,7 +73,17 @@ const tabelaExtintores = $('#tabela-extintores').DataTable({
                     : esc(d);
             },
         },
-        { data: 'ativo', render: (d, type) => textoOuBadge(type, d ? 'Ativo' : 'Desativado', badgeAtivo(d)) },
+        {
+            // Status: Ativo/Desativado e, quando for o caso, Reserva na mesma coluna
+            data: 'ativo',
+            render: (d, type, row) => textoOuBadge(
+                type,
+                `${d ? 'Ativo' : 'Desativado'}${row.reserva ? ' Reserva' : ''}`,
+                `<div class="d-flex flex-wrap gap-1">${badgeAtivo(d)}`
+                    + (row.reserva ? '<span class="badge rounded-pill status-peding">Reserva</span>' : '')
+                    + '</div>',
+            ),
+        },
         { data: null, orderable: false, searchable: false, render: (d, type, row) => menuAcoes('extintor', row) },
     ],
 });
@@ -107,7 +116,8 @@ function configurarFiltros(tipo, filtroTexto, filtroStatus) {
     const { tabela, colunaStatus } = TABELAS[tipo];
     const aplicarStatus = () => {
         const valor = document.getElementById(filtroStatus).value;
-        tabela.column(colunaStatus).search(valor ? `^${valor}$` : '', true, false).draw();
+        // Casa só o início: "Ativo Reserva" entra no filtro "Ativo"
+        tabela.column(colunaStatus).search(valor ? `^${valor}\\b` : '', true, false).draw();
     };
     document.getElementById(filtroTexto).addEventListener('input', e => tabela.search(e.target.value).draw());
     document.getElementById(filtroStatus).addEventListener('change', aplicarStatus);
