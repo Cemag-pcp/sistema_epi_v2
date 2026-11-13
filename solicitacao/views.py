@@ -6,7 +6,7 @@ from .models import Solicitacao
 from padrao.models import Padrao
 from equipamento.models import Equipamento
 from solicitacao.models import DadosSolicitacao
-from usuario.models import Funcionario
+from usuario.models import Funcionario, setores_do_usuario
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from usuario.decorators import somente_master, master_solicit
@@ -22,7 +22,8 @@ def solicitacao_template(request):
         if request.user.is_superuser == True:
             padroes = Padrao.objects.filter(ativo=True).values('id', 'nome')
         else:
-            padroes = Padrao.objects.filter(setor=request.user.funcionario.setor, 
+            # Lotação + setores que ele supervisiona
+            padroes = Padrao.objects.filter(setor__in=setores_do_usuario(request.user),
                                             ativo=True).values('id', 'nome')
             
         motivos = [{'id': reason[0], 'nome': reason[1]} for reason in DadosSolicitacao.REASON_CHOICES]
@@ -131,7 +132,8 @@ def solicitacao(request):
     if request.user.is_superuser == True:
         funcionarios = list(Funcionario.objects.filter(ativo=True).values('id', 'nome', 'matricula'))
     else:
-        funcionarios = list(Funcionario.objects.filter(setor=request.user.funcionario.setor, ativo=True).values('id', 'nome', 'matricula'))
+        # Lotação + setores que ele supervisiona
+        funcionarios = list(Funcionario.objects.filter(setor__in=setores_do_usuario(request.user), ativo=True).values('id', 'nome', 'matricula'))
 
     equipamentos = list(Equipamento.objects.values('id', 'nome', 'codigo', 'tem_vida_util'))
     

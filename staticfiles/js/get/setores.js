@@ -5,14 +5,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const selectSetores = document.getElementById('padrao_setor');
         const modalElement = document.getElementById('modal-criar-padrao');
-        const setorId = selectSetores.dataset.setorId;
-        
-        // Monta a URL com ou sem o parâmetro setor_id
-        let url = '/api_setores/';
-        if (setorId) {
-            url += `?setor_id=${setorId}`;
-        }
-    
+        // Para o solicitante, a API já devolve só a lotação e os setores que ele supervisiona
+        const url = '/api_setores/';
+
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -52,6 +47,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         $(selectSetores).on('change', function() {
             carregarFuncionariosPorSetor(this.value);
         });
+
+        // Com um setor só (solicitante de um setor), ele já vem escolhido
+        if (setores && setores.length === 1) {
+            $(selectSetores).val(String(setores[0].id)).trigger('change');
+        }
         
     } catch (error) {
         console.error('Erro ao carregar setores:', error);
